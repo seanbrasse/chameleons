@@ -33,6 +33,8 @@ export type Asset = {
 
 export type SiteSettings = {
   displayName: string;
+  /** What you are, for the line under the name. Distinct from `rolesOpenTo`, which is what you would take. */
+  role: string;
   tagline: string;
   availabilityStatus: AvailabilityStatus;
   rolesOpenTo: string[];

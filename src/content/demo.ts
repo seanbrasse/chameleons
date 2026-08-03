@@ -26,6 +26,7 @@ import type { Issue } from './types';
 
 const settings: Issue['settings'] = {
   displayName: 'Sean Brasse',
+  role: 'Software Engineer',
   tagline: 'Frontend engineer who ships the feature nobody wants to own.',
   // Employed and not urgently looking, but open to the right conversation.
   availabilityStatus: 'selective',

@@ -30,46 +30,53 @@ export function Template({
   );
 
   return (
-    <>
+    <div className="site-frame">
       <ThemeScript />
-      <div className="screen">
-        <div className="intro">
-          <ThemeToggle />
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
 
-          <div className="intro-lede">
-            <h1>{settings.displayName}</h1>
-            {settings.rolesOpenTo[0] && (
-              <p className="intro-role">
-                {settings.rolesOpenTo[0]}
-                {settings.location ? ` · ${settings.location}` : ""}
-              </p>
-            )}
-            <p className="intro-tagline">{settings.tagline}</p>
+      <main id="main">
+        <div className="screen">
+          <div className="intro">
+            <ThemeToggle />
 
-            {options.showSkills && settings.skills.length > 0 && (
-              <>
-                <h2 className="section-label intro-skills-label">Skills</h2>
-                <ul className="skills">
-                  {settings.skills.map((skill) => (
-                    <li key={skill}>{skill}</li>
-                  ))}
-                </ul>
-              </>
-            )}
+            <div className="intro-lede">
+              <h1>{settings.displayName}</h1>
+              {(settings.role || settings.location) && (
+                <p className="intro-role">
+                  {[settings.role, settings.location]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              )}
+              <p className="intro-tagline">{settings.tagline}</p>
+
+              {options.showSkills && settings.skills.length > 0 && (
+                <>
+                  <h2 className="section-label intro-skills-label">Skills</h2>
+                  <ul className="skills">
+                    {settings.skills.map((skill) => (
+                      <li key={skill}>{skill}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
           </div>
-        </div>
 
-        <section className="work" aria-labelledby="work-label">
-          <h2 className="sr-only" id="work-label">
-            Selected work
-          </h2>
-          <Work
-            projects={projects}
-            experiences={experiences}
-            education={education}
-          />
-        </section>
-      </div>
+          <section className="work" aria-labelledby="work-label">
+            <h2 className="sr-only" id="work-label">
+              Selected work
+            </h2>
+            <Work
+              projects={projects}
+              experiences={experiences}
+              education={education}
+            />
+          </section>
+        </div>
+      </main>
 
       <footer className="site-footer">
         <div className="site-footer-inner">
@@ -108,6 +115,6 @@ export function Template({
           </p>
         </div>
       </footer>
-    </>
+    </div>
   );
 }

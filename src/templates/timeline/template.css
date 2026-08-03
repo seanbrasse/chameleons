@@ -4,6 +4,19 @@
   initial-value: 700px;
 }
 
+/* ---------------------------------------------------------------------------
+   Sean Brasse — portfolio
+
+   One scrolling page: who, when, what, how to reach him. The layout is
+   deliberately ordinary, because the content is the thing being shown and a
+   layout that competes with it is a layout that wins an argument nobody
+   wanted to have.
+
+   Color lives in src/lib/tokens.ts and arrives as custom properties. A lint
+   rule fails the build on a hex literal anywhere in src/ outside that file and
+   the OG generator, which is what keeps the dark theme one file's work.
+--------------------------------------------------------------------------- */
+
 :root {
   color-scheme: light;
 
@@ -246,7 +259,6 @@ a:hover {
    `minmax(0, 1fr)` rather than `1fr`, because a grid row's automatic minimum
    size is its content — with a plain `1fr` the rail is sized by its tallest
    card and grows straight out of the viewport it was meant to fit. */
-
 .screen {
   width: 100%;
   height: 100%;
@@ -2727,3 +2739,5 @@ a:hover {
   .carousel-controls {
     margin-top: clamp(8px, 1.5vh, 14px);
   }
+}
+
