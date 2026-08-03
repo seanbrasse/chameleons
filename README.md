@@ -6,8 +6,9 @@ and publish it to their own subdomain, which we host.
 Successor to [`seanbrasse/portfolio-builder`](https://github.com/seanbrasse/portfolio-builder),
 whose single-owner portfolio becomes template #1.
 
-**Status: Phase 0.** Tenancy, routing and the test harness exist. Templates, the
-builder and publishing do not yet.
+**Status: Phase 0.** Tenancy, routing, the test harness and the snapshot
+publish/read path exist. Templates and the builder UI do not yet, so nothing
+calls `publishSite` from a form.
 
 ## Running it
 
@@ -63,6 +64,7 @@ src/
     (render)/s/[subdomain]/   a published portfolio (internal rewrite target)
   server/
     domain/               pure logic, no I/O — unit-tested without a database
+    services/             orchestration and side effects
     repos/                the only modules that import a database client
   lib/                    framework and client wiring
   proxy.ts                host → route group

@@ -1,19 +1,21 @@
 import { notFound } from 'next/navigation';
 
-import { findPublishedSite } from '@/server/repos/sites';
+import { readCurrentSnapshot } from '@/server/services/publishedSite';
 
 export const dynamicParams = true;
 
 export default async function Site({ params }: { params: Promise<{ subdomain: string }> }) {
   const { subdomain } = await params;
-  const site = await findPublishedSite(subdomain);
+  const published = await readCurrentSnapshot(subdomain);
 
-  if (!site) notFound();
+  if (!published) notFound();
+
+  const { settings } = published.snapshot.issue;
 
   return (
     <main>
-      <h1>{site.displayName}</h1>
-      <p>{site.tagline}</p>
+      <h1>{settings.displayName}</h1>
+      <p>{settings.tagline}</p>
     </main>
   );
 }
