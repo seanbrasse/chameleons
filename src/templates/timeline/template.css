@@ -1,0 +1,2729 @@
+@property --card-max {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 700px;
+}
+
+:root {
+  color-scheme: light;
+
+  --font-body:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  /* A second voice for the line under a name — a role under a company, a
+     degree under a school. A serif against the body's grotesque, because two
+     lines in the same face at the same size read as one wrapped label however
+     they are weighted. No network: this is whatever serif the system has. */
+  --font-secondary: ui-serif, Georgia, 'Times New Roman', serif;
+
+  /* One measure for prose, one for the page. Text that runs the width of a
+     desktop window is text nobody finishes. */
+  --measure: 62ch;
+  /* Fluid, so the layout scales up on a large monitor instead of stranding a
+     fixed 1140px column in a sea of margin. The 1140px floor keeps typical
+     laptops (≤~1540px wide) exactly as they were; above that the column grows
+     with the viewport up to a 2400px ceiling so a 27"/4K/ultrawide screen fills
+     out. The wider column is what lets `fit()` grow the card past the point
+     where the old 1900px cap made it height-bound — see `--card-max`. The 74vw
+     slope holds the column at its 1140px floor until ~1540px wide, so typical
+     laptops are untouched; it reaches the 2400px ceiling around a 3240px-wide
+     ultrawide. */
+  --page-max: clamp(1140px, 74vw, 2400px);
+  --gutter: clamp(20px, 5vw, 56px);
+
+  /* Space is the design. The reference gives its hero most of a screen and
+     puts a full empty one above it — the restraint is doing the work that
+     decoration would otherwise have to, and halving these numbers is the
+     fastest way to make this look like a generic template again. */
+  --space-section: clamp(96px, 14vw, 200px);
+  --footer-h: 78px;
+  --radius: 10px;
+
+  /* A photographic ground, if one has been supplied.
+     `none` by default, so the procedural layers below are what paints until a
+     file exists — a missing background-image is silently ignored rather than
+     erroring, which means these can point at files that are not there yet and
+     the page still looks finished.
+     Opacity and blend are per theme because one photograph cannot serve both:
+     a mid-grey asphalt laid over near-black needs to be lightened and held
+     back, and the same map over an off-white ground needs to be multiplied. */
+  /* Off. The asphalt is still in public/textures and this is the one line that
+     turns it back on:
+       --texture: image-set(url('/textures/asphalt.webp') type('image/webp'),
+                            url('/textures/asphalt.jpg')  type('image/jpeg'));
+     It shifted the ground's colour rather than only its surface — most visibly
+     in the light theme, where multiplying a mid-grey photograph over off-white
+     took the whole page toward beige. */
+  --texture: none;
+  --texture-blend: soft-light;
+  --texture-opacity: 0.5;
+  --texture-size: 520px;
+
+  --dur: 180ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+  /* Off, as above. The light variant is public/textures/asphalt-light.*, and it
+     needs `--texture-blend: multiply` alongside it. */
+  --texture: none;
+  --texture-blend: multiply;
+}
+
+/* Dark is the explicit switch away from the light default now, so its
+   `color-scheme` is set on the attribute rather than on `:root`. The dark
+   texture blend already lives in `:root` and applies whenever the light
+   override above does not, so only the scheme needs saying here. */
+[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  /* Carved stone, not troweled plaster.
+     The difference between the two references is frequency. Plaster is smooth
+     with broad tonal drift; stone is *granular* — a dense fine speckle over
+     larger chipped facets. So the fine layer moves up to a high baseFrequency
+     and gains strength, and the coarse layer keeps a low one for the facets,
+     with a displacement map so its edges break rather than blend.
+
+     Colour is untouched. Everything here is a neutral turbulence composited
+     over the palette's own ground, so the theme decides the hue and this only
+     decides the surface.
+
+     Opacities stay low for the reason they always have: this sits behind every
+     word on the page, and the audit samples the worst pixel behind each glyph
+     rather than the average. */
+  background-image:
+    /* Supplied texture first, so it is the top layer. `image-set` is not used
+       because these are a single file each; add a WebP alternate here if the
+       JPEG turns out to cost more than it is worth. */
+    var(--texture),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.03' numOctaves='5' seed='3' result='t'/%3E%3CfeDisplacementMap in='t' in2='t' scale='22'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23f)' opacity='0.08'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='3' seed='11'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23g)' opacity='0.07'/%3E%3C/svg%3E");
+  background-size: var(--texture-size), 300px 300px, 120px 120px;
+  background-blend-mode: var(--texture-blend), normal, normal;
+  background-attachment: fixed;
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* MOTION: everything below is a courtesy, not a mechanism. Nothing on this
+   page requires an animation to reach its resting state. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .project-card {
+    transition: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--link);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  /* The ember does the marking, the ink does the reading. The link text stays
+     the body colour — the accent is under AA as text on both grounds, and
+     legibility was never colour's job here — but the underline is drawn in the
+     accent, so a link carries the one warm line the rest of the type does not.
+     It is the same idea as the timeline cursor and the focus ring: the ember
+     appears exactly where something is live or actionable. */
+  text-decoration-color: var(--accent-a);
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* The little launch arrow on a link that opens a new tab. Decorative — the tab
+   behaviour is the fact, the glyph is the flourish — so it is aria-hidden and
+   free to wear the accent at full strength. `inline-block` keeps the link's
+   underline from running under it, so the arrow reads as a mark beside the
+   label rather than part of the word. */
+.link-arrow {
+  display: inline-block;
+  color: var(--accent-a);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 10px 16px;
+}
+
+.skip-link:focus {
+  left: 8px;
+  top: 8px;
+}
+
+/* The site's wrapper. Below the lock it is an ordinary column that grows with
+   its content; above it, the query further down pins it to the viewport. */
+.site-frame {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.site-frame > main {
+  min-height: 0;
+}
+
+.site-footer {
+  flex: none;
+}
+
+/* One screen ---------------------------------------------------------------
+
+   The page does not scroll. `100dvh` rather than `100vh` because mobile
+   browsers report `vh` against a viewport that includes the URL bar, which is
+   exactly the amount a fixed-height page then overflows by.
+
+   The lock is conditional, and that is not a hedge. Locking scroll makes
+   anything that does not fit unreachable — at 400% zoom, on a short laptop, or
+   with a large default font, "no scrollbar" becomes "the projects do not
+   exist". Below the height this layout needs, the page goes back to being an
+   ordinary scrolling document. WCAG 1.4.10 is the rule; the honest version is
+   that a design constraint should never win against being able to read the
+   page.
+--------------------------------------------------------------------------- */
+
+/* The lock. `html`/`body` become the frame and `main` takes what is left, so
+   the screen is sized by subtraction rather than by `100dvh` arithmetic that
+   has to know how tall the header and footer are. Getting that arithmetic
+   wrong is what put the cards under the footer the first time. */
+/* The screen: the intro, then the rail taking whatever height is left.
+   `minmax(0, 1fr)` rather than `1fr`, because a grid row's automatic minimum
+   size is its content — with a plain `1fr` the rail is sized by its tallest
+   card and grows straight out of the viewport it was meant to fit. */
+
+.screen {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  /* Both axes need the explicit zero minimum. A grid track's automatic minimum
+     is its content's max-content size, so the column grew to the rail's full
+     unwrapped width — about 1340px — and pushed the document sideways instead
+     of letting the rail scroll. `railScrollX` reading 0 while cards visibly ran
+     off the screen was the tell: nothing was overflowing the rail, because the
+     rail had been given room for all of it. */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: clamp(12px, 2vh, 24px);
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: clamp(20px, 4vh, 48px) var(--gutter) clamp(12px, 2vh, 24px);
+}
+
+/* Both dimensions, not just height. A phone is tall enough to pass a height
+   check and nowhere near wide enough to hold a name, a skills row and a card
+   rail in one view — locking scroll there does not produce a one-screen
+   layout, it produces a clipped one, with the cards past the second
+   unreachable. Below either threshold the page is an ordinary scrolling
+   document, which is also what 400% zoom and a short laptop get. */
+@media (min-height: 760px) and (min-width: 900px) {
+  /* The frame holds the height, not the document.
+     This was on `html`/`body`, so every page inherited it — the admin
+     included, where it clipped the form at one viewport and left the Save
+     button, the timeline editor and the project list rendered but unreachable.
+     Sizing the site's own wrapper instead keeps the body's content exactly one
+     viewport tall, so this page still does not scroll, and anything outside the
+     wrapper is an ordinary scrolling document again. */
+  .site-frame {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .site-frame > main {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .screen {
+    padding-top: clamp(16px, 3vh, 36px);
+  }
+}
+
+/* Full width, so the toggle it holds keeps the top-right corner. The intro's
+   copy is centred as a block by `.intro-lede` inside it, not by centring text —
+   see below. */
+.intro {
+  position: relative;
+}
+
+/* The lede: a block sized to its widest line (the tagline's measure) and
+   centred by its own auto side margins, so the name, role, tagline and skills
+   sit on the same axis as the timeline and the card below while staying
+   left-aligned within the block. `max-width: 100%` so a narrow viewport cannot
+   push it past the column edge. */
+.intro-lede {
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+.theme-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 5;
+}
+
+.intro h1 {
+  /* Smaller than it was. The carousel is the subject of this page now, and on
+     a screen that cannot scroll every point the name grows is a point the
+     cards lose. */
+  font-size: clamp(30px, 3.6vw, 44px);
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+}
+
+.intro-role {
+  font-size: clamp(14px, 1.6vw, 17px);
+  color: var(--ink-muted);
+  margin-top: 14px;
+  letter-spacing: 0.01em;
+}
+
+.intro-tagline {
+  font-size: clamp(15px, 1.5vw, 17px);
+  line-height: 1.5;
+  margin-top: 16px;
+  /* A wide measure on purpose. The tagline is the one running sentence on the
+     page and it reads better spanning the width the skills row and the card use
+     than stacked into a narrow tower under the name — so it is given a generous
+     measure (a touch past the classic prose maximum) that lets a ~160-character
+     line settle into two lines rather than four. This measure is what sets the
+     width of the centred `.intro-lede` block around it. */
+  max-width: 74ch;
+}
+
+.intro-skills-label {
+  margin-top: clamp(20px, 3.4vh, 34px);
+  margin-bottom: 14px;
+}
+
+.skills {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.skills li {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 5px 12px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  color: var(--ink);
+}
+
+/* The rail owns whatever height is left, and the cards fill it rather than
+   setting it — a card sized by its own content on a fixed-height page is the
+   thing that pushes the page past the fold. */
+.work {
+  display: flex;
+  flex-direction: column;
+  /* Bottom-aligned, and that is what closes the gaps.
+     The block below is shrink-wrapped — the stage is exactly as tall as a card
+     — so whatever height the screen has left over has to land somewhere. Here
+     it lands above the label, where it reads as breathing room under the intro,
+     rather than being split between the timeline and the cards and the cards
+     and the controls, where it read as three things drifting apart. */
+  justify-content: flex-end;
+  min-height: 0;
+}
+
+/* Layout ------------------------------------------------------------------ */
+
+.shell {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding-inline: var(--gutter);
+}
+
+.section {
+  padding-block: var(--space-section);
+  border-top: 1px solid var(--rule);
+}
+
+.section:first-of-type {
+  border-top: 0;
+}
+
+/* The label above each section. Set small and wide rather than large, so the
+   section's actual content is the biggest thing in it. */
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 10px;
+}
+
+.prose {
+  max-width: var(--measure);
+}
+
+/* Header ------------------------------------------------------------------ */
+
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.site-nav a {
+  color: var(--ink-muted);
+  text-decoration: none;
+  font-size: 14px;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.site-nav a:hover {
+  color: var(--ink);
+  background: var(--surface);
+}
+
+/* Below this the nav labels crowd the theme toggle off the line. The sections
+   are still reachable by scrolling, which is the only thing the nav does. */
+@media (max-width: 620px) {
+  .site-nav a {
+    display: none;
+  }
+}
+
+.theme-toggle {
+  font: inherit;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  border-color: var(--ink-muted);
+}
+
+.theme-toggle-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent-a);
+}
+
+/* Hero -------------------------------------------------------------------- */
+
+/* Most of a screen of nothing, then the name. The empty space above the fold
+   is the single loudest thing the reference does. */
+.hero {
+  min-height: min(88vh, 900px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-block: clamp(80px, 16vh, 200px) var(--space-section);
+}
+
+.hero h1 {
+  font-size: clamp(46px, 9vw, 104px);
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+}
+
+.hero-role {
+  font-size: clamp(17px, 2.2vw, 21px);
+  color: var(--ink-muted);
+  margin-top: 14px;
+}
+
+.hero-tagline {
+  font-size: clamp(19px, 2.6vw, 24px);
+  line-height: 1.45;
+  margin-top: 28px;
+  max-width: 26ch;
+}
+
+.hero-body {
+  margin-top: 20px;
+  color: var(--ink-muted);
+  max-width: var(--measure);
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 36px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.button[data-variant='primary'] {
+  background: var(--accent-a);
+  color: var(--on-accent);
+}
+
+.button[data-variant='primary']:hover {
+  background: color-mix(in srgb, var(--accent-a) 85%, var(--ink));
+}
+
+.button[data-variant='ghost'] {
+  border-color: var(--rule-strong);
+  color: var(--ink);
+  background: transparent;
+}
+
+.button[data-variant='ghost']:hover {
+  background: var(--surface);
+}
+
+/* The availability line. A fact a recruiter is scanning for, so it is a
+   labelled statement rather than a badge with a color and no words. */
+.availability {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  color: var(--ink-muted);
+  margin-bottom: 24px;
+}
+
+.availability-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-b);
+  flex: none;
+}
+
+/* Projects ---------------------------------------------------------------- */
+
+.projects-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* The carousel.
+ *
+ * Three cards visible, the middle one raised over the two beside it. Cards are
+ * absolutely positioned in a stage and placed by transform, which is what lets
+ * them overlap — a flow layout can only put them next to each other.
+ *
+ * Transform and opacity only. Both are compositor properties, so moving four
+ * cards costs no layout and no repaint; animating `left` or `width` here would
+ * reflow the whole stage on every frame of every transition.
+ */
+.carousel {
+  /* Sized by its content, not by the row. The cards are absolutely positioned,
+     so the stage's height is written from JS — see `fit()` — and the carousel
+     is exactly a card plus the controls beneath it. */
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /* Tight. The cards belong with the controls beneath them, not floating
+     halfway between those and the line above. */
+  gap: 6px;
+  /* Swiping should move the carousel, not scroll the page underneath it. */
+  touch-action: pan-y;
+}
+
+/* Only where there is a keyboard to earn it. iOS focuses this `tabindex`
+   container on a plain tap and matches `:focus-visible`, so an orange box
+   sprang up around the whole carousel every time a finger touched it and stayed
+   until something else took focus — the component reading as permanently
+   "selected". A touch device has no Tab key, so the ring guides nobody there;
+   gating it to hover-capable pointers keeps the keyboard affordance on the
+   desktop, where it is real, and takes the box off the phone, where it was
+   only noise. */
+@media (hover: hover) {
+  .carousel:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 6px;
+    border-radius: var(--radius);
+  }
+}
+
+/* And taken off entirely where there is no keyboard to earn it. The block above
+   only *adds* the carousel's own wider ring on hover-capable pointers — it never
+   removed the global `:focus-visible` outline, which still matches this
+   `tabindex` container on a touch device. That leak is what put the box back:
+   iOS focuses the container on a tap, so opening a card records it as the
+   focused element, and closing the card's `<dialog>` restores focus to it and
+   re-shows the ring. Overriding it here at higher specificity than the global
+   rule takes it off touch in every case, including that focus restoration. */
+@media (hover: none) {
+  .carousel:focus-visible {
+    outline: none;
+  }
+}
+
+/* The carousel's tunables live here rather than in the component, because all
+   four of them change at a breakpoint and a media query is the only place that
+   can say so. `fit()` and `paint()` read them off this element.
+
+   --spacing        how far apart the cards sit, as a fraction of a card's
+                    width. Under 1 they overlap; at 1 they abut.
+   --card-fraction  how much of the stage's width one card may take.
+   --card-max       the hard ceiling, whatever the arithmetic says.
+   --locked         1 when the one-screen layout is in force. Off it, height is
+                    not a constraint and the card is sized by width alone. */
+.carousel-stage {
+  --spacing: 0.62;
+  /* How much of the stage's width one card may take. This is the cap that binds
+     when the card has height to spare — a wide screen, or a short (one-row)
+     timeline that leaves a tall budget — and at 0.62 it stopped the card about a
+     tenth short of what the three-card layout can actually hold, so the leftover
+     height opened as dead space above the timeline instead of going into the
+     card. 0.7 lets `byWidth` reach `bySpan` (the real limit — the width past
+     which the two neighbours would run off the screen), so on those screens the
+     card grows to fill that gap. It changes nothing when the card is
+     height-bound instead (a narrow or short viewport with a taller timeline),
+     because there `byHeight` is already the smaller cap; see `fit()` in
+     Work.tsx. */
+  --card-fraction: 0.7;
+  /* Fluid ceiling, matched to the fluid `--page-max`: 700px on typical laptops
+     (where the card is height-bound anyway) and growing with the viewport on a
+     large monitor so the card scales up with the widened column instead of
+     staying pinned in the middle of a big screen. The ceiling is deliberately
+     high (1500px) so it stops being the binding cap on a big screen — there the
+     card is limited by the height that is left (`byHeight` in `fit()`) or by the
+     room its two neighbours need (`bySpan`), which is what makes it grow to fill
+     the vertical gap that used to open above the timeline on a tall monitor. */
+  --card-max: clamp(700px, 60vw, 1500px);
+  /* Defaults to on, and the responsive block at the end of this file turns it
+     off. The other way round did not work: `--locked: 1` lived in the
+     one-screen media query near the top, and this base declaration is later at
+     equal specificity, so it won everywhere and the locked layout never saw its
+     own flag. */
+  --locked: 1;
+  position: relative;
+  /* Exactly one card tall. The cards are out of flow, so the stage cannot
+     shrink-wrap them and the height is measured and written instead. Letting it
+     grow into the row was what put a hundred and fifty pixels of nothing above
+     and below the cards on a tall window. */
+  flex: none;
+  height: var(--card-h, 300px);
+  min-height: 0;
+  /* No `perspective`.
+     It was here to suggest depth, but nothing in the carousel rotates or
+     translates in Z — the cards only move and scale in two dimensions, so it
+     bought no visual effect at all. What it did buy was a 3D rendering context,
+     which puts every descendant on a composited layer and drops their text from
+     subpixel antialiasing to grayscale. That is not blur, but it is thinner and
+     softer type on the card and nowhere else on the page, which is exactly what
+     it looked like. */
+}
+
+.project-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* Width is measured, not declared. A full-width 16:9 well means image height
+     *is* card width x 0.5625, so the card's width and the space available to it
+     are the same question — and CSS cannot answer it, because a percentage
+     width cannot be derived from a parent's height. A ResizeObserver solves it
+     from the one place that knows both numbers.
+     The card is content-height and centred rather than stretched to the stage.
+     Pinning it top and bottom is what left the copy floating in a tall empty
+     panel: the card was the height of the stage and its contents were not. */
+  width: var(--card-w, 420px);
+  /* Height is declared, not inferred, and `fit()` rounds it to an even number.
+     A 16:9 well 430px wide is 241.875px tall, which made the card 366.125px and
+     `translate(-50%)` a fractional -183.0625px — every glyph inside then landed
+     off the pixel grid. An even height puts the centring translate on a whole
+     pixel; the width is rounded to a multiple of 16 so the well's height is
+     whole too. */
+  height: var(--card-h, 300px);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transform-origin: center center;
+  /* No transition on transform. Position is written every frame from the
+     animation loop, and a transition on top of that is a filter lagging behind
+     the value it is smoothing — the cards would drift a fixed distance behind
+     where they belong and stop late every time the carousel pauses.
+
+     Opacity is the exception, and only because it is a step rather than a
+     stream: it comes from the card's rank, which changes once when a card
+     crosses the halfway mark. See the note in Work.tsx. */
+  transition: opacity 420ms var(--ease);
+  /* No `will-change`.
+     Four cards permanently promoted is four layers held for the sake of a
+     gesture that happens occasionally, and a promoted layer renders its text
+     with grayscale antialiasing whether or not anything is moving. Chrome
+     promotes during the animation on its own — measured over 200 frames, taking
+     the hint away left the median frame at 16.7ms and removed the two dropped
+     frames that were there with it. */
+}
+
+/* Dark mode: a slightly brighter, still-hairline card edge. On the near-black
+   ground the default rule all but vanished — most of all on the dimmed
+   neighbour cards at the back of the stack, which read as edgeless blocks. A
+   thin cream-tinted border (still 1px) lifts that edge just enough to separate
+   the cards without drawing a hard outline on the front one. */
+[data-theme='dark'] .project-card {
+  border-color: color-mix(in srgb, var(--ink) 34%, transparent);
+}
+
+/* The front card, at full strength for the whole time it is the front card.
+ *
+ * The transition is asymmetric on purpose, and it is the whole trick. The
+ * duration that applies is the one declared on the state being entered, so
+ * promotion is instant while demotion takes the base 420ms. Symmetric timing
+ * means both cards are mid-fade at the same moment and neither is solid for a
+ * fifth of a second every time the order changes; even a 70ms ramp leaves a
+ * few frames where the front card is not opaque, which is measurable.
+ *
+ * Snapping up and easing down means the card on top is opaque at every frame
+ * it is on top, and the one it replaced dissolves out from underneath it. The
+ * snap is invisible because the card taking over is already the nearest thing
+ * to the middle when it happens. */
+.project-card[data-depth='0'] {
+  opacity: 1;
+  transition-duration: 0s;
+}
+
+/* Its neighbours. Far enough back that the one moving up is clearly still
+   waiting rather than half-arrived. */
+.project-card[data-depth='1'] {
+  opacity: 0.34;
+}
+
+/* Leaving the visible set is quick. The slow 420ms fade belongs to the card
+   being demoted from the front, where it is the crossfade; reusing it on the
+   way out means a fourth card is still dissolving at the edge long after it
+   stopped being one of the three, which is measurable and was. */
+.project-card[data-depth='2'] {
+  opacity: 0;
+  transition-duration: 110ms;
+}
+
+/* Where the cards sit before the script runs.
+
+   Every one is gated on `:not([data-depth])`, and that is not decoration. These
+   rules and the depth rules have the same specificity, and these come later in
+   the file — so `:nth-child(2) { opacity: 0.34 }` was quietly beating
+   `[data-depth='0'] { opacity: 1 }`, and the second card stayed faded for the
+   entire time it was the front card. Gating them means they stop applying the
+   moment the loop writes a depth, which is the first frame. The loop takes over on the first
+   frame; without this every card would be stacked dead centre in the server's
+   markup and the page would flash a pile of cards. */
+.project-card:not([data-depth]):nth-child(1) {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+  z-index: 100;
+}
+
+.project-card:not([data-depth]):nth-child(2) {
+  transform: translate(12%, -50%) scale(0.87);
+  opacity: 0.34;
+  z-index: 90;
+}
+
+.project-card:not([data-depth]):nth-child(n + 3) {
+  transform: translate(74%, -50%) scale(0.74);
+  opacity: 0;
+  z-index: 80;
+}
+
+.project-card[data-centre] {
+  box-shadow: 0 22px 48px color-mix(in srgb, var(--matte-shade) 55%, transparent);
+}
+
+/* The well the shot sits in. It holds the 16:9 shape and clips, so a shot
+   zoomed past its own box (see `scale`) is cropped to the frame rather than
+   spilling onto the card body below it. At scale 1 it is geometrically the same
+   box the image used to be, so nothing about the un-zoomed card changes. */
+.project-shot-frame {
+  flex: none;
+  display: block;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--surface-sunk);
+  border-bottom: 1px solid var(--rule);
+}
+
+.project-shot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The card clip's mute toggle, in the top corner of the well. Above the card's
+   invisible open-button (z-index 2) so it takes the click itself, and only ever
+   drawn on the front card while it is actually playing. Translucent surface so
+   the clip stays the thing, the same treatment the modal's own controls get. */
+.shot-mute {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  border: 1px solid var(--rule-strong);
+  border-radius: 50%;
+  cursor: pointer;
+  transition:
+    background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+
+.shot-mute:hover:not(:disabled),
+.shot-mute:focus-visible {
+  background: var(--surface);
+  border-color: var(--ink-muted);
+}
+
+/* A silent clip's control: present so the muted state is visible, but plainly
+   inert — dimmed, no hover lift, and the cursor says it will not respond. */
+.shot-mute:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.shot-mute svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+/* In the dialog, an empty well is capped. The 16:9 ratio exists so a real
+   screenshot is never letterboxed; a placeholder has no shape to preserve, and
+   at the dialog's width the honest ratio gives 585px of "no screenshot yet"
+   above two paragraphs of actual content. Only ever hit while a project has no
+   image — the moment one is uploaded, `.project-shot` renders instead and this
+   rule stops applying. */
+.dialog .project-shot-empty {
+  aspect-ratio: auto;
+  height: clamp(160px, 26vh, 260px);
+}
+
+.project-shot-empty {
+  aspect-ratio: 16 / 9;
+  flex: none;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  background: var(--surface-sunk);
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink-muted);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.project-body {
+  padding: 13px 16px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: none;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* The whole card is the target. Stretched over the card rather than wrapping
+   it, so the card's own layout is untouched and the button contributes no box
+   of its own. */
+.project-open {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.project-open:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -4px;
+  border-radius: var(--radius);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The "this opens" cue, top-left of the body. A pill in the ember accent, not
+   plain text, so it reads as a control — nothing else on the card said it was
+   one. `align-self: flex-start` keeps it hugging its own content rather than
+   stretching across the body. */
+.project-hint {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px 3px 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent-a) 35%, transparent);
+  background: color-mix(in srgb, var(--accent-a) 9%, transparent);
+  color: var(--accent-a);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1.3;
+  /* Only the front card opens on a click; a neighbour is brought to the middle
+     first, so "click for details" would be a lie there. Hidden rather than
+     removed on the others, so every card body keeps the same height and `fit()`
+     sizes them all alike (it measures one body for the whole ring). */
+  visibility: hidden;
+}
+
+.project-card[data-centre] .project-hint {
+  visibility: visible;
+}
+
+.project-hint svg {
+  width: 11px;
+  height: 11px;
+  flex: none;
+}
+
+/* Answers the pointer: a hover anywhere on the card warms the cue. */
+.project-card:hover .project-hint {
+  background: color-mix(in srgb, var(--accent-a) 16%, transparent);
+  border-color: color-mix(in srgb, var(--accent-a) 55%, transparent);
+}
+
+.project-context {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.project-logo {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  border-radius: 3px;
+}
+
+.project-title {
+  flex: none;
+  font-size: 20px;
+}
+
+/* Clamped rather than scrolled, and `flex: none` so the flex parent cannot
+   shrink the box below the lines the clamp allows and cut a line in half. */
+.project-summary {
+  flex: none;
+  font-size: 14px;
+  color: var(--ink-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Not on the carousel card. Summary, tech and the link all have to fit in the
+   height the carousel gets, and the summary says what the thing is while the
+   impact says how it went — someone who does not yet know the first cannot use
+   the second.
+
+   Scoped to the card, not to `.screen`. The dialog is rendered inside `.screen`
+   too, so the broader selector was hiding this in the one place that exists to
+   show it — the modal was dropping the impact and the tech row it is supposed
+   to carry in full. */
+.project-card .project-impact {
+  display: none;
+}
+
+.project-impact {
+  flex: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 8px 11px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--accent-a) 14%, transparent);
+  color: var(--ink);
+}
+
+.tech-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Not on the carousel card. The card is the poster — image, company, title,
+   one line of what it is — and clicking it opens a dialog that carries the
+   tech, the impact and the links in full. Same scoping fix as above. */
+.project-card .tech-row {
+  display: none;
+}
+
+/* Four chips, not the whole stack — on the card. The list wrapping to three
+   rows was the biggest consumer of card height. The dialog has the room and
+   shows every one. */
+.project-card .tech-row li:nth-child(n + 5) {
+  display: none;
+}
+
+.tech-row li {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 3px 8px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  color: var(--ink);
+}
+
+.project-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 14px;
+  margin-top: auto;
+}
+
+/* Controls ---------------------------------------------------------------- */
+
+.carousel-controls {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+
+.carousel-arrow {
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--rule-strong);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+
+.carousel-arrow:hover {
+  background: var(--surface);
+  border-color: var(--ink-muted);
+}
+
+/* Chevrons flanking the card. The stage is exactly one card tall and the card
+   is centred in it, so 50% of the stage is the card's middle; they sit on its
+   left and right edges from there. Hidden by default and shown on the phone
+   (below), where the peeking neighbours are too slight to signal that the
+   carousel moves — the desktop stack says that on its own. */
+.carousel-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 110;
+  display: none;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  font-size: 20px;
+  line-height: 1;
+  padding-bottom: 3px;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  color: var(--ink);
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.carousel-nav:hover {
+  border-color: var(--ink-muted);
+}
+
+.carousel-nav-prev {
+  left: 2px;
+}
+
+.carousel-nav-next {
+  right: 2px;
+}
+
+@media (max-width: 640px) {
+  .carousel-nav {
+    display: grid;
+  }
+}
+
+.carousel-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* The hit area is 20px even though the dot reads as 7px — a 7px target is
+   below every pointer-size guideline there is. */
+.carousel-dot {
+  display: block;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+}
+
+.carousel-dot::after {
+  content: '';
+  position: absolute;
+  inset: 50% auto auto 50%;
+  translate: -50% -50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink-muted);
+  transition: background var(--dur) var(--ease), scale var(--dur) var(--ease);
+}
+
+.carousel-dot[aria-current]::after {
+  background: var(--accent-a);
+  scale: 1.35;
+}
+
+.metric-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px;
+  margin-top: 40px;
+  list-style: none;
+  padding: 0;
+}
+
+.metric {
+  padding: 20px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.metric-value {
+  font-size: clamp(30px, 4.5vw, 42px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--accent-a);
+}
+
+.metric-label {
+  font-size: 14px;
+  color: var(--ink-muted);
+  margin-top: 8px;
+}
+
+/* Contact ----------------------------------------------------------------- */
+
+.contact-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.site-footer {
+  padding-block: 0 clamp(16px, 3vh, 28px);
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+
+.site-footer-inner {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding-inline: var(--gutter);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px 26px;
+}
+
+.footer-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 12px;
+}
+
+.footer-col ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+
+.footer-col a {
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.footer-col a:hover {
+  text-decoration: underline;
+}
+
+/* The mark, drawn rather than set — a circle with the initial in it. */
+.footer-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.footer-fine {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+/* Print ------------------------------------------------------------------- */
+
+@media print {
+  .site-footer,
+  .carousel-controls,
+  .theme-toggle {
+    display: none;
+  }
+
+  /* A carousel prints as whichever card happened to be in the middle, with the
+     other two ghosted beside it. Unstack it: the cards go back into flow at
+     full strength and print one after another. */
+  .carousel-stage {
+    display: grid;
+    gap: 16px;
+    /* The measured height holds one card. In print they are all in flow. */
+    height: auto;
+  }
+
+  .project-card {
+    position: static;
+    width: auto;
+    transform: none;
+    opacity: 1;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  .tech-row li:nth-child(n + 5) {
+    display: revert;
+  }
+
+  body {
+    background: none;
+  }
+
+  .section {
+    padding-block: 24px;
+    break-inside: avoid;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Timeline
+
+   The career on one line, above the carousel: years, where each job started and
+   ended, and the projects distributed along it. Everything is positioned as a
+   percentage of elapsed time rather than one slot per item — four months and
+   three years should not occupy the same width.
+
+   The bar is `aria-hidden`. A screen reader gets the same facts as an ordered
+   list of dated entries immediately after it, because a position on a line is
+   not information anyone can hear.
+--------------------------------------------------------------------------- */
+
+/* A single rule end to end, ticks where each company was joined, project dots
+   along it. It spans the full page rather than the content measure, so it reads
+   as the divider between the header and the work rather than as another block
+   inside the column. */
+.timeline {
+  flex: none;
+  /* Close to the cards. The line is the divider between the header and the
+     work, and a divider that sits nearer the header than the thing it divides
+     off reads as belonging to the header instead. */
+  margin: clamp(4px, 1vh, 12px) 0 8px;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  padding-inline: var(--gutter);
+}
+
+/* The labels stack into rows above the rule, and the number of rows is measured
+   rather than assumed — see `stack()` in Work.tsx. Everything below the labels
+   is positioned off `--stack` so that adding a row pushes the rule down instead
+   of overrunning the block above it. */
+.timeline-track {
+  /* The least whitespace two joins may sit apart before one is pushed onto a
+     row of its own. Lives here rather than in the component because the answer
+     depends on what a label is at this width, which is a thing the stylesheet
+     decides — see the narrow-viewport block, where the names come off. */
+  --join-gutter: 20px;
+  /* Only the value before hydration: the stacking effect measures the tallest
+     label and overwrites this. Set to what that measurement comes to — a 40px
+     badge, the 5px gap under it, the name's own line, the button's 5px of
+     padding and the effect's own 4px — so the first painted frame and the
+     measured one are the same height and the line does not jump. */
+  --row-h: 68px;
+  --stack: calc(var(--rows, 1) * var(--row-h));
+  position: relative;
+  height: calc(var(--stack) + 26px);
+  max-width: var(--page-max);
+  margin: 0 auto;
+}
+
+/* The inset band the whole line is positioned within. On a wide screen it
+   holds back a margin at each end so a label centred on the first or last tick
+   sits under its mark instead of hanging off the edge; on a phone the margin is
+   zero, because there the names are hidden and only the narrow badges show, so
+   the room is not needed and would only shorten the line. The per-label nudge
+   in Work.tsx still catches the mid widths where the band is thinner than the
+   widest label — this keeps that rare, not routine. */
+.timeline-band {
+  position: relative;
+  height: 100%;
+  margin-inline: var(--band-inset, 0px);
+}
+
+@media (min-width: 641px) {
+  .timeline-band {
+    --band-inset: clamp(64px, 8vw, 104px);
+  }
+}
+
+/* Left and width come from the component, because the rule is drawn in two
+   pieces: the scale changes at the first job, and the compressed stretch
+   before it is drawn fainter so the change is visible rather than implied. */
+.timeline-rule {
+  position: absolute;
+  top: var(--stack);
+  height: 1px;
+  background: var(--rule-strong);
+}
+
+.timeline-rule-lead {
+  background: var(--rule);
+}
+
+/* The accent arrowhead capping the right end of the line, so the rule reads as
+   pointing to the present rather than stopping dead. Centred on the rule at the
+   band's right edge, in the same ember as the cursor. Decoration only. */
+.timeline-cap {
+  position: absolute;
+  right: 0;
+  top: var(--stack);
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 8px solid var(--accent-a);
+}
+
+/* A year the line has no room for. Hidden rather than removed, so the next
+   measurement can put it back when the window grows. */
+.timeline-year[data-crowded] {
+  visibility: hidden;
+}
+
+.timeline-year {
+  position: absolute;
+  top: calc(var(--stack) + 11px);
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.1em;
+  color: var(--ink-muted);
+  line-height: 1;
+}
+
+/* Two-digit years on a narrow band, four-digit where there is room. Only one is
+   ever in the layout, so the collision measurement in `Timeline` reads the form
+   actually shown. The switch is at the same width the band gains its inset. */
+.timeline-year-full {
+  display: none;
+}
+
+@media (min-width: 641px) {
+  .timeline-year-full {
+    display: inline;
+  }
+
+  .timeline-year-short {
+    display: none;
+  }
+}
+
+/* A join: a label sitting on the rule with a tick through it.
+ *
+ * `--row` is written from JS. Row 0 rests on the rule; each row above it is
+ * lifted by one `--row-h` and grows a leader down to the rule, so a label that
+ * had to move out of the way still points at its own date. Two labels 97px
+ * apart on the line carrying 130px of type is not a spacing problem that can be
+ * tuned away — one of them has to move, and the leader is what keeps it legible
+ * when it does. */
+.timeline-join {
+  position: absolute;
+  top: 0;
+  height: var(--stack);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  /* The join's origin is the tick. The label centres itself on that origin and
+     the tick stays put — they move independently on purpose, because a label
+     centred over the first tick (at 0%) would run off the left edge, so it
+     clamps while its tick does not. */
+  align-items: flex-start;
+  padding-bottom: calc(var(--row, 0) * var(--row-h));
+}
+
+/* Leader and tick sit on the date — the join's left origin — not on the label,
+   which drifts sideways near the edges. Zero-height leader on row 0, the row
+   that rests on the rule and needs none. */
+.timeline-join::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  height: calc(var(--row, 0) * var(--row-h));
+  background: var(--rule-strong);
+}
+
+.timeline-join::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -6px;
+  width: 1px;
+  height: 12px;
+  background: var(--ink);
+}
+
+/* The joins are a list now. It carries the sequence for a screen reader; the
+   positioning is unchanged, because the items place themselves against the
+   track and this element has no box of its own. */
+.timeline-joins {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* A button, reset to look like the label it replaced. Pointing at a company is
+   how you get its dates, so the thing you point at has to be a control — and a
+   control that looks like a decoration is one nobody tries. */
+/* Mark over name, not beside it.
+   Two things come out of stacking them. The mark can be large without the
+   label becoming a long horizontal run — set beside the text, a 40px badge
+   adds 40px of width to every label, and width is what makes joins collide.
+   Set above it, the label is only as wide as its widest line, which is the
+   name it already was. So the badges doubled and the collisions went down.
+   Left-aligned rather than centred, because the tick and the leader are drawn
+   at the join's left edge; centring would put the mark half a label away from
+   the date it marks. */
+.timeline-company {
+  --badge: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 5px;
+  white-space: nowrap;
+  padding: 0 0 5px;
+  /* Centred on the tick, then clamped so it never runs off the track. The
+     button lays out from the tick (the join's left origin); -50% pulls its
+     middle onto the tick, and `--nudge`, written per label from JS, pushes it
+     back inside when centring alone would clip the first or last one. */
+  transform: translateX(calc(-50% + var(--nudge, 0px)));
+  margin: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* The dates, on hover or focus or tap.
+ *
+ * Anchored above the label rather than below it: below is where the rule, the
+ * years and the project marks are, and a tooltip landing on them covers the
+ * line it is describing. */
+.timeline-detail {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  white-space: nowrap;
+  padding: 7px 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--matte-shade) 30%, transparent);
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--ink-muted);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 120ms var(--ease),
+    visibility 120ms var(--ease);
+}
+
+.timeline-detail[data-open] {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Opens leftward past halfway across the line. */
+.timeline-detail[data-flip] {
+  left: auto;
+  right: 0;
+}
+
+.timeline-detail time {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* The secondary face lives here now. A serif against the body's grotesque is
+   what separates the job from the place when they are stacked — the reason it
+   was on the label, and the reason it moves rather than disappears. */
+.timeline-detail-role {
+  font-family: var(--font-secondary);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+/* The company is already set beside the badge at this width — repeating it in
+   the tooltip would be the same word twice, six pixels apart. It comes back
+   below 640px, where the label is hidden and the badge is all there is. */
+.timeline-detail-company {
+  display: none;
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Letter-spacing comes down as the size goes up. Tracking that opens up 10px
+   uppercase into something readable makes 12px uppercase merely wide, and
+   width is the scarce axis here — every extra pixel of label is another chance
+   of a collision that pushes a row onto the stack. */
+.timeline-name {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink);
+  line-height: 1.1;
+}
+
+/* The badge.
+ *
+ * A monogram unless a real logo has been supplied. Company logos are
+ * trademarks — Intuit and PayPal both publish guidelines restricting how their
+ * marks may be used — so the default here is a mark this site draws itself, and
+ * a real one only appears when a file is deliberately added to the experience.
+ * Nothing is fetched from a brand's servers and nothing is approximated. */
+.badge {
+  flex: none;
+  width: var(--badge, 28px);
+  height: var(--badge, 28px);
+  border-radius: 7px;
+  object-fit: contain;
+}
+
+/* A light plate behind a supplied logo in the dark theme.
+   Many marks are dark artwork on a transparent ground — the Avarint wordmark is
+   navy — and on a near-black page they simply disappear. A cream chip gives
+   them back the light ground they were drawn for. A mark that already carries
+   its own (a boxed crest, a coloured roundel) just fills the chip and is
+   unchanged. Scoped to `img.badge`, so the drawn monogram — which is styled for
+   the dark page — is left alone, and to the dark theme only, where the page is
+   near-black; the light theme is already the ground these logos expect.
+   `box-sizing: border-box` is global, so the padding insets the artwork without
+   changing the badge's size. */
+[data-theme='dark'] img.badge {
+  background: var(--ink);
+  padding: 2px;
+}
+
+.badge-mono {
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+/* The drawn mark has to grow with the box it is drawn in, or a school with no
+   crest reads as an empty square beside companies that have one. */
+.timeline-company .badge-mono {
+  font-size: 15px;
+  border-radius: 9px;
+}
+
+/* Smaller inside a line of text.
+   The timeline size is the default because there the badge is the subject —
+   it is what you point at, and at 20px an uploaded logo was too small to read
+   as one. On a card the same mark is a footnote to a title and should not
+   outweigh it, so it stays close to the type it sits beside. */
+.project-context .badge,
+.gallery-item-meta .badge {
+  --badge: 18px;
+  border-radius: 5px;
+}
+
+/* A project: a hairline tick on the rule, shorter and lighter than the ticks
+   that mark a job beginning (`.timeline-join::after`, 12px of full `--ink`). A
+   project is a smaller event than a role starting, and the mark should read as
+   one at a glance rather than as a row of dots competing with the badges above.
+   The ember cursor still rides over whichever project is showing, so the marks
+   themselves stay uniform and quiet. */
+/* A project mark is a button now — click it to move the carousel to that
+   project. The tick itself stays the same hairline; the button around it is a
+   comfortable, transparent hit target centred on the tick's position, with the
+   visible tick drawn as a pseudo-element so making it clickable does not make it
+   wider. */
+.timeline-mark {
+  position: absolute;
+  /* A 14px hit box centred on the rule where the 8px tick used to sit. */
+  top: calc(var(--stack) - 7px);
+  transform: translateX(-50%);
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.timeline-mark::before {
+  content: '';
+  /* The 8px tick straddling the rule — a touch shorter than the 12px job tick. */
+  width: 1px;
+  height: 8px;
+  background: var(--ink-muted);
+  transition:
+    background var(--dur) var(--ease),
+    width var(--dur) var(--ease);
+}
+
+/* On hover, focus or the active project, the tick lights and thickens so the
+   one you are pointing at — or the one the carousel is on — reads as live. */
+.timeline-mark:hover::before,
+.timeline-mark:focus-visible::before,
+.timeline-mark[aria-current]::before {
+  width: 2px;
+  background: var(--accent-a);
+}
+
+.timeline-mark:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* The project's name and date, above the tick, on hover / focus / tap. Mirrors
+   the company tooltip's look; centred on the tick, and anchored to an edge near
+   the ends of the line so it cannot run off the screen. */
+.timeline-mark-tip {
+  position: absolute;
+  bottom: calc(100% + 3px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  white-space: nowrap;
+  padding: 5px 9px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 7px;
+  background: var(--surface);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--matte-shade) 30%, transparent);
+  font-size: 11.5px;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 120ms var(--ease),
+    visibility 120ms var(--ease);
+}
+
+.timeline-mark-tip[data-edge='start'] {
+  left: 0;
+  transform: none;
+}
+
+.timeline-mark-tip[data-edge='end'] {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+/* `:focus-visible`, not `:focus`: a mouse click focuses the tick, and with
+   plain `:focus` the tooltip stayed pinned open after the pointer left. Keyboard
+   focus still shows it (that is what `:focus-visible` is), and a hover shows and
+   then hides it with the pointer. */
+.timeline-mark:hover .timeline-mark-tip,
+.timeline-mark:focus-visible .timeline-mark-tip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.timeline-now {
+  max-width: var(--page-max);
+  margin: 6px auto 0;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ink-muted);
+  min-height: 1.2em;
+}
+
+/* ---------------------------------------------------------------------------
+   Dialogs
+--------------------------------------------------------------------------- */
+
+.dialog {
+  /* A modal dialog is centred by `margin: auto` in the UA stylesheet, against
+     the special layout box the top layer gives it. The CSS reset sets
+     `margin: 0` on every element, which silently wins and drops the dialog into
+     the top-left corner — it looks like the dialog is unpositioned when in fact
+     its positioning was reset away. */
+  margin: auto;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  /* Bigger than the card it opened from — the card reaches 637px, and a
+     dialog narrower than that reads as a step backwards rather than a step
+     in. The `100vw` term is what makes one expression serve a phone too:
+     there it is the viewport less a margin, and the modal is near full width
+     because that is the whole screen there is. */
+  max-width: min(1040px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  color: var(--ink);
+}
+
+.dialog[data-wide] {
+  max-width: min(1240px, calc(100vw - 32px));
+}
+
+.dialog::backdrop {
+  background: color-mix(in srgb, var(--matte-shade) 72%, transparent);
+  backdrop-filter: blur(3px);
+}
+
+.dialog-panel {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: 14px;
+  overflow: auto;
+  max-height: calc(100dvh - 48px);
+}
+
+.dialog-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  font: inherit;
+  font-size: 13px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+/* On a phone the modal opens edge to edge with its media flush to the top, and
+   a video's controls are an overlay: iOS parks mute in the top-right, fullscreen
+   and picture-in-picture in the top-left, play in the middle. The close button
+   sat on top of that mute control. There is no free corner over the video, so
+   the fix is to stop overlaying at all — a short gutter drops the media below
+   the close, which now sits on the panel's own surface with nothing under it.
+   Desktop is untouched: there the browser lays the video's controls along the
+   bottom, so the top-right corner was never contested. */
+@media (max-width: 640px) {
+  .dialog-panel {
+    padding-top: 48px;
+  }
+}
+
+.dialog-title {
+  font-size: 24px;
+  letter-spacing: -0.02em;
+}
+
+.detail-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Summary and story each sit in a labelled block, so the two are plainly
+   different things rather than two runs of text that differ for no visible
+   reason. The label stacks tight above its content. */
+.detail-block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* The small heading over each block — the same uppercase label the admin uses,
+   so "Summary" and "The story" read as section markers, not body copy. */
+.detail-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+/* The brief lead in the opened card: the same teaser the carousel shows, in full
+   ink so it reads as the setup, with the muted story account flowing beneath. */
+.detail-summary {
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.55;
+}
+
+/* The STAR write-up, in its own scroll area so a long story does not push the
+   impact, tech and links off the bottom of the modal — the gallery and title
+   stay put and this panel scrolls. Capped by viewport height so it adapts to
+   the space the modal actually has. */
+.detail-story {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: min(46vh, 420px);
+  overflow-y: auto;
+  /* Room for the scrollbar and a soft edge, so text is not flush against it. */
+  padding-right: 8px;
+  margin-right: -8px;
+}
+
+/* Each STAR part is a paragraph in the flowing description — no label. The
+   container's gap spaces them, so they read as one account. */
+.detail-story p {
+  margin: 0;
+  color: var(--ink-muted);
+  /* Preserve the paragraph breaks an editor types into the textarea. */
+  white-space: pre-line;
+}
+
+/* The modal's image carousel. The positioning parent for the arrows, dots and
+   count that overlay the shot; with one image it adds nothing, so a
+   single-shot project looks exactly as it did. */
+.gallery-viewer {
+  position: relative;
+}
+
+/* Each image's slide. `display: contents` so the frame inside lays out exactly
+   as it did when the gallery rendered a single image directly — the wrapper adds
+   no box of its own — and `display: none` hides the ones off screen while
+   keeping their elements (and any clip's playhead) mounted. */
+.gallery-slide {
+  display: contents;
+}
+
+.gallery-slide[hidden] {
+  display: none;
+}
+
+/* Arrows, sat over the image and out of the way of its middle. Circular so they
+   read as controls on top of a photo, and translucent so the image is still
+   the thing. */
+.gallery-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  border: 1px solid var(--rule-strong);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+
+.gallery-nav:hover,
+.gallery-nav:focus-visible {
+  background: var(--surface);
+}
+
+.gallery-nav-prev {
+  left: 10px;
+}
+
+.gallery-nav-next {
+  right: 10px;
+}
+
+/* Dots, centred along the bottom edge of the image. */
+.gallery-dots {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  gap: 7px;
+  margin: 0;
+  padding: 6px 9px;
+  list-style: none;
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  border-radius: 999px;
+}
+
+.gallery-dot {
+  display: block;
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--rule-strong);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+
+.gallery-dot[aria-current] {
+  background: var(--accent-a);
+}
+
+/* Announced, not drawn. The dots already show the position; a number under them
+   was the same fact twice, sitting on top of the dots. This keeps the live
+   announcement for a screen reader and takes the duplicate off the screen. */
+.gallery-counter {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The gallery panel has no image, so it pads itself. */
+.dialog[data-wide] .dialog-panel {
+  padding: 24px;
+}
+
+.gallery-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  margin: 18px 0 20px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.field select {
+  font: inherit;
+  font-size: 14px;
+  padding: 8px 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.gallery-count {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.gallery-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.gallery-item {
+  width: 100%;
+  height: 100%;
+  text-align: left;
+  font: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease);
+}
+
+.gallery-item:hover {
+  border-color: var(--ink-muted);
+}
+
+.gallery-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.gallery-item-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.gallery-item-summary {
+  font-size: 13px;
+  color: var(--ink-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* The control that replaced the arrows. */
+.gallery-button {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  /* One line. Squeezed into the controls row on a phone the flex parent handed
+     it a width that broke "All projects" across two lines; the label is short
+     enough to never need wrapping, so it should not. */
+  white-space: nowrap;
+  padding: 8px 15px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.gallery-button:hover {
+  background: var(--surface);
+  border-color: var(--ink-muted);
+}
+
+/* The progress cursor: where the carousel is, on the line. Placed from the
+   animation frame, so no transition — it is already following an eased value
+   and smoothing it twice would put it behind the cards it is reporting on. */
+.timeline-cursor {
+  position: absolute;
+  top: calc(var(--stack) - 5px);
+  width: 11px;
+  height: 11px;
+  margin-left: -5px;
+  border-radius: 50%;
+  background: var(--accent-a);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-a) 22%, transparent);
+  z-index: 2;
+}
+
+/* ---------------------------------------------------------------------------
+   Responsive
+
+   Last in the file on purpose. These override the tunables declared on
+   `.carousel-stage` above, and at equal specificity the later rule wins —
+   sitting these next to the lock query, where they read better, meant the base
+   declarations quietly won and the phone got the desktop's numbers.
+--------------------------------------------------------------------------- */
+
+/* Below the lock. The exact complement of the one-screen query, so there is no
+   band where both apply and none where neither does. Here the page is an
+   ordinary scrolling document: nothing competes for a fixed height, so nothing
+   needs to be bottom-aligned into one. */
+@media (max-width: 899px), (max-height: 759px) {
+  /* Content height, not screen height. Left at 100% the grid keeps trying to
+     fit an intro, a timeline and a card into a viewport that cannot hold all
+     three, and the overflow lands on top of the cards rather than below them. */
+  .screen {
+    height: auto;
+  }
+
+  /* Nothing to push down to. The block starts under the intro and the page
+     scrolls past it. */
+  .work {
+    justify-content: flex-start;
+  }
+
+  /* In the content column, not full-bleed.
+     The desktop timeline is pulled out to the viewport with a negative
+     margin-left; restating `margin` as a shorthand here reset that to zero
+     while leaving `width: 100vw` in place, so the line started at the gutter
+     and ran 20px off the right edge. On a phone a rule that ignores the
+     gutter buys nothing anyway — lining it up with the text is symmetric by
+     construction rather than by arithmetic. */
+  .timeline {
+    width: auto;
+    margin: clamp(10px, 3vw, 20px) 0 8px;
+    padding-inline: 0;
+  }
+
+  /* Height does not constrain here; the page scrolls, and `fit()` takes its
+     budget from the viewport instead of the region. */
+  .carousel-stage {
+    --locked: 0;
+  }
+
+  /* The cards past the third are laid out and transparent, not absent, so they
+     still push the document's scroll width out — about 300px of empty page to
+     the right at tablet size. The locked layout never showed it because it
+     hides overflow outright.
+
+     `clip` rather than `hidden`: hidden on one axis forces the other to scroll,
+     which would trap the page's own vertical scrolling in a container. */
+  html,
+  body {
+    overflow-x: clip;
+  }
+
+  .site-frame {
+    min-height: 100dvh;
+  }
+}
+
+/* Narrow. A phone: one card at a time rather than three overlapping, and a
+   timeline that keeps its marks and drops its labels — the line is about 350px
+   wide here and "Full-Stack Software Engineer" is half of that on its own. */
+@media (max-width: 640px) {
+  .carousel-stage {
+    /* Cards abut with a sliver of the next showing, instead of stacking on top
+       of each other. At this width an overlap does not read as depth, it reads
+       as three cards printed on top of one another. */
+    --spacing: 1.02;
+    /* The card is sized straight off the viewport width here, not the height
+       budget — see the fill-mode note in `fit()`. 0.92 spends the width the
+       phone has (the tall-phone slack cannot go into a 16:9 card without making
+       it wider than the screen), while a thin margin each side keeps it reading
+       as an object with the neighbours peeking past its edges. `--card-fraction`
+       stays as the fallback for the height-budget path, which this overrides. */
+    --card-vw: 0.92;
+    --card-fraction: 0.98;
+  }
+
+  /* More air between the line, the card and the controls than the 6px the
+     desktop stack uses. On a phone the three are the whole screen, and a little
+     space between them is what keeps the view from feeling tight. The margin
+     opens the same room above and below the carousel as a whole — between it and
+     the timeline over it, and the footer under it — so the cards sit in a band
+     of their own rather than wedged between the two. The page scrolls freely at
+     this width, so the extra height costs nothing but a few pixels of scroll on
+     the shortest phones. */
+  .carousel {
+    gap: 12px;
+    margin-block: clamp(8px, 2vh, 16px);
+  }
+
+  /* Badges only. Tapping one still gives the company, the role and the dates,
+     and the button's label carries all three for a screen reader either way —
+     so this drops one rendering of the facts, not the facts. */
+  .timeline-name {
+    display: none;
+  }
+
+  /* Half the clearance, because a label here is one square rather than a run
+     of text. At the full 20px, four badges spread across a phone collide on
+     paper while sitting visibly apart on screen — and the row that buys them
+     costs about fifty pixels, which is the difference between this page
+     fitting a short phone and scrolling. */
+  .timeline-track {
+    --join-gutter: 8px;
+  }
+
+  /* Sized against the viewport, not picked.
+     With the names hidden the badge *is* the label, so its width sets the
+     pitch — and the gap between the closest pair of joins is a percentage of
+     a track that is itself a percentage of the screen. A fixed size cannot be
+     right at both 320px and 640px: 32px fits one row on a 390 and spills onto
+     two on a 360, which costs ~40px and is the difference between this page
+     fitting a short phone and scrolling. Tying it to `vw` makes the badge as
+     large as the space between the joins allows, at every width, instead of
+     as large as the narrowest phone can bear. */
+  .timeline-company {
+    --badge: clamp(26px, 8vw, 34px);
+  }
+
+  .timeline-detail-company {
+    display: block;
+  }
+
+  .timeline-year {
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+
+  /* Announced, not drawn.
+     It names the project the carousel is on — which the card directly beneath
+     it already says, in larger type. On a screen this tight that is twenty-odd
+     pixels spent saying something twice, and those pixels go to the card. The
+     live region stays, so a screen reader is still told when the carousel
+     moves; only the duplicate rendering goes. */
+  .timeline-now {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* Everything below is one decision, applied in a dozen places: on a phone the
+     contact details have to be on screen without scrolling, and the only way to
+     buy that is to take a few pixels from every block above them. The card is
+     sized by what is left over, so trimming here is what makes the card bigger
+     rather than smaller — it is competing with the chrome, not with the
+     footer. */
+  .screen {
+    padding-top: clamp(12px, 2vh, 20px);
+    padding-bottom: 8px;
+    gap: clamp(8px, 1.4vh, 16px);
+  }
+
+  .intro h1 {
+    font-size: 27px;
+  }
+
+  .intro-role {
+    font-size: 13px;
+    margin-top: 8px;
+  }
+
+  .intro-tagline {
+    font-size: 14px;
+    line-height: 1.4;
+    margin-top: 10px;
+    max-width: none;
+  }
+
+  .intro-skills-label {
+    margin-top: clamp(10px, 1.6vh, 16px);
+    margin-bottom: 8px;
+  }
+
+  .timeline {
+    margin: clamp(8px, 2vw, 14px) 0 6px;
+  }
+
+  /* The card is the poster here: image, company, title, a line of what it is.
+     The detail dialog carries the rest and is a tap away. */
+  .project-body {
+    padding: 9px 12px 11px;
+    gap: 3px;
+  }
+
+  .project-context {
+    font-size: 10px;
+    line-height: 1.3;
+  }
+
+  .project-title {
+    font-size: 17px;
+  }
+
+  .project-summary {
+    font-size: 12.5px;
+    line-height: 1.4;
+  }
+
+  .carousel-controls {
+    gap: 14px;
+  }
+
+  /* Minimized here, at the reader's request. With a project per dot the row got
+     long and busy on a phone; a smaller dot and a tighter gap read as a quiet
+     position indicator rather than a control strip. The hit area shrinks with
+     it but stays a comfortable finger target. */
+  .carousel-dots {
+    gap: 4px;
+  }
+
+  .carousel-dot {
+    width: 16px;
+    height: 16px;
+  }
+
+  .carousel-dot::after {
+    width: 5px;
+    height: 5px;
+  }
+
+  .site-footer {
+    padding-block: 0 10px;
+  }
+
+  /* Smaller chips. Eight of them at desktop size take two rows and 74px of a
+     screen that has to hold a name, a timeline and a card as well. */
+  .skills li {
+    font-size: 11px;
+    padding: 2px 8px;
+  }
+
+  .skills {
+    gap: 5px;
+  }
+
+  .intro-skills-label {
+    margin-top: clamp(14px, 2.4vh, 22px);
+    margin-bottom: 10px;
+  }
+
+  /* The mark on its own line above the links, rather than wedged beside them
+     and forcing every link to wrap. */
+  .site-footer-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .footer-fine {
+    margin-left: 0;
+    font-size: 11px;
+  }
+
+  /* Directly under the controls, at the same rhythm as the other bands —
+     not `margin-top: auto`. Pinning it to the screen's bottom pooled all the
+     leftover height of a tall phone into one wide gap above the footer; letting
+     it sit right after the controls keeps the spacing consistent top to bottom
+     and leaves any slack below the footer, where it reads as the page simply
+     ending rather than a hole in the layout. */
+  .site-footer {
+    margin-top: 0;
+    padding-block: 8px 14px;
+  }
+
+  /* Two full-width rows, and the links spread across theirs. They used to bunch
+     at the left with eighty pixels of ragged gap on the right; spreading them
+     edge to edge gives the block two straight sides, which is the difference
+     between looking deliberate and looking left over. */
+  .site-footer-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .footer-col,
+  .footer-col ul {
+    width: 100%;
+  }
+
+  .footer-col ul {
+    justify-content: space-between;
+    flex-wrap: nowrap;
+  }
+
+  .site-footer-inner {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px 14px;
+  }
+
+  /* Gone. It is decorative and `aria-hidden`, the name is spelled out in the
+     copyright line right below it, and as a flex item it was wide enough to
+     push every link onto a second row — a monogram costing a line of contact
+     details is a bad trade on a phone. */
+  .footer-mark {
+    display: none;
+  }
+
+  .footer-col ul {
+    gap: 4px 14px;
+  }
+
+  /* One row, not two. Tracking is what pushed "Resume" onto a line of its own —
+     letter-spacing on four short uppercase labels costs more width than the
+     labels gain from it at this size. */
+  .footer-col a {
+    font-size: 11px;
+    letter-spacing: 0;
+  }
+
+  .footer-col ul {
+    gap: 4px 12px;
+  }
+
+  .gallery-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gallery-filters {
+    flex-wrap: wrap;
+  }
+}
+
+/* A bigger carousel on the one-screen desktop layout.
+ *
+ * The card is sized to fit one screen without scrolling, so on a shorter
+ * desktop viewport (a 13" laptop at ~857px tall) it is height-bound and shrinks
+ * well below its width cap — the same card reaches full size once a taller
+ * window, or a 75% zoom, hands it more height. To bring that full-size card to
+ * 100% without giving up the no-scroll layout, the intro rhythm and the
+ * timeline are tightened here so more of the height goes to the card. The card
+ * grows only where it was height-bound; on a tall window it was already at its
+ * width cap and is unaffected.
+ *
+ * Scoped to the locked layout, and placed after the base rules on purpose: the
+ * base declarations sit later in the file and win at equal specificity, so the
+ * same overrides written into the lock query near the top of the file would
+ * silently lose (the reason `--locked` itself is declared as a base default). */
+@media (min-width: 900px) and (min-height: 760px) {
+  .screen {
+    padding-top: clamp(10px, 1.6vh, 20px);
+    padding-bottom: clamp(8px, 1.2vh, 16px);
+    gap: clamp(8px, 1.3vh, 14px);
+  }
+
+  .intro-role {
+    margin-top: 8px;
+  }
+
+  .intro-tagline {
+    margin-top: 10px;
+  }
+
+  .intro-skills-label {
+    margin-top: clamp(10px, 1.6vh, 18px);
+    margin-bottom: 8px;
+  }
+
+  /* Only the block margins — never the `margin` shorthand, which would reset
+     `margin-left` and kill the base rule's `calc(50% - 50vw)` full-bleed, so the
+     100vw timeline would keep its width but lose the pull-left and overflow to
+     the right. Top/bottom only, left/right untouched. */
+  .timeline {
+    margin-top: clamp(4px, 0.8vh, 8px);
+    margin-bottom: 6px;
+  }
+}
+
+/* Large monitors, first tier: scale the intro type up with the widened column
+   so the page fills the screen instead of sitting small in the top-left. Gated
+   above the ~1540px where `--page-max` begins to grow, so typical laptops are
+   untouched. This tier is modest on purpose — it also covers a wide but short
+   screen (a 1920×1080 desktop), where every point the intro grows is a point the
+   card's height budget loses. The bigger jump lives in the tall-screen tier
+   below, where there is vertical room to spend. */
+@media (min-width: 1600px) {
+  .intro h1 {
+    font-size: clamp(44px, 2.8vw, 58px);
+  }
+
+  .intro-role {
+    font-size: clamp(16px, 0.95vw, 20px);
+  }
+
+  .intro-tagline {
+    font-size: clamp(16px, 1.05vw, 22px);
+    max-width: 80ch;
+  }
+
+  .intro-skills-label {
+    font-size: clamp(13px, 0.8vw, 16px);
+  }
+
+  .skills li {
+    font-size: clamp(13px, 0.82vw, 17px);
+  }
+
+  /* The footer scales with the widened column too — it sits at the bottom of
+     the same `--page-max` span, so a fixed 14px cluster on a big screen reads
+     as tiny type stranded at the left while the copyright hangs far right. This
+     is width-gated (not height-gated like the intro's second tier) because the
+     footer has no bearing on the card's height budget — a wide 1920×1080 desk
+     should get the larger contact row just as much as a tall 4K one. */
+  .site-footer {
+    font-size: clamp(14px, 0.85vw, 19px);
+  }
+
+  .footer-col a {
+    font-size: clamp(14px, 0.85vw, 19px);
+  }
+
+  .footer-col ul {
+    gap: clamp(6px, 0.5vw, 12px) clamp(18px, 1.4vw, 34px);
+  }
+
+  .footer-fine {
+    font-size: clamp(12.5px, 0.75vw, 17px);
+  }
+
+  .footer-mark {
+    width: clamp(34px, 2.2vw, 46px);
+    height: clamp(34px, 2.2vw, 46px);
+    font-size: clamp(17px, 1.1vw, 23px);
+  }
+
+  .site-footer-inner {
+    gap: clamp(10px, 0.9vw, 18px) clamp(26px, 2vw, 44px);
+  }
+}
+
+/* Large monitors, second tier: a tall big screen — a 27"/4K/ultrawide at
+   ≥1150px of viewport height — has room to scale the whole page up rather than
+   leaving the card and its type stranded small above a wall of empty pixels.
+   Gated on height as well as width because the card is height-bound on the
+   locked one-screen layout: on a short wide screen (that 1920×1080) a larger
+   intro would just shrink the card, so the big jump is held back until the
+   height is there to absorb it. */
+@media (min-width: 1600px) and (min-height: 1150px) {
+  .intro h1 {
+    font-size: clamp(56px, 3vw, 78px);
+  }
+
+  .intro-role {
+    font-size: clamp(18px, 1vw, 23px);
+    margin-top: clamp(10px, 0.8vw, 16px);
+  }
+
+  .intro-tagline {
+    font-size: clamp(19px, 1.15vw, 26px);
+    max-width: 84ch;
+    margin-top: clamp(12px, 1vw, 20px);
+  }
+
+  .intro-skills-label {
+    font-size: clamp(14px, 0.75vw, 17px);
+  }
+
+  .skills {
+    gap: clamp(8px, 0.5vw, 14px);
+  }
+
+  .skills li {
+    font-size: clamp(15px, 0.85vw, 19px);
+    padding: clamp(6px, 0.35vw, 9px) clamp(14px, 0.7vw, 20px);
+  }
+
+  /* The company/school labels and year ticks on the line are set at a fixed
+     small size for a laptop; against the scaled-up card on a big screen they
+     read as tiny, so they grow with the viewport too. The collision and
+     row-stacking math in `Timeline` measures the rendered labels, so a larger
+     size is picked up rather than fought. */
+  .timeline-company .timeline-name {
+    font-size: clamp(14px, 0.8vw, 19px);
+  }
+
+  /* The mark you point at grows with its label. `--badge` is read by `.badge`;
+     the drawn monogram's glyph is scaled alongside so a crest-less school does
+     not become an empty square next to companies that have one. */
+  .timeline-company {
+    --badge: clamp(30px, 1.7vw, 44px);
+  }
+
+  .timeline-company .badge-mono {
+    font-size: clamp(16px, 0.9vw, 23px);
+  }
+
+  .timeline-year {
+    font-size: clamp(12px, 0.62vw, 15px);
+  }
+
+  .timeline-now {
+    font-size: clamp(14px, 0.75vw, 17px);
+  }
+}
+
+/* The extra breathing room, only where the height is there to spend.
+ *
+ * On a phone the card is sized to fit the viewport without scrolling — `fit()`
+ * takes its budget from the height left after everything above it. Widening the
+ * gaps above the carousel spends that budget, and on a short phone (an SE at
+ * 667px) it spent all of it: the card collapsed to a third of its width to keep
+ * the page on one screen. So the wider gaps that drop the carousel down and set
+ * it off from the skills are gated to phones tall enough to give the height away
+ * without starving the card. Below this the base rules above keep the tighter
+ * spacing, and the card stays a reasonable size. */
+@media (max-width: 640px) and (min-height: 760px) {
+  /* A little air above the line and around the card — but modest, because the
+     whole page has to fit one screen without scrolling and every pixel spent
+     here is a pixel the card's height budget loses (the card is capped to fit;
+     see `fit()`). Enough to separate the bands, not enough to shrink the card. */
+  .timeline {
+    margin: clamp(8px, 1.5vh, 14px) 0 6px;
+  }
+
+  .carousel {
+    margin-block: clamp(10px, 2vh, 18px) clamp(8px, 1.6vh, 14px);
+  }
+
+  .carousel-controls {
+    margin-top: clamp(8px, 1.5vh, 14px);
+  }

@@ -40,3 +40,19 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 - Vitest over the domain layer; Playwright over routing in both modes.
 - CI runs typecheck, lint, unit tests, build, then e2e.
+
+### Templates (Phase 1, in progress)
+
+- The template contract: a floor, not a design system. `Issue` and the
+  invariants in `templates/floor.ts` are shared; tokens, sections, CSS and
+  components are each template's own, and `Template<TTokens, TOptions>` is
+  generic over both so no universal palette type exists.
+- Template #1 (`timeline`) ported from the original portfolio — `Work.tsx`, its
+  2,480 lines of CSS, the theme script and toggle, and the 27-key palette that
+  is now this template's vocabulary rather than a global one.
+- `stylesheet(tokens)` replaces the module-level `themeStylesheet()`, injected
+  per request from the published snapshot so a tenant's palette is on first paint.
+- Customization parses forward-compatibly: a template that gains an option picks
+  up its default rather than throwing on rows written before it existed.
+- `validateIssue` moved from a build-time module-load assertion to a pure domain
+  function, ready to gate a publish.
