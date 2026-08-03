@@ -143,7 +143,7 @@ export function Work({
       .map((entry) => entry.index);
 
     cards.forEach((card, index) => {
-      const offset = offsets[index];
+      const offset = offsets[index] ?? 0;
       const distance = Math.abs(offset);
       const scale = Math.max(1 - distance * 0.13, 0.7);
 
@@ -213,10 +213,13 @@ export function Work({
        * between them. Every other step still glides.
        */
       const seam = lower === n - 1 && upper === 0;
+      const from = geometry.marks[lower];
+      const to = geometry.marks[upper];
+      if (!from || !to) return;
+
       const left = seam
-        ? geometry.marks[blend < 0.5 ? lower : upper].left
-        : geometry.marks[lower].left +
-          (geometry.marks[upper].left - geometry.marks[lower].left) * blend;
+        ? (blend < 0.5 ? from : to).left
+        : from.left + (to.left - from.left) * blend;
       cursor.current.style.left = `${left}%`;
     }
   }, [count, geometry]);
@@ -887,7 +890,7 @@ const YEAR_GAP = 4;
 
 /** Months since epoch, for placing a date on a line. */
 function monthsOf(iso: string) {
-  const [year, month] = iso.split('-').map(Number);
+  const [year = 0, month = 1] = iso.split('-').map(Number);
   return year * 12 + (month - 1);
 }
 
@@ -998,7 +1001,7 @@ function timelineGeometry(
   // Where the career (the first job) begins on the warped line. The years before
   // it carry no projects, so the density warp already draws them thin; the
   // lighter rule up to here just signposts that compressed run of context.
-  const careerStart = ordered.length > 0 ? monthsOf(ordered[0].startDate) : min;
+  const careerStart = ordered[0] ? monthsOf(ordered[0].startDate) : min;
   const lead = place(careerStart);
 
   // A tick per whole year. Which of these actually show is decided per-viewport
@@ -1253,19 +1256,25 @@ function Timeline({
         keep[0] = true;
         keep[count - 1] = true;
 
+        const first = boxes[0];
+        const last = boxes[count - 1];
+        if (!first || !last) return;
+
         // Walk right to left, keeping a year whenever it clears the last one kept.
-        let nextLeft = boxes[count - 1].left;
+        let nextLeft = last.left;
         for (let index = count - 2; index >= 1; index -= 1) {
-          if (boxes[index].right <= nextLeft - YEAR_GAP) {
+          const box = boxes[index];
+          if (box && box.right <= nextLeft - YEAR_GAP) {
             keep[index] = true;
-            nextLeft = boxes[index].left;
+            nextLeft = box.left;
           }
         }
 
         // The pinned first year can still butt against whatever was kept just to
         // its right; drop that neighbour so the start stays clean.
         for (let index = 1; index < count - 1; index += 1) {
-          if (keep[index] && boxes[index].left < boxes[0].right + YEAR_GAP) keep[index] = false;
+          const box = boxes[index];
+          if (keep[index] && box && box.left < first.right + YEAR_GAP) keep[index] = false;
         }
 
         years.forEach((year, index) => {
