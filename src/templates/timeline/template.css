@@ -98,6 +98,19 @@
   box-sizing: border-box;
 }
 
+/* The original site got this from Tailwind's preflight, which it imported and
+   otherwise never used. Without it a <button> keeps the UA's own font, and the
+   timeline's labels are buttons whose measured boxes decide how many rows the
+   badges stack into — so dropping the import silently changed the layout. */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -2741,3 +2754,27 @@ a:hover {
   }
 }
 
+
+/* Phone timeline: fit every year and keep the marks to one row.
+
+   The narrow band cannot hold nine four-digit year labels or four full-size
+   badges across two rows without either colliding or growing tall enough to
+   steal height from the carousel card below. So on a phone the year labels are
+   already two-digit (see `.timeline-year-short`); here they are set smaller and
+   tighter, and the badges and their gutter shrink, which lets the four marks sit
+   on one row again — a short timeline, a tall card. Placed last so it wins over
+   the wider mobile block above. */
+@media (max-width: 640px) {
+  .timeline-year {
+    font-size: 9px;
+    letter-spacing: 0.02em;
+  }
+
+  .timeline-track {
+    --join-gutter: 4px;
+  }
+
+  .timeline-company {
+    --badge: clamp(22px, 6.5vw, 30px);
+  }
+}
