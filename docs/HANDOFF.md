@@ -26,14 +26,25 @@ template → fill it in → preview it → claim an address and publish. `publis
 has a caller, and six services write `site_drafts.issue`.
 
 Since then it has also gained version history with rollback, GitHub project
-import, the floor enforced in CI per template, and the rule that a template
-version bump must carry a changelog entry.
+import, the floor enforced in CI per template, the rule that a template version
+bump must carry a changelog entry, the builder redesign, and the two entry paths
+of plan §23.
+
+**Two entry paths, and content that outlives one portfolio.** An empty account
+goes straight to the gallery, because a dashboard listing nothing is a dead end
+wearing the clothes of a choice; a returning account lands on its sites and
+chooses. Underneath that, `source_material` holds imported content keyed by
+*owner* rather than by site, so a second portfolio is not retyping a career. It
+stores an `Issue` rather than a parallel "facts" schema — `Issue` already is the
+template-agnostic contract every template reads — while each site keeps its own
+`Issue` to edit, because publishing freezes one and a live site must never change
+because a sibling was edited.
 
 | Verified | |
 |---|---|
 | desktop | 0.01% differing pixels vs the original |
 | mobile | 0.03% |
-| tests | 146 unit, 19 e2e |
+| tests | 160 unit, 21 e2e |
 | lint | 2 warnings, both pre-existing `<img>` in `Work.tsx` |
 | CI | ~75s end to end |
 
@@ -109,6 +120,20 @@ that had been pulled.
    `/users/<login>/repos` call has never run: this sandbox's proxy blocks it,
    because sessions are scoped to configured repositories. Worth watching once
    on a preview deploy.
+4. **Résumé import, which is less blocked than it looks.** Parsing is *parse and
+   discard* (§23.6): read the PDF, write the facts into `source_material`, drop
+   the bytes. No EXIF, no quota, no MIME allowlist — none of §8, because nothing
+   is served to a stranger. *Hosting* a résumé for download is a separate feature
+   and does need the upload pipeline; the two should not be built together just
+   because both involve a PDF.
+
+   The rule it lands under is §23.5, and it is the one worth getting right:
+   **state what the source says, never infer what it claims.** Dates, titles,
+   employers, schools, repo names and links are transcription. Impact, seniority
+   and outcomes are the user's to write. The GitHub import already applies this
+   by leaving `impact` empty on purpose — a parser that invents "improved
+   performance by 40%" produces a portfolio worse than an empty one, because it
+   is a claim the user did not make, under their name, to a recruiter.
 
 ### 2.3 Smaller, well-specified
 
