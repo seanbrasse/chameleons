@@ -118,6 +118,23 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
   it. There is no equivalent rule for this file; a bot demanding an entry on
   every PR is how changelogs fill with "fix typo".
 
+### Published sites
+
+- **A portfolio carries its own title and description.** Every published site
+  was inheriting the root layout's metadata, so the browser tab said
+  "Chameleons", a shared link previewed as the platform rather than the person,
+  and a search for the owner's name found a page apparently belonging to
+  someone else. Plan §20.7 says it plainly: a portfolio that does not surface
+  in a search for the person's name has failed at its only job.
+- `ogTagline` finally does the job it was named for — the description *beside*
+  the social card, as distinct from `ogSubtitle`, which is drawn on the card
+  image and still needs Satori.
+- A canonical URL is emitted in `host` mode only. In `path` mode the origin is
+  a preview deployment whose URL changes per branch, and a canonical pointing
+  at a URL that will not exist next week is worse than none.
+- `twitter:card` is `summary` rather than `summary_large_image`, because there
+  is no card image yet and asking for a large one renders an empty box.
+
 ### Builder (Phase 2, in progress)
 
 - **Delete a portfolio.** Until now a site could be unpublished but never

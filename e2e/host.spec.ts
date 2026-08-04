@@ -28,3 +28,27 @@ test('the internal render path is not reachable from the apex', async ({ page })
   const response = await page.goto(at('', '/s/sean'));
   expect(response?.status()).toBe(404);
 });
+
+test('a published portfolio carries its own title, not the platform’s', async ({ page }) => {
+  await page.goto(at('sean.'));
+
+  // Before this existed, every tenant inherited the root layout's "Chameleons".
+  await expect(page).toHaveTitle('Sean Brasse');
+
+  const description = page.locator('meta[name="description"]');
+  await expect(description).toHaveAttribute('content', /.+/);
+
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
+    'content',
+    'Sean Brasse',
+  );
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    'href',
+    at('sean.').replace(/\/$/, ''),
+  );
+});
+
+test('the apex still carries the platform’s title', async ({ page }) => {
+  await page.goto(at(''));
+  await expect(page).toHaveTitle('Chameleons');
+});
