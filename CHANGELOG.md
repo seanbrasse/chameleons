@@ -84,3 +84,15 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
   up its default rather than throwing on rows written before it existed.
 - `validateIssue` moved from a build-time module-load assertion to a pure domain
   function, ready to gate a publish.
+
+### Builder (Phase 2, in progress)
+
+- The builder's chrome is `src/app/builder.css`, ported from the admin half of
+  the original portfolio's single stylesheet. It is not imported anywhere yet —
+  the builder UI does not exist — so this lands the sheet and nothing else.
+- It declares its own seventeen custom properties rather than reading a
+  template's. Templates share a floor, not a design system, and `src/app/`
+  importing `src/templates/<id>/tokens.ts` is the boundary that keeps every
+  tenant's site from converging on one look. The colour values are carried over
+  from the original, so the builder still reads as the same product; they are
+  now a copy that can drift rather than a dependency that cannot.
