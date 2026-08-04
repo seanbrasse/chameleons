@@ -552,6 +552,26 @@ body {
   line-height: 1.1;
 }
 
+/*
+  A control at the end of a row, where `.admin-flag` is a label at the end of
+  one. Same trailing slot, same auto margin — kept separate because a button
+  dressed as a pill would be a lie about what it does.
+*/
+.admin-row-action {
+  margin-left: auto;
+  flex: none;
+}
+
+/*
+  One column, for a list that is a chronology rather than a set. `.admin-list`
+  auto-fills to as many columns as fit, which is right for projects and wrong
+  for version history: newest-first zigzags across and back down, and it gets
+  worse the more versions there are.
+*/
+.admin-list-linear {
+  grid-template-columns: 1fr;
+}
+
 .admin-flag {
   margin-left: auto;
   flex: none;

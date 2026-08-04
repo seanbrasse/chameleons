@@ -26,6 +26,7 @@ import {
   type SaveResult,
 } from '@/server/services/editSite';
 import { publishSite } from '@/server/services/publishSite';
+import { rollbackSite } from '@/server/services/rollbackSite';
 import { chooseTemplate, claimAddress, unpublishSite } from '@/server/services/sites';
 
 export type EditorState = {
@@ -47,6 +48,8 @@ const REFUSALS: Record<string, string> = {
   punycode: 'That name cannot start with “xn--”.',
   taken: 'That name is already claimed.',
   unavailable: 'That could not be saved right now.',
+  'no-such-version': 'That version no longer exists.',
+  'not-live': 'This portfolio is not published, so there is nothing to roll back to.',
 };
 
 const fieldReader = (form: FormData) => (name: string) => {
@@ -153,6 +156,21 @@ export async function unpublish(_state: EditorState, form: FormData): Promise<Ed
   revalidatePath(builderRoute(`/sites/${siteId}`));
   revalidatePath(builderRoute('/'));
   return { saved: true };
+}
+
+export async function rollback(_state: EditorState, form: FormData): Promise<EditorState> {
+  const siteId = siteIdOf(form);
+  if (!siteId) return { problem: REFUSALS['not-found'] };
+
+  const version = Number(form.get('version'));
+  if (!Number.isInteger(version) || version < 1) return { problem: REFUSALS['no-such-version'] };
+
+  const result = await rollbackSite(siteId, version);
+  if (!result.ok) return { problem: REFUSALS[result.reason] ?? REFUSALS.unavailable };
+
+  revalidatePath(builderRoute(`/sites/${siteId}`));
+  revalidatePath(builderRoute('/'));
+  return { published: result.version };
 }
 
 /**

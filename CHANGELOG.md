@@ -103,6 +103,20 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ### Builder (Phase 2, in progress)
 
+- **Version history and rollback.** Every publish this site has made, newest
+  first, with the live one flagged and a button to put any earlier one back.
+- Rollback is a pointer move and nothing else — no new version row, no copy —
+  which falls straight out of the snapshot model and makes it as atomic and as
+  instant as publishing.
+- **It does not touch the draft**, and the UI says so. Restoring last month's
+  site must not read as discarding this morning's writing.
+- It does not renumber either: a later publish still takes the next number
+  after the highest, so history stays append-only and the version you rolled
+  back *from* is still there to roll forward to.
+- A version number is resolved to a row scoped by `site_id`.
+  `sites.current_version_id` is constrained to be *a* version, not one of this
+  site's, so the scoping is what stops a number addressing another site's row.
+
 - **The editor says which sections your design actually shows.** `timeline`
   renders neither testimonials nor metrics, and the builder offered editors for
   both — so a user could write a page of quotes their live site silently
