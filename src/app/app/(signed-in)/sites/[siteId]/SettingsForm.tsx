@@ -34,6 +34,8 @@ export function SettingsForm({
     {},
   );
 
+  const busy = saving || publishing;
+
   // Whichever ran last is the one with something to say.
   const shown = publishState.problem || publishState.published ? publishState : state;
 
@@ -70,9 +72,19 @@ export function SettingsForm({
           </p>
         </div>
 
+        {/* Both buttons submit this one form, so publishing carries whatever is
+            on screen rather than freezing the last saved draft. */}
         <div className="admin-actions">
-          <button type="submit" className="admin-button" disabled={saving}>
+          <button type="submit" className="admin-button" disabled={busy}>
             {saving ? 'Saving…' : 'Save draft'}
+          </button>
+          <button
+            type="submit"
+            className="admin-button"
+            formAction={publishAction}
+            disabled={busy}
+          >
+            {publishing ? 'Publishing…' : 'Save and publish'}
           </button>
         </div>
       </form>
@@ -106,12 +118,6 @@ export function SettingsForm({
         </ul>
       ) : null}
 
-      <form action={publishAction}>
-        <input type="hidden" name="siteId" value={siteId} />
-        <button type="submit" className="admin-button" disabled={publishing}>
-          {publishing ? 'Publishing…' : 'Publish'}
-        </button>
-      </form>
     </>
   );
 }

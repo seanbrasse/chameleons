@@ -22,15 +22,17 @@ const REFUSALS: Record<string, string> = {
   invalid: 'Fix the problems below, then publish.',
 };
 
+const fieldReader = (form: FormData) => (name: string) => {
+  const value = form.get(name);
+  return typeof value === 'string' ? value : null;
+};
+
 /** `siteId` arrives from the form and is untrusted; the service resolves the owner from the session. */
 export async function save(_state: EditorState, form: FormData): Promise<EditorState> {
   const siteId = form.get('siteId');
   if (typeof siteId !== 'string') return { problem: REFUSALS['not-found'] };
 
-  const result = await saveSettings(siteId, readSettingsForm((name) => {
-    const value = form.get(name);
-    return typeof value === 'string' ? value : null;
-  }));
+  const result = await saveSettings(siteId, readSettingsForm(fieldReader(form)));
 
   if (!result.ok) return { problem: REFUSALS[result.reason] };
 
@@ -38,9 +40,17 @@ export async function save(_state: EditorState, form: FormData): Promise<EditorS
   return { saved: true, problems: result.problems };
 }
 
+/**
+ * Saves before publishing. Both buttons submit the same form, so publishing
+ * with unsaved edits on screen would otherwise freeze the *previous* draft and
+ * silently discard what the user is looking at.
+ */
 export async function publish(_state: EditorState, form: FormData): Promise<EditorState> {
   const siteId = form.get('siteId');
   if (typeof siteId !== 'string') return { problem: REFUSALS['not-found'] };
+
+  const saved = await saveSettings(siteId, readSettingsForm(fieldReader(form)));
+  if (!saved.ok) return { problem: REFUSALS[saved.reason] };
 
   const result = await publishSite(siteId);
 
