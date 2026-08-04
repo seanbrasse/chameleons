@@ -4,7 +4,8 @@ import { useActionState } from 'react';
 
 import { CAPS, type SiteSettings } from '@/content/types';
 
-import { save, publish, type EditorState } from './actions';
+import { save, type EditorState } from './actions';
+import { Feedback } from './Feedback';
 
 const TEXT_FIELDS: Array<{
   name: keyof SiteSettings;
@@ -29,15 +30,6 @@ export function SettingsForm({
   settings: SiteSettings;
 }) {
   const [state, saveAction, saving] = useActionState<EditorState, FormData>(save, {});
-  const [publishState, publishAction, publishing] = useActionState<EditorState, FormData>(
-    publish,
-    {},
-  );
-
-  const busy = saving || publishing;
-
-  // Whichever ran last is the one with something to say.
-  const shown = publishState.problem || publishState.published ? publishState : state;
 
   return (
     <>
@@ -72,52 +64,14 @@ export function SettingsForm({
           </p>
         </div>
 
-        {/* Both buttons submit this one form, so publishing carries whatever is
-            on screen rather than freezing the last saved draft. */}
         <div className="admin-actions">
-          <button type="submit" className="admin-button" disabled={busy}>
-            {saving ? 'Saving…' : 'Save draft'}
-          </button>
-          <button
-            type="submit"
-            className="admin-button"
-            formAction={publishAction}
-            disabled={busy}
-          >
-            {publishing ? 'Publishing…' : 'Save and publish'}
+          <button type="submit" className="admin-button" disabled={saving}>
+            {saving ? 'Saving…' : 'Save'}
           </button>
         </div>
       </form>
 
-      {shown.problem ? (
-        <p className="admin-error" role="status">
-          {shown.problem}
-        </p>
-      ) : null}
-
-      {shown.saved ? (
-        <p className="admin-ok" role="status">
-          Draft saved. It is not live until you publish.
-        </p>
-      ) : null}
-
-      {shown.published ? (
-        <p className="admin-ok" role="status">
-          Published version {shown.published}.
-        </p>
-      ) : null}
-
-      {shown.problems?.length ? (
-        <ul className="admin-list">
-          {shown.problems.map((problem) => (
-            <li key={`${problem.where}:${problem.problem}`} className="admin-row">
-              <span className="admin-row-mono">{problem.where}</span>
-              <span>{problem.problem}</span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-
+      <Feedback {...state} />
     </>
   );
 }

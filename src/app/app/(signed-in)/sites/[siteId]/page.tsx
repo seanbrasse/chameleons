@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import { siteHref } from '@/lib/tenant-config';
 import { loadEditor } from '@/server/services/editSite';
 
+import { ExperiencesForm } from './ExperiencesForm';
+import { PublishBar } from './PublishBar';
 import { SettingsForm } from './SettingsForm';
 
 export const dynamic = 'force-dynamic';
@@ -22,7 +24,13 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
       </p>
       <h1>Edit</h1>
 
+      <h2>Settings</h2>
       <SettingsForm siteId={editor.siteId} settings={editor.issue.settings} />
+
+      <h2>Experience</h2>
+      <ExperiencesForm siteId={editor.siteId} experiences={editor.issue.experiences} />
+
+      <PublishBar siteId={editor.siteId} />
     </>
   );
 }

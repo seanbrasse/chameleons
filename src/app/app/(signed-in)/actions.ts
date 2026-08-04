@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 
 import { supabaseSession } from '@/lib/supabase/server';
 import { builderHref } from '@/lib/tenant-config';
+import { builderRoute } from '@/server/domain/tenant';
 import { claimSubdomain } from '@/server/services/claimSubdomain';
 
 export async function signOut() {
@@ -32,6 +33,6 @@ export async function claim(_state: ClaimState, form: FormData): Promise<ClaimSt
   const result = await claimSubdomain(raw);
   if (!result.ok) return { problem: REFUSALS[result.reason] ?? REFUSALS.unavailable };
 
-  revalidatePath(builderHref('/'));
+  revalidatePath(builderRoute('/'));
   return {};
 }

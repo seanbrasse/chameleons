@@ -81,6 +81,20 @@ export function builderPath(pathname: string, config: TenantConfig): string {
 }
 
 /**
+ * The path the app *routes* a builder page under, which is the inverse concern
+ * to `builderPath` and independent of mode — proxy.ts rewrites every builder
+ * request to `/app/*` before Next sees it.
+ *
+ * `revalidatePath` and friends want this one. Handing them `builderPath` looks
+ * right and is not: in host mode it returns `/`, which is marketing, so a
+ * publish would bust the landing page's cache and leave the builder's alone.
+ */
+export function builderRoute(pathname: string): string {
+  const path = normalizePath(pathname);
+  return path === '/' ? `/${BUILDER_LABEL}` : `/${BUILDER_LABEL}${path}`;
+}
+
+/**
  * Where a published portfolio is read. In host mode that is a different origin
  * from the builder, so this has to be absolute; in path mode it is a path on
  * the same one. Plain HTTP only for localhost — every real root this runs under
