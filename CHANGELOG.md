@@ -96,3 +96,16 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
   tenant's site from converging on one look. The colour values are carried over
   from the original, so the builder still reads as the same product; they are
   now a copy that can drift rather than a dependency that cannot.
+
+### Fixed
+
+- **The mobile render now matches the original.** `.project-status` was missing
+  from `template.css` entirely, because it sits after the original stylesheet's
+  `Admin` heading despite being consumed only by `Work.tsx` — the same trap as
+  the phone timeline block, one block further up. Two demo projects carry a
+  non-default status, so an unstyled badge was on screen the whole time, and its
+  height was the "~3px offset in the card text block" recorded as unexplained.
+  Measured on one harness across both applications: mobile 2.97% → 0.03%,
+  desktop 0.12% → 0.01%.
+- `.project-shot` regains its ground colour, visible while media is still
+  arriving.

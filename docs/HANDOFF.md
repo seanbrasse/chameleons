@@ -19,13 +19,14 @@ verified pixel-close to it.
 
 | Verified | |
 |---|---|
-| desktop / laptop / wide | 0.06–0.47% differing pixels vs the original |
-| mobile | 2.83% |
-| tests | 32 unit, 9 e2e |
+| desktop | 0.01% differing pixels vs the original |
+| mobile | 0.03% |
+| tests | 51 unit, 9 e2e |
 | lint | 2 warnings, both pre-existing `<img>` in `Work.tsx` |
 
-The residual mobile delta is a ~3px vertical offset in the card's text block.
-Everything else — timeline, badges, arrows, footer — matches.
+Both figures are from one run of the same harness against both applications;
+comparing a number from one harness against a number from another is how the
+first version of this table overstated its own accuracy.
 
 ### The product in one paragraph
 
@@ -55,8 +56,9 @@ correct base shows exactly two `<img>` warnings. Zero means the base is wrong.
 
 ### 2.2 Smaller, well-specified
 
-- **Mobile 2.8% residual** — a ~3px offset in the card text block. Diagnose with
-  the screenshot workflow in §4.
+- ~~**Mobile 2.8% residual**~~ — closed. It was `.project-status`, missing from
+  `template.css` because it sits *after* the original stylesheet's `Admin`
+  heading. See §6.
 - **Two traps still in CSS** — the `transform`/`opacity` compositor note and the
   `@property --card-max` typed-registration note live in `template.css` and were
   not part of the `Work.tsx` comment strip.
@@ -72,12 +74,19 @@ correct base shows exactly two `<img>` warnings. Zero means the base is wrong.
 
 Nobody can do these from a checkout:
 
-1. **Delegate `chameleons.dev`'s nameservers to Vercel.** A wildcard cert needs
-   DNS-01 challenge control; a CNAME-only setup will never get
-   `*.chameleons.dev`.
-2. Add `chameleons.dev`, `app.chameleons.dev` and `*.chameleons.dev` to the
-   Vercel project, then set `TENANT_MODE=host` + `ROOT_DOMAIN=chameleons.dev` on
-   production and `TENANT_MODE=path` on preview.
+1. ~~Delegate `chameleons.dev`'s nameservers to Vercel~~ — **done.** The
+   registrar is Porkbun. Vercel's two nameservers had to *replace* Porkbun's
+   four, not join them: with both sets listed, some queries still resolved
+   against a provider that knew nothing about the domain, and Vercel could not
+   complete the DNS-01 challenge. `chameleons.dev`, `app.chameleons.dev` and
+   `*.chameleons.dev` are all on the project with a valid wildcard certificate.
+2. Set `TENANT_MODE=host` + `ROOT_DOMAIN=chameleons.dev` on production and
+   `TENANT_MODE=path` on preview, then redeploy — environment variables do not
+   apply to a deployment that already exists.
+3. **Enable the sign-in providers in Supabase.** Google and GitHub under
+   Authentication → Providers, and the three callback URLs under Authentication
+   → URL Configuration. The README lists them; the preview one carries an `/app`
+   prefix because previews run in `path` mode.
 
 `.dev` is HSTS-preloaded, so HTTPS is mandatory on every host under it and there
 is no HTTP fallback to test against. `sean.localhost:3000` is unaffected.
@@ -169,6 +178,31 @@ comment says it is "placed last so it wins over the wider mobile block above".
 Splitting on the heading dropped exactly the rules whose job was to win. Six
 pixels of badge size became a 54px-shorter carousel stage and an 84px-narrower
 card. **Brace-balance checking passed throughout** and would never have found it.
+
+**…and it was not one block, it was three.** The mobile residual that survived
+that fix had the same cause one block further up: `.project-status`,
+`.project-status[data-status='archived']` and `.project-shot` also sit after the
+`Admin` heading, and are also public. `.project-status` was therefore absent
+from `template.css` altogether, so two demo projects rendered an unstyled badge
+whose height pushed the card text block down — the "~3px offset" that had been
+recorded as a mystery. Restoring the rules took mobile from 2.97% to 0.03%.
+
+The general form: **ask what consumes a rule, not where it sits.** `grep` for
+each selector across `Work.tsx` and the admin components answers in seconds and
+does not care what the headings claim.
+
+**Two numbers from two harnesses are not a comparison.** The residual above was
+"2.83%" from one script and looked unchanged at "2.97%" from another, which
+could have read as a regression. Only running the control and the fix through
+the *same* script in the *same* session made the improvement legible. When
+citing a percentage, cite the run.
+
+**A dead server keeps the port and poisons the result.** Twice here, `next
+start` printed `EADDRINUSE` into a log nobody read while an older process went
+on serving the port — once serving a *previous build's* chunk hashes against a
+freshly built `.next`, which rendered a completely unstyled page and produced a
+confident "100% of pixels differ". Check the bind actually succeeded, and look
+at the image before believing the number.
 
 **A lint rule that does not fire looks like a clean codebase.** Two of the six
 anti-slop rules silently failed to match when first written, and `npm run lint`
