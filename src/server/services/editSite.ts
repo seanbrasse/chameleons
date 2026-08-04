@@ -22,6 +22,8 @@ import {
 import { parseIssue } from '@/server/domain/parse-issue';
 import { validateIssue, type ContentProblem } from '@/server/domain/validate-issue';
 import { readWorkingState, writeDraftIssue } from '@/server/repos/sites';
+import { readSourceMaterial, writeSourceMaterial } from '@/server/repos/sourceMaterial';
+import { starterIssue } from '@/content/starter';
 
 export type EditorState = {
   siteId: string;
@@ -115,12 +117,36 @@ export function deleteProject(siteId: string, projectId: string): Promise<SaveRe
 }
 
 /**
- * Import goes through `saveIssue` like every other write, so it inherits the
- * same ownership guard and the same draft round trip the hand-written editors
- * use. An import is not a second way into the draft.
+ * Import writes twice, on purpose.
+ *
+ * The site gets the projects, because that is what the user is looking at. The
+ * owner's source material gets them too, so the next portfolio they start
+ * already has them (§23.4) — importing a career once and retyping it for the
+ * second site is exactly what source material exists to prevent.
+ *
+ * The site write goes through `saveIssue` like every other edit, so it inherits
+ * the same ownership guard rather than being a second way into the draft. The
+ * material write is best-effort: failing to seed a future site must not lose
+ * the import the user is watching happen.
  */
-export function addImportedProjects(siteId: string, projects: Project[]): Promise<SaveResult> {
-  return saveIssue(siteId, (issue) => addProjects(issue, projects));
+export async function addImportedProjects(
+  siteId: string,
+  projects: Project[],
+): Promise<SaveResult> {
+  const result = await saveIssue(siteId, (issue) => addProjects(issue, projects));
+  if (!result.ok) return result;
+
+  const owner = await currentUser();
+  if (owner) {
+    const stored = await readSourceMaterial(owner.id);
+    const base = stored
+      ? parseIssue(stored.issue, stored.issueSchemaVersion)
+      : starterIssue('', owner.email);
+
+    await writeSourceMaterial(owner.id, addProjects(base, projects));
+  }
+
+  return result;
 }
 
 export function saveEducation(
