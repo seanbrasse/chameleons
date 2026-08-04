@@ -306,3 +306,21 @@ export async function deleteSite(
   const row = data?.[0];
   return row ? { deleted: true, subdomain: row.subdomain } : { deleted: false, subdomain: null };
 }
+
+/** Stores a site's customization. Scoped by owner, like every other write. */
+export async function setCustomization(
+  siteId: string,
+  ownerId: string,
+  customization: Customization,
+): Promise<boolean> {
+  if (!hasServiceRole()) return false;
+
+  const { data } = await supabaseService()
+    .from('sites')
+    .update({ customization })
+    .eq('id', siteId)
+    .eq('owner_id', ownerId)
+    .select('id');
+
+  return (data?.length ?? 0) > 0;
+}

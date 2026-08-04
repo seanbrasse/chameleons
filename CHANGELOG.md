@@ -137,6 +137,22 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ### Builder (Phase 2, in progress)
 
+- **A template's options are adjustable**, as a form rendered from its own Zod
+  schema (plan §6). `timeline` declared four — default theme, lead with
+  starred, show timeline, show skills — all of them parsed, all consumed by the
+  component, and none reachable by any user. Every site sat on defaults.
+- A template gains a control by declaring an option, not by anyone editing the
+  builder.
+- **Only the diff from defaults is stored.** Writing the resolved object would
+  freeze today's defaults into every row and quietly opt everyone out of the
+  next improvement — plan §6 asks for the diff precisely so that improving a
+  default improves every site that never overrode it.
+- Options carry `.describe()` rather than a JSDoc comment, because the sentence
+  a user reads has to be data. A comment cannot reach the browser.
+- An option kind the form cannot render is reported as unsupported rather than
+  guessed at, and a test asserts nothing we ship is unsupported — a control a
+  user silently does not get is worse than a loud gap.
+
 - **Delete a portfolio.** Until now a site could be unpublished but never
   removed — the row, its draft and every version it published stayed forever,
   and the address stayed claimed.
