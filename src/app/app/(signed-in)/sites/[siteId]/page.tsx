@@ -2,11 +2,13 @@ import { notFound } from 'next/navigation';
 
 import { builderHref, tenantConfig } from '@/lib/tenant-config';
 import { loadEditor } from '@/server/services/editSite';
+import { loadHistory } from '@/server/services/rollbackSite';
 // Manifests rather than the registry: this page names templates, it does not
 // render one, so there is no reason to pull every design's stylesheet into it.
 import { getManifest, listManifests } from '@/templates/manifests';
 
 import { EducationRow } from './EducationRow';
+import { History } from './History';
 import { MetricRow } from './MetricRow';
 import { ExperienceRow } from './ExperienceRow';
 import { ProjectRow } from './ProjectRow';
@@ -22,6 +24,7 @@ export const dynamic = 'force-dynamic';
 export default async function Editor({ params }: { params: Promise<{ siteId: string }> }) {
   const { siteId } = await params;
   const editor = await loadEditor(siteId);
+  const history = await loadHistory(siteId);
 
   // Not yours and does not exist are the same answer on purpose: a distinct
   // "forbidden" would confirm the id belongs to somebody.
@@ -120,6 +123,15 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
         publishedVersion={editor.publishedVersion}
         previewHref={builderHref(`/preview/${editor.siteId}`)}
       />
+
+      <section className="admin-section">
+        <h2>History</h2>
+        <History
+          siteId={editor.siteId}
+          entries={history}
+          liveVersion={editor.publishedVersion}
+        />
+      </section>
     </>
   );
 }

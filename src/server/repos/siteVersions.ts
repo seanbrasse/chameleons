@@ -77,6 +77,58 @@ export async function insertVersion(
   return data ? { id: data.id, version: data.version } : null;
 }
 
+/** One published version, as the history list shows it. */
+export type VersionSummary = {
+  id: string;
+  version: number;
+  publishedAt: string;
+  templateId: string;
+};
+
+/**
+ * Joined through `sites` on owner_id rather than filtered afterwards, so a site
+ * id that is not the caller's returns nothing instead of somebody else's
+ * publish history.
+ */
+export async function listVersions(siteId: string, ownerId: string): Promise<VersionSummary[]> {
+  if (!hasServiceRole()) return [];
+
+  const { data } = await supabaseService()
+    .from('site_versions')
+    .select('id, version, created_at, template_id, sites!inner (owner_id)')
+    .eq('site_id', siteId)
+    .eq('sites.owner_id', ownerId)
+    .order('version', { ascending: false });
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    version: row.version,
+    publishedAt: row.created_at,
+    templateId: row.template_id,
+  }));
+}
+
+/**
+ * A version number resolved to its row id, scoped to the site.
+ *
+ * Rollback takes a number because a number is what the UI shows. Scoping the
+ * lookup by `site_id` is what stops a number from addressing another site's
+ * row — `sites.current_version_id` is only constrained to be *a* version, not
+ * one of this site's.
+ */
+export async function findVersionId(siteId: string, version: number): Promise<string | null> {
+  if (!hasServiceRole()) return null;
+
+  const { data } = await supabaseService()
+    .from('site_versions')
+    .select('id')
+    .eq('site_id', siteId)
+    .eq('version', version)
+    .maybeSingle();
+
+  return data?.id ?? null;
+}
+
 export async function insertVersionMedia(versionId: string, urls: string[]): Promise<void> {
   if (urls.length === 0) return;
 
