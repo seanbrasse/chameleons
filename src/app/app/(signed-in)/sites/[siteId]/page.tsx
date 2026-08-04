@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 
-import { tenantConfig } from '@/lib/tenant-config';
+import { builderHref, tenantConfig } from '@/lib/tenant-config';
 import { loadEditor } from '@/server/services/editSite';
 
 import { ExperiencesForm } from './ExperiencesForm';
@@ -34,6 +34,7 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
         subdomain={editor.subdomain}
         suffix={mode === 'path' ? '' : `.${rootDomain}`}
         publishedVersion={editor.publishedVersion}
+        previewHref={builderHref(`/preview/${editor.siteId}`)}
       />
     </>
   );

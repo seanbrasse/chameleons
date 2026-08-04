@@ -19,11 +19,13 @@ export function PublishBar({
   subdomain,
   suffix,
   publishedVersion,
+  previewHref,
 }: {
   siteId: string;
   subdomain: string | null;
   suffix: string;
   publishedVersion: number | null;
+  previewHref: string;
 }) {
   const [addressState, addressAction, claiming] = useActionState<EditorState, FormData>(
     claimAddressAction,
@@ -68,6 +70,12 @@ export function PublishBar({
       <Feedback {...addressState} />
 
       <div className="admin-actions">
+        {/* A link, not a button: opening the draft in its own tab is what makes
+            it comparable with the live site, and leaves the editor untouched. */}
+        <a className="admin-button admin-quiet" href={previewHref} target="_blank" rel="noreferrer">
+          Preview
+        </a>
+
         <form action={publishAction}>
           <input type="hidden" name="siteId" value={siteId} />
           <button type="submit" className="admin-button" disabled={publishing || !subdomain}>

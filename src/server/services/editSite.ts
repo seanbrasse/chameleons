@@ -1,6 +1,7 @@
 import 'server-only';
 
 import type { Issue } from '@/content/types';
+import type { Customization } from '@/server/domain/publish';
 import { currentUser } from '@/server/auth/session';
 import { applySettings, type SettingsEdit } from '@/server/domain/edit-settings';
 import { removeExperience, upsertExperience, type ExperienceEdit } from '@/server/domain/edit-experiences';
@@ -13,6 +14,9 @@ export type EditorState = {
   subdomain: string | null;
   issue: Issue;
   publishedVersion: number | null;
+  templateId: string;
+  templateVersion: number;
+  customization: Customization;
 };
 
 export type SaveResult =
@@ -32,6 +36,9 @@ export async function loadEditor(siteId: string): Promise<EditorState | null> {
     subdomain: working.subdomain,
     issue: parseIssue(working.issue, working.issueSchemaVersion),
     publishedVersion: working.publishedVersion,
+    templateId: working.templateId,
+    templateVersion: working.templateVersion,
+    customization: working.customization,
   };
 }
 
