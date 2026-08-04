@@ -32,4 +32,10 @@ $$;
 
 -- The browser roles reach no table here and have no reason to reach this
 -- either; the server tier calls it as the service role.
-revoke execute on function public.update_draft_issue(uuid, uuid, jsonb) from anon, authenticated;
+--
+-- PUBLIC has to be named. Postgres grants EXECUTE on a new function to PUBLIC by
+-- default, and `anon`/`authenticated` inherit it from there — revoking from
+-- those two alone leaves the grant standing and reads as a lock that is not
+-- locked. Verified against a real database, which is the only place this shows.
+revoke execute on function public.update_draft_issue(uuid, uuid, jsonb)
+  from public, anon, authenticated;
