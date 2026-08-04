@@ -48,5 +48,19 @@ export default defineConfig({
         launchOptions: launch,
       },
     },
+    {
+      // The floor, per registered template (plan §21.2). Its own project so it
+      // can force reduced motion: axe reads computed styles, and an element
+      // caught mid-transition gets measured against a background it is still
+      // crossing.
+      name: 'floor',
+      testMatch: /floor.*\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: `http://localhost:${HOST_PORT}`,
+        launchOptions: launch,
+        contextOptions: { reducedMotion: 'reduce' },
+      },
+    },
   ],
 });
