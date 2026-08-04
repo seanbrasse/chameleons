@@ -177,3 +177,27 @@ export async function readWorkingState(
     issueSchemaVersion: draft?.issue_schema_version ?? ISSUE_SCHEMA_VERSION,
   };
 }
+
+/**
+ * Goes through `update_draft_issue` rather than a PostgREST update because the
+ * ownership test belongs in the same statement as the write. PostgREST cannot
+ * express a correlated `exists`, and a read-then-write would be two round trips
+ * with a window between them. False means "not yours" — there is no policy
+ * underneath to catch a mistake, so this is the check rather than a second
+ * opinion on one.
+ */
+export async function writeDraftIssue(
+  siteId: string,
+  ownerId: string,
+  issue: unknown,
+): Promise<boolean> {
+  if (!hasServiceRole()) return false;
+
+  const { data, error } = await supabaseService().rpc('update_draft_issue', {
+    p_site_id: siteId,
+    p_owner_id: ownerId,
+    p_issue: issue,
+  });
+
+  return !error && data === true;
+}
