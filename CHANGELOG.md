@@ -149,6 +149,31 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
   now fails on any function-typed prop declared by a client component there —
   verified by reintroducing the exact prop that caused this.
 
+### Onboarding and a person's data (plan §23, rev9)
+
+- **A new account goes straight to the gallery.** An empty dashboard is a dead
+  end wearing the clothes of a choice, so an account with no sites is taken to
+  the design gallery — which *is* the create step, not a screen before it.
+  Anyone with a site lands on their list and decides; returning users are never
+  dropped into the gallery.
+- **Choosing a design creates the site on that design**, rather than defaulting
+  and being corrected afterwards. An unknown id falls back to the default
+  instead of refusing — starting on the wrong design is a click to fix, where
+  refusing to create anything is a dead end on someone's first action.
+- **The gallery says switching is free**, because it is. Picking before you have
+  content is picking blind, and the mitigation is that the pick is cheap; saying
+  so is what stops a user stalling on screen one.
+- **`source_material`**: imported content owned by the person, not by a site.
+  New portfolios seed from it, so a second one is not retyping a career.
+- It holds an `Issue` rather than a second content schema. `Issue` already *is*
+  the template-agnostic contract every template reads, so inventing a parallel
+  "facts" shape would mean two vocabularies and a mapping between them.
+- The per-site `Issue` stays. Publishing freezes one into a snapshot, a live
+  site must never change because a sibling was edited, and two portfolios may
+  legitimately differ. Source material is what a site is *seeded from*.
+- GitHub import now writes to both: the site you are looking at, and your source
+  material so the next portfolio starts with it.
+
 ### Builder (Phase 2, in progress)
 
 - **A design pass on the builder.** Type went from twelve sizes with no ratio

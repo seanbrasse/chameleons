@@ -6,7 +6,9 @@ import { starterIssue } from '@/content/starter';
 import { ISSUE_SCHEMA_VERSION } from '@/content/types';
 import { currentUser } from '@/server/auth/session';
 import { validateSubdomain, type SubdomainRejection } from '@/server/domain/subdomain';
+import { parseIssue } from '@/server/domain/parse-issue';
 import { diffFromDefaults } from '@/server/domain/template-options';
+import { readSourceMaterial } from '@/server/repos/sourceMaterial';
 import {
   clearCurrentVersion,
   createSite,
@@ -48,12 +50,15 @@ export async function createPortfolio(templateId?: string): Promise<CreateResult
 
   const chosen = templateId && getTemplate(templateId) ? templateId : DEFAULT_TEMPLATE_ID;
 
-  const created = await createSite(
-    owner.id,
-    starterIssue(owner.email.split('@')[0] ?? '', owner.email),
-    ISSUE_SCHEMA_VERSION,
-    chosen,
-  );
+  // Seeded from the owner's source material when they have any, so a second
+  // portfolio is not retyping a career (§23.4). Parsed on the way through,
+  // because material imported under an older contract has to keep working.
+  const material = await readSourceMaterial(owner.id);
+  const seed = material
+    ? parseIssue(material.issue, material.issueSchemaVersion)
+    : starterIssue(owner.email.split('@')[0] ?? '', owner.email);
+
+  const created = await createSite(owner.id, seed, ISSUE_SCHEMA_VERSION, chosen);
 
   return created.ok
     ? { ok: true, siteId: created.siteId }
