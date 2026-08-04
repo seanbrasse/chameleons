@@ -103,6 +103,28 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ### Builder (Phase 2, in progress)
 
+- **Import projects from a GitHub account.** Type a username, pick from the
+  public repositories, and each one arrives as a project draft.
+- **Unauthenticated**, so it works the same for a Google-signed-in user as for
+  a GitHub-signed-in one. Signing in with GitHub would raise the rate limit and
+  reach private repos — an upgrade, not a prerequisite (plan §13.1).
+- **Picking is the point.** Most accounts carry coursework, dotfiles and
+  weekend abandonments, and a portfolio listing all of them says less than one
+  listing three. Every box starts unticked.
+- **`impact` is left empty on purpose.** It is the field that says what the
+  work was *for*, no API can answer it, and `validateIssue` asking for it
+  before publishing is the right outcome — filling it with "A TypeScript
+  project" would be worse than leaving the question standing.
+- Importing twice is a no-op rather than a duplicate or an overwrite: ids are
+  derived from the repository's full name, and an id already present is
+  skipped, so a repo imported and then rewritten by hand is not reset to its
+  README.
+- The chosen repositories are looked up again server-side rather than read back
+  out of the form, so a tampered payload cannot write a title and a link of its
+  choosing into someone's portfolio.
+- Forks are not offered. A fork is someone else's work until you have done
+  something to it, and nothing here can tell the difference.
+
 - **Version history and rollback.** Every publish this site has made, newest
   first, with the live one flagged and a button to put any earlier one back.
 - Rollback is a pointer move and nothing else — no new version row, no copy —

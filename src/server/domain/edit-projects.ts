@@ -84,3 +84,18 @@ export function upsertProject(issue: Issue, id: string, edit: ProjectEdit): Issu
 export function removeProject(issue: Issue, id: string): Issue {
   return { ...issue, projects: issue.projects.filter((project) => project.id !== id) };
 }
+
+/**
+ * Appends whole projects that are not already present, for import.
+ *
+ * Skips rather than replaces an id that already exists, which is what makes a
+ * second import a no-op instead of an overwrite: a repo imported last month and
+ * then rewritten by hand must not be reset to its README on the next import.
+ * Deleting the project first is how you deliberately re-import one.
+ */
+export function addProjects(issue: Issue, incoming: Project[]): Issue {
+  const present = new Set(issue.projects.map((project) => project.id));
+  const added = incoming.filter((project) => !present.has(project.id));
+
+  return added.length === 0 ? issue : { ...issue, projects: [...issue.projects, ...added] };
+}
