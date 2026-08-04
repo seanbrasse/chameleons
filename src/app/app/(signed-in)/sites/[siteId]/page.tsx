@@ -2,7 +2,9 @@ import { notFound } from 'next/navigation';
 
 import { builderHref, tenantConfig } from '@/lib/tenant-config';
 import { loadEditor } from '@/server/services/editSite';
-import { listTemplates } from '@/templates/registry';
+// Manifests rather than the registry: this page names templates, it does not
+// render one, so there is no reason to pull every design's stylesheet into it.
+import { getManifest, listManifests } from '@/templates/manifests';
 
 import { EducationRow } from './EducationRow';
 import { MetricRow } from './MetricRow';
@@ -10,6 +12,7 @@ import { ExperienceRow } from './ExperienceRow';
 import { ProjectRow } from './ProjectRow';
 import { PublishBar } from './PublishBar';
 import { RowList } from './RowList';
+import { Section } from './Section';
 import { SettingsForm } from './SettingsForm';
 import { TestimonialRow } from './TestimonialRow';
 import { TemplatePicker } from './TemplatePicker';
@@ -27,6 +30,14 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
   const { mode, rootDomain } = tenantConfig();
   const { issue } = editor;
 
+  // Null when the site names a template this build no longer ships. The
+  // sections then claim nothing rather than guessing.
+  const chosen = getManifest(editor.templateId);
+  const uses = chosen?.uses ?? null;
+  const templateName = chosen?.name ?? 'This design';
+
+  const section = { uses, templateName };
+
   return (
     <>
       <h1>{editor.subdomain ?? (issue.settings.displayName || 'Untitled portfolio')}</h1>
@@ -35,7 +46,7 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
       <TemplatePicker
         siteId={editor.siteId}
         selectedId={editor.templateId}
-        templates={listTemplates().map(({ manifest }) => ({
+        templates={listManifests().map((manifest) => ({
           id: manifest.id,
           name: manifest.name,
           description: manifest.description,
@@ -43,58 +54,64 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
         }))}
       />
 
-      <h2>Settings</h2>
-      <SettingsForm siteId={editor.siteId} settings={issue.settings} />
+      <Section title="Settings" part="settings" {...section}>
+        <SettingsForm siteId={editor.siteId} settings={issue.settings} />
+      </Section>
 
-      <h2>Experience</h2>
-      <RowList
-        items={issue.experiences}
-        render={(experience, onCreated) => (
-          <ExperienceRow siteId={editor.siteId} experience={experience} onCreated={onCreated} />
-        )}
-      />
+      <Section title="Experience" part="experiences" {...section}>
+        <RowList
+          items={issue.experiences}
+          render={(experience, onCreated) => (
+            <ExperienceRow siteId={editor.siteId} experience={experience} onCreated={onCreated} />
+          )}
+        />
+      </Section>
 
-      <h2>Projects</h2>
-      <RowList
-        items={issue.projects}
-        render={(project, onCreated) => (
-          <ProjectRow
-            siteId={editor.siteId}
-            project={project}
-            employers={issue.experiences}
-            onCreated={onCreated}
-          />
-        )}
-      />
+      <Section title="Projects" part="projects" {...section}>
+        <RowList
+          items={issue.projects}
+          render={(project, onCreated) => (
+            <ProjectRow
+              siteId={editor.siteId}
+              project={project}
+              employers={issue.experiences}
+              onCreated={onCreated}
+            />
+          )}
+        />
+      </Section>
 
-      <h2>Education</h2>
-      <RowList
-        items={issue.education}
-        render={(entry, onCreated) => (
-          <EducationRow siteId={editor.siteId} entry={entry} onCreated={onCreated} />
-        )}
-      />
+      <Section title="Education" part="education" {...section}>
+        <RowList
+          items={issue.education}
+          render={(entry, onCreated) => (
+            <EducationRow siteId={editor.siteId} entry={entry} onCreated={onCreated} />
+          )}
+        />
+      </Section>
 
-      <h2>Testimonials</h2>
-      <RowList
-        items={issue.testimonials}
-        render={(testimonial, onCreated) => (
-          <TestimonialRow
-            siteId={editor.siteId}
-            testimonial={testimonial}
-            employers={issue.experiences}
-            onCreated={onCreated}
-          />
-        )}
-      />
+      <Section title="Testimonials" part="testimonials" {...section}>
+        <RowList
+          items={issue.testimonials}
+          render={(testimonial, onCreated) => (
+            <TestimonialRow
+              siteId={editor.siteId}
+              testimonial={testimonial}
+              employers={issue.experiences}
+              onCreated={onCreated}
+            />
+          )}
+        />
+      </Section>
 
-      <h2>Metrics</h2>
-      <RowList
-        items={issue.metrics}
-        render={(metric, onCreated) => (
-          <MetricRow siteId={editor.siteId} metric={metric} onCreated={onCreated} />
-        )}
-      />
+      <Section title="Metrics" part="metrics" {...section}>
+        <RowList
+          items={issue.metrics}
+          render={(metric, onCreated) => (
+            <MetricRow siteId={editor.siteId} metric={metric} onCreated={onCreated} />
+          )}
+        />
+      </Section>
 
       <PublishBar
         siteId={editor.siteId}

@@ -103,6 +103,18 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ### Builder (Phase 2, in progress)
 
+- **The editor says which sections your design actually shows.** `timeline`
+  renders neither testimonials nor metrics, and the builder offered editors for
+  both — so a user could write a page of quotes their live site silently
+  discarded, and only find out by publishing and looking.
+- `manifest.uses` had been declared since the template contract was written and
+  read by nothing, which made it a comment rather than a feature. It now drives
+  the note.
+- The note says "not shown", never "delete this". Content lives in the `Issue`
+  and survives a template switch, so it is genuinely kept — it is this design
+  that is not asking for it, which is a reason to mention the other designs
+  rather than to hide the fields.
+
 - **Upload rules**, as pure logic ahead of the plumbing that will call them:
   what a file actually is, how big that kind may be, and whether the site has
   room. Nothing uploads yet — this is the half worth reviewing on its own
