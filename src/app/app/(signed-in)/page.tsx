@@ -1,5 +1,5 @@
 import { hasServiceRole } from '@/lib/supabase/service';
-import { siteHref, tenantConfig } from '@/lib/tenant-config';
+import { builderHref, siteHref, tenantConfig } from '@/lib/tenant-config';
 import { ownedSites } from '@/server/services/claimSubdomain';
 
 import { ClaimForm } from './ClaimForm';
@@ -20,12 +20,14 @@ export default async function Builder() {
         <ul className="admin-list">
           {sites.map((site) => (
             <li key={site.id} className="admin-row">
-              <a href={siteHref(site.subdomain)}>{site.subdomain}</a>
-              <span className={site.publishedVersion === null ? 'admin-flag' : 'admin-flag admin-flag-live'}>
-                {site.publishedVersion === null
-                  ? 'Not published'
-                  : `Live, version ${site.publishedVersion}`}
-              </span>
+              <a href={builderHref(`/sites/${site.id}`)}>{site.subdomain}</a>
+              {site.publishedVersion === null ? (
+                <span className="admin-flag admin-flag-pending">Not published</span>
+              ) : (
+                <a className="admin-flag admin-flag-live" href={siteHref(site.subdomain)}>
+                  Live, version {site.publishedVersion}
+                </a>
+              )}
             </li>
           ))}
         </ul>

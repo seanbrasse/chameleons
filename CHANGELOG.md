@@ -103,6 +103,24 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ### Builder (Phase 2, in progress)
 
+- The editor's first screen. Site settings can be edited, saved to
+  `site_drafts.issue`, and published — which makes `publishSite` reachable for
+  the first time and closes the loop from sign-in to a live page.
+- **Saving does not gate on `validateIssue`; publishing does.** A draft someone
+  is halfway through is allowed to be over a cap or missing a field, and
+  refusing to store it would lose their work to protect a page nobody is
+  serving yet. The problems come back from the save so the editor can show them
+  before they matter.
+- `update_draft_issue` (`0003`) is the guarded write. AGENTS.md requires
+  ownership folded into the statement rather than checked before it, and
+  PostgREST cannot express a correlated `exists` on an update — so the write is
+  a function, not two round trips with a window between them. It is
+  deliberately *not* `security definer`: the server tier already connects as the
+  service role, and making it definer would hand the same power to any role that
+  could reach it.
+- A site that is not yours and a site that does not exist are the same 404. A
+  distinct "forbidden" would confirm the id belongs to somebody.
+
 - The builder's chrome is `src/app/builder.css`, ported from the admin half of
   the original portfolio's single stylesheet and scoped to the builder by
   `app/app/layout.tsx`. A published portfolio is rendered by a template with
