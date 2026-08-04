@@ -2,8 +2,7 @@ import 'server-only';
 
 import { revalidateTag } from 'next/cache';
 
-import { hasDatabase } from '@/lib/supabase/config';
-import { supabaseSession } from '@/lib/supabase/server';
+import { currentUser } from '@/server/auth/session';
 import { parseIssue } from '@/server/domain/parse-issue';
 import { buildSnapshot, collectMediaUrls } from '@/server/domain/publish';
 import { validateIssue, type ContentProblem } from '@/server/domain/validate-issue';
@@ -21,22 +20,16 @@ export type PublishResult =
   | { ok: false; reason: 'unauthenticated' | 'not-found' | 'conflict' }
   | { ok: false; reason: 'invalid'; problems: ContentProblem[] };
 
-async function currentUserId(): Promise<string | null> {
-  if (!hasDatabase()) return null;
-
-  // getUser, not getSession: only this verifies the token with the auth server.
-  const { data } = await (await supabaseSession()).auth.getUser();
-  return data.user?.id ?? null;
-}
-
 /**
  * `siteId` is untrusted input. It is never used except alongside the session's
  * owner id, so every read and write below fails closed on a site the caller
  * does not own.
  */
 export async function publishSite(siteId: string): Promise<PublishResult> {
-  const ownerId = await currentUserId();
-  if (!ownerId) return { ok: false, reason: 'unauthenticated' };
+  const owner = await currentUser();
+  if (!owner) return { ok: false, reason: 'unauthenticated' };
+
+  const ownerId = owner.id;
 
   const working = await readWorkingState(siteId, ownerId);
   if (!working) return { ok: false, reason: 'not-found' };

@@ -41,6 +41,25 @@ render route serves the seed in `src/server/repos/sites.ts`.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Paired with the URL. Used for auth only — no table is readable with it. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-tier key. Bypasses RLS by design; never expose it to a client bundle. |
 
+### Sign-in providers
+
+Two things have to be set in the Supabase dashboard before sign-in works; no
+amount of environment configuration substitutes for them.
+
+1. **Authentication → Providers** — enable Google and GitHub and give each its
+   OAuth client id and secret.
+2. **Authentication → URL Configuration → Redirect URLs** — allowlist every
+   origin the callback can land on. The builder is a different origin per mode:
+
+   | Environment | Redirect URL |
+   |---|---|
+   | Production | `https://app.chameleons.dev/auth/callback` |
+   | Vercel preview | `https://*.vercel.app/app/auth/callback` |
+   | Local dev | `http://app.localhost:3000/auth/callback` |
+
+   The `/app` prefix on the preview row is not a typo — preview deploys run in
+   `path` mode, where the builder shares an origin with marketing.
+
 ## Routing
 
 | Environment | Mode | A published portfolio |

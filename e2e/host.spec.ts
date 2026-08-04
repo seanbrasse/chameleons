@@ -13,9 +13,10 @@ test('a subdomain serves that tenant', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sean Brasse');
 });
 
-test('the app subdomain serves the builder', async ({ page }) => {
+test('the builder sends a signed-out visitor to the door', async ({ page }) => {
   await page.goto(at('app.'));
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Builder');
+  await expect(page).toHaveURL(at('app.', '/enter'));
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sign in');
 });
 
 test('an unclaimed subdomain is a 404', async ({ page }) => {
