@@ -104,8 +104,14 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 ### Builder (Phase 2, in progress)
 
 - The builder's chrome is `src/app/builder.css`, ported from the admin half of
-  the original portfolio's single stylesheet. It is not imported anywhere yet —
-  the builder UI does not exist — so this lands the sheet and nothing else.
+  the original portfolio's single stylesheet and scoped to the builder by
+  `app/app/layout.tsx`. A published portfolio is rendered by a template with
+  its own CSS and never inherits it.
+- It states its own page frame — background, colour, body type. In the original
+  the admin section sat inside the public stylesheet and inherited that
+  preamble; here that sheet belongs to a template and `src/app/` cannot read
+  it. The builder's frame is deliberately plainer, since template #1's paper
+  texture is that template's idea rather than the product's.
 - It declares its own seventeen custom properties rather than reading a
   template's. Templates share a floor, not a design system, and `src/app/`
   importing `src/templates/<id>/tokens.ts` is the boundary that keeps every

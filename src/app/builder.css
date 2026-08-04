@@ -44,6 +44,20 @@
   --on-accent: #0d0d0d;
 }
 
+/* The page frame. In the original this came from the public stylesheet's
+   preamble, which the admin section sat inside and inherited; here that sheet
+   belongs to a template and `src/app/` cannot read it, so the builder states
+   its own. Deliberately plainer — template #1's paper texture is that
+   template's idea, not the builder's. */
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
 .admin {
   min-height: 100%;
   max-width: clamp(860px, 82vw, 1400px);

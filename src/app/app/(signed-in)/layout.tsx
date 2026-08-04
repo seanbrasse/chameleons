@@ -21,10 +21,10 @@ export default async function SignedIn({ children }: { children: ReactNode }) {
   return (
     <div className="admin">
       <header className="admin-bar">
-        <span>{user.email}</span>
+        <span className="admin-note">{user.email}</span>
         <SignOut />
       </header>
-      {children}
+      <main className="admin-main">{children}</main>
     </div>
   );
 }

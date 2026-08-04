@@ -9,20 +9,22 @@ export default async function Builder() {
   const { mode, rootDomain } = tenantConfig();
 
   return (
-    <main>
+    <>
       <h1>Your sites</h1>
 
       {sites.length === 0 ? (
-        <p>No sites yet. Claim an address and one is created with an empty portfolio.</p>
+        <p className="admin-note">
+          No sites yet. Claim an address and one is created with an empty portfolio.
+        </p>
       ) : (
         <ul className="admin-list">
           {sites.map((site) => (
-            <li key={site.id}>
+            <li key={site.id} className="admin-row">
               <a href={siteHref(site.subdomain)}>{site.subdomain}</a>
-              <span>
+              <span className={site.publishedVersion === null ? 'admin-flag' : 'admin-flag admin-flag-live'}>
                 {site.publishedVersion === null
                   ? 'Not published'
-                  : `Published, version ${site.publishedVersion}`}
+                  : `Live, version ${site.publishedVersion}`}
               </span>
             </li>
           ))}
@@ -32,11 +34,11 @@ export default async function Builder() {
       {hasServiceRole() ? (
         <ClaimForm suffix={mode === 'path' ? '' : `.${rootDomain}`} />
       ) : (
-        <p role="status">
+        <p className="admin-note" role="status">
           Sites cannot be created because this deployment has no Supabase project
           configured.
         </p>
       )}
-    </main>
+    </>
   );
 }

@@ -18,21 +18,25 @@ export default async function Enter({
   const { problem } = await searchParams;
 
   return (
-    <main className="admin">
-      <h1>Sign in</h1>
+    <div className="admin">
+      <main className="admin-main">
+        <div className="admin-door">
+          <h1>Sign in</h1>
 
-      {hasDatabase() ? (
-        <SignIn
-          callbackPath={builderHref('/auth/callback')}
-          enterPath={builderHref('/enter')}
-          problem={problem}
-        />
-      ) : (
-        <p role="status">
-          Sign-in is unavailable because this deployment has no Supabase project
-          configured.
-        </p>
-      )}
-    </main>
+          {hasDatabase() ? (
+            <SignIn
+              callbackPath={builderHref('/auth/callback')}
+              enterPath={builderHref('/enter')}
+              problem={problem}
+            />
+          ) : (
+            <p className="admin-note" role="status">
+              Sign-in is unavailable because this deployment has no Supabase project
+              configured.
+            </p>
+          )}
+        </div>
+      </main>
+    </div>
   );
 }
