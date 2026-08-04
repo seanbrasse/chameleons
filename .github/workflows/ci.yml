@@ -5,6 +5,13 @@ on:
     branches: [main]
   pull_request:
 
+# A second push to a branch makes the first run's answer irrelevant. Without
+# this they queue behind each other and a stale run holds a runner the current
+# one is waiting for.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -21,7 +28,23 @@ jobs:
       - run: npm test
       - run: npm run build
 
-      - run: npx playwright install --with-deps chromium
+      # Keyed on the lockfile because that is what pins the Playwright version,
+      # and the browser build is chosen by that version.
+      - uses: actions/cache@v4
+        id: browser
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      # Not `--with-deps`. That runs apt on every job, and on one run here it
+      # sat for twenty minutes doing so while everything else had already
+      # passed. The ubuntu-latest image already ships Chromium's shared
+      # libraries; if that ever stops being true the e2e step fails loudly on a
+      # missing `.so` rather than silently, and `playwright install-deps`
+      # belongs here.
+      - run: npx playwright install chromium
+        if: steps.browser.outputs.cache-hit != 'true'
+
       - run: npm run test:e2e
 
       - uses: actions/upload-artifact@v4
