@@ -10,19 +10,24 @@ assumes them.
 
 ## 1. Where things stand
 
-**Phase 0 (foundation) and most of Phase 1 (template #1) are done.**
+**Phases 0 and 1 are done. Phase 2 (the builder) is about half.**
 
 `main` carries: tenant resolution in two modes, the multi-tenant schema with the
 snapshot pointer, the layered `server/` skeleton, the test harness and CI, the
-template contract, and template #1 ported from the original portfolio and
-verified pixel-close to it.
+template contract, template #1 verified pixel-close to the original, the
+snapshot publish path, sign-in, and subdomain claim.
+
+The builder can now be signed into and a site created. What it cannot do is
+**edit** — the dashboard links a site to its live URL, and nothing writes
+`site_drafts.issue` yet, so `publishSite` has no caller.
 
 | Verified | |
 |---|---|
 | desktop | 0.01% differing pixels vs the original |
 | mobile | 0.03% |
-| tests | 51 unit, 9 e2e |
+| tests | 58 unit, 9 e2e |
 | lint | 2 warnings, both pre-existing `<img>` in `Work.tsx` |
+| CI | ~55s end to end |
 
 Both figures are from one run of the same harness against both applications;
 comparing a number from one harness against a number from another is how the
@@ -53,6 +58,22 @@ re-derive these.
 **Do not delete the old branch's lesson:** it reported "lint clean, zero
 warnings" only because `Work.tsx` was absent from its tree. `npm run lint` on a
 correct base shows exactly two `<img>` warnings. Zero means the base is wrong.
+
+### 2.1a What Phase 2 still needs
+
+1. **The editor.** Port the admin forms from the original, scoped to one owned
+   site, writing `site_drafts.issue`. Every write folds the ownership check in
+   (`… and exists (select 1 from sites where id = $2 and owner_id = $3)`) rather
+   than checking first — see §3.
+2. **A publish button.** `publishSite` is written, tested and unreachable; it
+   needs a Server Action and somewhere to show `ContentProblem[]` when
+   `validateIssue` refuses.
+3. **Signed upload URLs.** The original uploads browser → Storage directly. With
+   no browser privileges that path is gone: the server authorizes and names the
+   key, the browser still moves the bytes.
+
+Nothing above needs a new abstraction. The layering, the contract and the
+publish path all exist; this is wiring plus the port of the admin UI.
 
 ### 2.2 Smaller, well-specified
 
@@ -161,6 +182,17 @@ hanging-indent block comments.
   session were created from a commit five behind `main`, and one had `origin`
   pointing at the *wrong repository*. **Verify `git remote -v` and the merge-base
   before doing any work in a fresh worktree.**
+- **A dead `next start` keeps the port.** Twice in one session an old process
+  went on serving while the new one printed `EADDRINUSE` into a log nobody read
+  — once serving a *previous* build's chunk hashes against a freshly built
+  `.next`, which rendered a completely unstyled page and produced a confident
+  "100% of pixels differ". Check the bind succeeded before trusting any number
+  that came off that port.
+- **CI installs the browser without `--with-deps`.** The `ubuntu-latest` image
+  already carries Chromium's shared libraries; `--with-deps` apt-installs them
+  anyway and once sat for over twenty minutes doing so. If e2e ever fails on a
+  missing `.so`, that assumption has expired and `playwright install-deps` goes
+  back in `.github/workflows/ci.yml`.
 - **`next build` root inference** walks up to the nearest lockfile. Not an issue
   now the repo stands alone, but it is why the app once needed `turbopack.root`
   pinned.
