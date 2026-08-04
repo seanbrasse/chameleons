@@ -139,6 +139,27 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ### Fixed
 
+- **`0003`'s revoke on `update_draft_issue` did nothing.** Postgres grants
+  EXECUTE on a new function to PUBLIC, and `anon`/`authenticated` inherit from
+  there, so revoking from those two by name left the grant standing. It mattered:
+  the function takes `p_owner_id` as an argument, so a signed-in stranger who
+  learned a site's owner id could have rewritten that site's draft through
+  `/rest/v1/rpc/`, with the ownership guard satisfied. `0005` revokes from
+  PUBLIC, which is the only spelling that closes it.
+- `handle_new_user` was a `security definer` function reachable by `anon` over
+  the REST API. Direct invocation fails — a trigger function has no `new`
+  outside a trigger — but that is an accident of the current body, not a lock.
+  Also revoked in `0005`. The trigger still fires: Postgres checks EXECUTE at
+  `create trigger` time, not per firing.
+- `0004` revokes the table and sequence grants the dashboard's "Automatically
+  expose new tables" setting controls, and sets default privileges so a later
+  migration cannot quietly reintroduce them. Stated as a migration rather than a
+  checkbox so it travels with the repo and survives a fresh project.
+
+Both function findings came from running Supabase's security advisor against a
+real database. Neither is visible from reading the SQL, because
+`revoke … from anon, authenticated` reads exactly like a lock that is locked.
+
 - **The mobile render now matches the original.** `.project-status` was missing
   from `template.css` entirely, because it sits after the original stylesheet's
   `Admin` heading despite being consumed only by `Work.tsx` — the same trap as

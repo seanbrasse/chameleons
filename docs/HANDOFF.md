@@ -236,6 +236,21 @@ freshly built `.next`, which rendered a completely unstyled page and produced a
 confident "100% of pixels differ". Check the bind actually succeeded, and look
 at the image before believing the number.
 
+**`revoke … from anon, authenticated` is not a revoke.** Postgres grants EXECUTE
+on every new function to PUBLIC, and both roles inherit it from there, so naming
+them individually leaves the grant exactly where it was. `0003` shipped that way
+and read as correct in review. The consequence was real: `update_draft_issue`
+takes `p_owner_id` as an argument, so any signed-in user who learned a site's
+owner id could have rewritten that site's draft over `/rest/v1/rpc/` with the
+ownership guard satisfied. **Always name PUBLIC**, and run
+`get_advisors(type: 'security')` after any migration that adds a function —
+this was invisible in the SQL and took one advisor call to surface.
+
+**Run the security advisor against a real database, not a reading of the SQL.**
+The two function findings above appeared the first time the schema met an actual
+Postgres. `has_function_privilege('authenticated', …)` is the check that settles
+it.
+
 **A lint rule that does not fire looks like a clean codebase.** Two of the six
 anti-slop rules silently failed to match when first written, and `npm run lint`
 reported success the whole time. Found only by writing a deliberate violation
