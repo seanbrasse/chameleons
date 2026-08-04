@@ -24,3 +24,7 @@ export const DEFAULT_TEMPLATE_ID = timeline.id;
 export function listManifests(): typeof MANIFESTS {
   return MANIFESTS;
 }
+
+export function getManifest(id: string): (typeof MANIFESTS)[number] | null {
+  return MANIFESTS.find((manifest) => manifest.id === id) ?? null;
+}
