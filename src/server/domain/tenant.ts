@@ -66,6 +66,37 @@ function resolveByPath(pathname: string): Tenant {
   return { kind: 'site', subdomain: label, pathname: normalizePath(`/${rest.join('/')}`) };
 }
 
+/**
+ * The public URL path a builder route is served at, which is not the path the
+ * app routes it under. In host mode the builder owns a subdomain and its paths
+ * are bare; in path mode it shares an origin with marketing and everything sits
+ * beneath `/app`. Anything the browser is handed — an OAuth redirect target, a
+ * `redirect()` from a Server Component — has to be built with this or it lands
+ * on the wrong tenant in previews.
+ */
+export function builderPath(pathname: string, config: TenantConfig): string {
+  const path = normalizePath(pathname);
+  if (config.mode === 'host') return path;
+  return path === '/' ? `/${BUILDER_LABEL}` : `/${BUILDER_LABEL}${path}`;
+}
+
+/**
+ * Where a published portfolio is read. In host mode that is a different origin
+ * from the builder, so this has to be absolute; in path mode it is a path on
+ * the same one. Plain HTTP only for localhost — every real root this runs under
+ * is HSTS-preloaded, so an `http://` link there is a redirect at best.
+ */
+export function siteUrl(subdomain: string, config: TenantConfig): string {
+  if (config.mode === 'path') return `${SITE_ROOT}/${subdomain}`;
+
+  const root = normalizeRoot(config.rootDomain);
+  const scheme = root === 'localhost' || root.endsWith('.localhost') ? 'http' : 'https';
+
+  // The port is kept here, unlike in resolution, because this is a link someone
+  // follows rather than a host to match.
+  return `${scheme}://${subdomain}.${config.rootDomain}`;
+}
+
 export function resolveTenant(host: string, pathname: string, config: TenantConfig): Tenant {
   const path = normalizePath(pathname);
 

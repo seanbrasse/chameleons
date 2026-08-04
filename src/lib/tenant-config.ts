@@ -1,4 +1,4 @@
-import type { TenantConfig, TenantMode } from '@/server/domain/tenant';
+import { builderPath, siteUrl, type TenantConfig, type TenantMode } from '@/server/domain/tenant';
 
 /**
  * Read at runtime, not inlined: one build is deployed to production in `host`
@@ -11,4 +11,18 @@ export function tenantConfig(): TenantConfig {
     mode,
     rootDomain: process.env.ROOT_DOMAIN ?? 'localhost:3000',
   };
+}
+
+/**
+ * A builder link as the browser must see it, which is not the path the app
+ * routes it under. Reads `TENANT_MODE`, so it is server-side only — pass the
+ * result to a client component rather than calling it there.
+ */
+export function builderHref(pathname: string): string {
+  return builderPath(pathname, tenantConfig());
+}
+
+/** Where a published portfolio is read. Server-side only, same as above. */
+export function siteHref(subdomain: string): string {
+  return siteUrl(subdomain, tenantConfig());
 }

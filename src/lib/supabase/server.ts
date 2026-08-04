@@ -14,9 +14,17 @@ export async function supabaseSession() {
   return createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     cookies: {
       getAll: () => store.getAll(),
-      // Server Components cannot write cookies. proxy.ts already refreshes the
-      // session on every builder request, so dropping writes here loses nothing.
-      setAll: () => {},
+      setAll: (written) => {
+        try {
+          for (const { name, value, options } of written) store.set(name, value, options);
+        } catch {
+          // Server Components cannot write cookies and Next signals that by
+          // throwing; actions and route handlers can, which is what sign-in and
+          // sign-out need. Swallowing it lets one client serve all three, and
+          // proxy.ts already refreshes the session on every builder request, so
+          // the dropped write costs nothing in the component case.
+        }
+      },
     },
   });
 }

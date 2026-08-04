@@ -9,6 +9,22 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ## [Unreleased]
 
+### Auth
+
+- Sign in at the builder with Google or GitHub. `profiles` rows come from
+  `0001`'s `on_auth_user_created` trigger rather than from the callback, so a
+  session established by any future path still gets one.
+- The gate is a layout (`app/app/(signed-in)/layout.tsx`), not a proxy matcher:
+  the set of pages behind it is the set of pages in the folder, with nothing to
+  keep in sync. `/enter` and `/auth/callback` sit outside it.
+- `builderPath()` builds builder links as the browser must see them. In host
+  mode the builder owns a subdomain and paths are bare; in path mode it shares
+  an origin with marketing and everything sits under `/app`, so a literal
+  redirect would land on the wrong tenant in previews.
+- `supabaseSession()` now attempts its cookie writes and swallows the throw a
+  Server Component raises, so one client serves components, actions and route
+  handlers — sign-out has to actually clear the cookie.
+
 ### Tenancy and routing
 
 - One pure resolver (`src/server/domain/tenant.ts`) turns a `Host` header or a
