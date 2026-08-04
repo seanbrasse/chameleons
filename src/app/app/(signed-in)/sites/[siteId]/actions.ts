@@ -4,9 +4,20 @@ import { revalidatePath } from 'next/cache';
 
 import { builderRoute } from '@/server/domain/tenant';
 import { readExperienceForm } from '@/server/domain/edit-experiences';
+import { readEducationForm } from '@/server/domain/edit-education';
+import { readProjectForm } from '@/server/domain/edit-projects';
 import { readSettingsForm } from '@/server/domain/edit-settings';
 import type { ContentProblem } from '@/server/domain/validate-issue';
-import { deleteExperience, saveExperience, saveSettings, type SaveResult } from '@/server/services/editSite';
+import {
+  deleteEducation,
+  deleteExperience,
+  deleteProject,
+  saveEducation,
+  saveExperience,
+  saveProject,
+  saveSettings,
+  type SaveResult,
+} from '@/server/services/editSite';
 import { publishSite } from '@/server/services/publishSite';
 import { claimAddress, unpublishSite } from '@/server/services/sites';
 
@@ -135,4 +146,56 @@ export async function unpublish(_state: EditorState, form: FormData): Promise<Ed
   revalidatePath(builderRoute(`/sites/${siteId}`));
   revalidatePath(builderRoute('/'));
   return { saved: true };
+}
+
+/**
+ * Projects and education repeat the experience shape exactly. Each row owns its
+ * id, submits its own form, and revalidates the editor it lives on.
+ */
+function rowId(form: FormData, field: string): string | null {
+  const value = form.get(field);
+  return typeof value === 'string' && value !== '' ? value : null;
+}
+
+export async function saveProjectRow(_state: EditorState, form: FormData): Promise<EditorState> {
+  const siteId = siteIdOf(form);
+  const projectId = rowId(form, 'projectId');
+  if (!siteId || !projectId) return { problem: REFUSALS['not-found'] };
+
+  const result = await saveProject(siteId, projectId, readProjectForm(fieldReader(form)));
+  if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
+  return toState(result);
+}
+
+export async function removeProjectRow(_state: EditorState, form: FormData): Promise<EditorState> {
+  const siteId = siteIdOf(form);
+  const projectId = rowId(form, 'projectId');
+  if (!siteId || !projectId) return { problem: REFUSALS['not-found'] };
+
+  const result = await deleteProject(siteId, projectId);
+  if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
+  return toState(result);
+}
+
+export async function saveEducationRow(_state: EditorState, form: FormData): Promise<EditorState> {
+  const siteId = siteIdOf(form);
+  const educationId = rowId(form, 'educationId');
+  if (!siteId || !educationId) return { problem: REFUSALS['not-found'] };
+
+  const result = await saveEducation(siteId, educationId, readEducationForm(fieldReader(form)));
+  if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
+  return toState(result);
+}
+
+export async function removeEducationRow(
+  _state: EditorState,
+  form: FormData,
+): Promise<EditorState> {
+  const siteId = siteIdOf(form);
+  const educationId = rowId(form, 'educationId');
+  if (!siteId || !educationId) return { problem: REFUSALS['not-found'] };
+
+  const result = await deleteEducation(siteId, educationId);
+  if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
+  return toState(result);
 }

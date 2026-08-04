@@ -69,7 +69,7 @@ export function PublishBar({
 
       <Feedback {...addressState} />
 
-      <div className="admin-actions">
+      <div className="admin-buttons">
         {/* A link, not a button: opening the draft in its own tab is what makes
             it comparable with the live site, and leaves the editor untouched. */}
         <a className="admin-button admin-quiet" href={previewHref} target="_blank" rel="noreferrer">
