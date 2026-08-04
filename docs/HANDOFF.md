@@ -4,7 +4,9 @@ For whoever picks this up next, human or agent. What exists, what does not, and
 the things that have already cost time.
 
 Read `AGENTS.md` first for the conventions — they are binding and this document
-assumes them.
+assumes them. `CAPACITY.md` sits alongside this one and answers "will this
+scale" so nobody has to guess: the short version is that storage binds at
+around 50–100 users and nothing else binds at any plausible size.
 
 ---
 
@@ -23,13 +25,17 @@ The whole loop now runs from a browser: sign in → create a portfolio → pick 
 template → fill it in → preview it → claim an address and publish. `publishSite`
 has a caller, and six services write `site_drafts.issue`.
 
+Since then it has also gained version history with rollback, GitHub project
+import, the floor enforced in CI per template, and the rule that a template
+version bump must carry a changelog entry.
+
 | Verified | |
 |---|---|
 | desktop | 0.01% differing pixels vs the original |
 | mobile | 0.03% |
-| tests | 106 unit, 9 e2e |
+| tests | 146 unit, 19 e2e |
 | lint | 2 warnings, both pre-existing `<img>` in `Work.tsx` |
-| CI | ~50s end to end |
+| CI | ~75s end to end |
 
 Both figures are from one run of the same harness against both applications;
 comparing a number from one harness against a number from another is how the
@@ -76,17 +82,33 @@ that had been pulled.
 
 ### 2.2 What Phase 2 still needs
 
-1. **Signed upload URLs, and only under supervision.** The original uploads
-   browser → Storage directly. With no browser privileges that path is gone: the
-   server authorizes and names the key, the browser still moves the bytes. This
-   is the one remaining Phase 2 item and it was **deliberately left unbuilt by
-   the overnight loop** — a partial implementation of plan §8 (EXIF stripping,
-   MIME sniffing, the SVG ban, per-site quotas) is a security surface rather
-   than a feature, and half of it shipped is worse than none.
+1. **The upload pipeline, and only under supervision.** The *rules* are built
+   and tested (`domain/upload.ts`): sniffing by magic bytes, the SVG ban,
+   10 MB images / 50 MB video, a 250 MB per-site quota. Nothing calls them yet.
+
+   What is missing is the bytes moving, and it is missing because of a real
+   tension rather than time. **Signed upload URLs send bytes browser → Storage,
+   bypassing the server — but EXIF stripping and MIME sniffing require the
+   server to see them**, and Vercel's ~4.5 MB request body limit rules out
+   POSTing a 50 MB video to a route handler. The resolution is a private
+   quarantine bucket plus a server-side finalize step: nothing is publicly
+   readable until it has been through it.
+
+   The open question, which needs a human: image stripping via `sharp` is the
+   boring correct answer, but **video metadata stripping has no equivalent** —
+   removing a QuickTime/MP4 location atom means hand-rolled binary container
+   surgery, or deferring video to the Phase 5 queue where ffmpeg can live.
+   A partial implementation of plan §8 is a security surface rather than a
+   feature, and half of it shipped is worse than none.
 2. **An end-to-end run by a human.** Every part of the loop is tested and the
    pieces have been screenshotted, but nobody has yet sat down and gone signup →
    publish → load the live subdomain in one sitting. That is the acceptance test
    and it is the highest-value thing to do next.
+3. **The first real GitHub import.** The mapping is verified against a real API
+   payload and the error paths are unit-tested, but the live
+   `/users/<login>/repos` call has never run: this sandbox's proxy blocks it,
+   because sessions are scoped to configured repositories. Worth watching once
+   on a preview deploy.
 
 ### 2.3 Smaller, well-specified
 
@@ -308,6 +330,24 @@ and it is already in the repo.
 Two rules the split stranded in the public half are now restored to
 `builder.css` (`.field`, `.link-arrow`); an audit of all 83 classes the original
 admin uses found no others.
+
+**A check that has only ever passed is indistinguishable from one that cannot
+fail.** Two of the six anti-slop lint rules silently matched nothing when
+written, while `npm run lint` reported success throughout. The floor spec
+(`e2e/floor.spec.ts`) was written the same way and could have been the same
+mistake, so `floor-fires.spec.ts` exists to inject each defect and assert the
+measurement reports it. The template-changelog rule got the same treatment —
+and **gave a false pass on the case that mattered**, because the test range
+still contained the commit that had added the changelog. The bug was in the
+test, not the rule, which is exactly how a rule nobody has seen fail gets
+believed. Run the failing case, in isolation, before trusting any new check.
+
+**Point the floor at a comp before promoting it.** `@axe-core/playwright`
+against `design/dossier/comp.html` — no React, no route, no registry entry —
+found the margin column failing WCAG AA in both themes across 21 nodes. It was
+the most characteristic element of that design and it was invisible in a
+screenshot. After promotion it would have been a token change rippling through
+a stylesheet, and it might well have shipped.
 
 **Screenshot the builder, not just the render path.** A static harness with
 `builder.css` and the real markup catches layout problems in seconds without
