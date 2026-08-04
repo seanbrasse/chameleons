@@ -1264,3 +1264,38 @@ body {
     transition: none;
   }
 }
+
+/* ── The template gallery ────────────────────────────────────────────────
+   The create step for a new account. Cards rather than the editor's rows: this
+   is a choice between designs, not a list of things to edit, and the two should
+   not look the same. */
+.admin-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--s-3);
+  margin-bottom: var(--s-4);
+}
+
+.admin-gallery-item {
+  display: grid;
+  align-content: start;
+  gap: var(--s-2);
+  background: var(--matte);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--s-4);
+}
+
+.admin-gallery-item h2 {
+  font-size: var(--t-lead);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.admin-gallery-item .admin-note {
+  margin-top: 0;
+}
+
+.admin-gallery-item:hover {
+  border-color: var(--rule-strong);
+}

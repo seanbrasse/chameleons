@@ -16,9 +16,16 @@ export async function signOut() {
 
 export type NewSiteState = { problem?: string };
 
-/** Straight into the editor: there is nothing to ask for before writing. */
-export async function startPortfolio(): Promise<NewSiteState> {
-  const result = await createPortfolio();
+/**
+ * Straight into the editor once a design is chosen — there is nothing else to
+ * ask for before writing, and nothing is named until it ships.
+ */
+export async function startPortfolio(
+  _state: NewSiteState,
+  form: FormData,
+): Promise<NewSiteState> {
+  const raw = form.get('templateId');
+  const result = await createPortfolio(typeof raw === 'string' ? raw : undefined);
 
   if (!result.ok) {
     return {
