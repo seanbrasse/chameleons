@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveTenant, type TenantConfig } from './tenant';
+import { builderPath, resolveTenant, type TenantConfig } from './tenant';
 
 const HOST: TenantConfig = { mode: 'host', rootDomain: 'chameleons.dev' };
 const PATH: TenantConfig = { mode: 'path', rootDomain: 'chameleons.dev' };
@@ -111,5 +111,32 @@ describe('both modes agree on the same site', () => {
     expect(resolveTenant('sean.chameleons.dev', '/about', HOST)).toEqual(
       resolveTenant('preview.vercel.app', '/s/sean/about', PATH),
     );
+  });
+});
+
+describe('builderPath', () => {
+  it('leaves paths bare in host mode, where the builder owns a subdomain', () => {
+    expect(builderPath('/', HOST)).toBe('/');
+    expect(builderPath('/enter', HOST)).toBe('/enter');
+    expect(builderPath('/auth/callback', HOST)).toBe('/auth/callback');
+  });
+
+  it('nests under /app in path mode, where the origin is shared', () => {
+    expect(builderPath('/', PATH)).toBe('/app');
+    expect(builderPath('/enter', PATH)).toBe('/app/enter');
+    expect(builderPath('/auth/callback', PATH)).toBe('/app/auth/callback');
+  });
+
+  it('round-trips through the resolver in both modes', () => {
+    for (const pathname of ['/', '/enter', '/auth/callback', '/sites/new']) {
+      expect(resolveTenant('app.chameleons.dev', builderPath(pathname, HOST), HOST)).toEqual({
+        kind: 'builder',
+        pathname,
+      });
+      expect(resolveTenant('preview.vercel.app', builderPath(pathname, PATH), PATH)).toEqual({
+        kind: 'builder',
+        pathname,
+      });
+    }
   });
 });
