@@ -108,7 +108,7 @@ export function ExperienceRow({
           </p>
         </div>
 
-        <div className="admin-actions">
+        <div className="admin-buttons">
           <button type="submit" className="admin-button" disabled={saving}>
             {saving ? 'Saving…' : isNew ? 'Add' : 'Save'}
           </button>
