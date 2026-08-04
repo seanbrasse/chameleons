@@ -1,4 +1,4 @@
-import { builderPath, type TenantConfig, type TenantMode } from '@/server/domain/tenant';
+import { builderPath, siteUrl, type TenantConfig, type TenantMode } from '@/server/domain/tenant';
 
 /**
  * Read at runtime, not inlined: one build is deployed to production in `host`
@@ -20,4 +20,9 @@ export function tenantConfig(): TenantConfig {
  */
 export function builderHref(pathname: string): string {
   return builderPath(pathname, tenantConfig());
+}
+
+/** Where a published portfolio is read. Server-side only, same as above. */
+export function siteHref(subdomain: string): string {
+  return siteUrl(subdomain, tenantConfig());
 }

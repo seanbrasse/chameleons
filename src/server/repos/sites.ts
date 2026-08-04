@@ -67,6 +67,84 @@ export async function readCurrentPointer(subdomain: string): Promise<PublishedPo
   return { siteId: data.id, subdomain: data.subdomain, version };
 }
 
+/** A site as the builder lists it. */
+export type OwnedSite = {
+  id: string;
+  subdomain: string;
+  templateId: string;
+  publishedVersion: number | null;
+};
+
+export type CreateSiteFailure = 'taken' | 'reserved' | 'unavailable';
+
+export async function listSitesFor(ownerId: string): Promise<OwnedSite[]> {
+  if (!hasServiceRole()) return [];
+
+  const { data } = await supabaseService()
+    .from('sites')
+    .select('id, subdomain, template_id, site_versions!sites_current_version_fk (version)')
+    .eq('owner_id', ownerId)
+    .order('created_at', { ascending: true });
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    subdomain: row.subdomain,
+    templateId: row.template_id,
+    publishedVersion: (row.site_versions as { version?: number } | null)?.version ?? null,
+  }));
+}
+
+/**
+ * Postgres owns both refusals this can meet: `sites_subdomain_key` for a name
+ * already taken, and the `sites_subdomain_not_reserved` trigger for one on the
+ * reserved list. Checking either in advance would be a race — two claims for
+ * the same name can both pass a lookup and only one can pass the constraint.
+ */
+export async function createSite(
+  ownerId: string,
+  subdomain: string,
+  issue: unknown,
+  issueSchemaVersion: number,
+): Promise<{ ok: true; site: OwnedSite } | { ok: false; reason: CreateSiteFailure }> {
+  if (!hasServiceRole()) return { ok: false, reason: 'unavailable' };
+
+  const db = supabaseService();
+
+  const { data, error } = await db
+    .from('sites')
+    .insert({ owner_id: ownerId, subdomain })
+    .select('id, subdomain, template_id')
+    .single();
+
+  if (error || !data) {
+    if (error?.code === '23505') return { ok: false, reason: 'taken' };
+    // The trigger raises with errcode `check_violation`, i.e. 23514.
+    if (error?.code === '23514') return { ok: false, reason: 'reserved' };
+    return { ok: false, reason: 'unavailable' };
+  }
+
+  const { error: draftError } = await db
+    .from('site_drafts')
+    .insert({ site_id: data.id, issue, issue_schema_version: issueSchemaVersion });
+
+  // A site with no draft is a site the editor cannot open, so undo rather than
+  // leave a subdomain claimed against something unusable.
+  if (draftError) {
+    await db.from('sites').delete().eq('id', data.id).eq('owner_id', ownerId);
+    return { ok: false, reason: 'unavailable' };
+  }
+
+  return {
+    ok: true,
+    site: {
+      id: data.id,
+      subdomain: data.subdomain,
+      templateId: data.template_id,
+      publishedVersion: null,
+    },
+  };
+}
+
 /**
  * Scoped by owner_id as well as id, so a site id that is not the caller's comes
  * back as null rather than as someone else's draft.
