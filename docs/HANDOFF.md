@@ -59,6 +59,20 @@ Users sign up, pick a template, edit their portfolio, and publish it to
 (`seanbrasse/portfolio-builder`) becomes template #1 and is otherwise finished —
 **do not push to it.**
 
+**The gallery shows designs rather than describing them:** each card is the real
+template rendered against the viewer's own content, in an iframe at 1280×800
+scaled by the card's width (`transform: scale(calc(100cqw / 1280px))` — divided
+by a *length*, because `scale(<length>)` is invalid and the declaration is
+dropped in silence otherwise). The previewed document is `inert`; hiding the
+frame from the tab order alone leaves its links focusable and unreachable, which
+is what axe calls `frame-focusable-content`, and `inert` does not cross into a
+nested browsing context.
+
+**The blocking constraint on all of this: there is still only one template.**
+Everything above assumes a choice between designs and currently offers one card.
+Template #2 is a comp awaiting a veto (§2.4), and it is now the gating item for
+the product's premise rather than a nice-to-have.
+
 ---
 
 ## 2. Outstanding work
@@ -70,8 +84,9 @@ a new one is roughly an hour of following it.
 
 ```
 domain/edit-<thing>.ts     pure. readXForm(get) -> XEdit, upsertX, removeX
-services/editSite.ts       saveIssue(siteId, transform) — one guarded write
-app/…/sites/[siteId]/      XRow.tsx driven by RowList, one Server Action each
+services/editSite.ts       saveIssue(target, transform) — one guarded write
+app/…/sites/[siteId]/      XRow.tsx, one Server Action each
+app/…/profile/             the same rows, scoped to the person
 ```
 
 `saveIssue` is the whole authorization story for editing: it resolves the owner
@@ -81,9 +96,31 @@ means a mismatched owner affects zero rows. A new section adds a transform and
 inherits all of that — **do not add a second write path.**
 
 Sections exist for settings, experience, projects, education, testimonials and
-metrics. `RowList` handles the add-a-row pattern; `useId()` names new rows,
-because `crypto.randomUUID()` differs between server and client render and
-breaks hydration.
+metrics. `useId()` names new rows, because `crypto.randomUUID()` differs between
+server and client render and breaks hydration.
+
+**A `Target` decides what an edit lands on:** a site with an id, or the person's
+source material with none. Both hold an `Issue`, so every `domain/edit-*.ts`
+transform already works on either and one set of rows serves the editor and the
+profile. `siteId` is untrusted as ever; the profile target carries no id at all,
+so there is nothing in that request to forge. **Do not build a parallel profile
+stack** — that is twelve services with nothing keeping them in step.
+
+**The chosen design decides which sections the builder asks for**, from
+`manifest.uses`. What a template cannot render moves into a collapsed "Not on
+this design" group rather than staying inline with a note, because a note beside
+an inviting form still collects content the live site discards.
+
+> **The field set is a view, not a schema.** `Issue` carries every part whatever
+> the template names, switching designs preserves all of it, and publishing
+> snapshots the whole thing. Hidden content is kept and simply not asked for.
+> Making this "delete what the template does not use" would mean trying a second
+> design costs the user their work, and template-agnostic content stops being
+> true.
+
+The profile is the exception and asks for **everything**, unconditionally. It
+belongs to no design, and material owned by the person is meant to outlive
+whichever portfolio was open when it was typed.
 
 **Approval is deliberately not part of editing.** `TestimonialEdit` excludes
 `approved`, and `setTestimonialApproved` is its own action, because changing the
@@ -126,6 +163,19 @@ that had been pulled.
    is served to a stranger. *Hosting* a résumé for download is a separate feature
    and does need the upload pipeline; the two should not be built together just
    because both involve a PDF.
+
+   Two costs to know before starting, neither of them §8: the repo has **no AI
+   dependency at all** — `prefill.ts` was never ported and `@anthropic-ai/sdk`
+   is not installed — and it needs an API key the CI environment does not have.
+   The PDF itself is not a problem: the Messages API takes a document block, so
+   no text-extraction library is needed.
+5. **Content flows profile → site, never back.** A new site seeds from source
+   material and import writes both, but editing a portfolio directly does not
+   update the profile. That is deliberate — §23.4 keeps each site's `Issue`
+   independent so publishing can freeze it — with a consequence worth deciding
+   rather than discovering: someone who only ever edits portfolios never fills
+   in their profile, and their second portfolio starts empty anyway. Whether the
+   editor should offer "save this back to your content" is a product call.
 
    The rule it lands under is §23.5, and it is the one worth getting right:
    **state what the source says, never infer what it claims.** Dates, titles,
