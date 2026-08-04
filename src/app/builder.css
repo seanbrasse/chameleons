@@ -1265,6 +1265,21 @@ body {
   }
 }
 
+/* ── Content this design has no place for ────────────────────────────────
+   Collapsed rather than deleted, because the field set is a view over the
+   `Issue` and not a schema: switching designs preserves all of it. Reuses the
+   row collapse above so a kept section reads as the same kind of object as
+   every other collapsed thing in the editor. */
+.admin-kept {
+  border-top: 1px solid var(--rule);
+  padding-top: var(--s-3);
+  margin-top: var(--s-3);
+}
+
+.admin-kept > summary {
+  font-size: var(--t-body);
+}
+
 /* ── The template gallery ────────────────────────────────────────────────
    The create step for a new account. Cards rather than the editor's rows: this
    is a choice between designs, not a list of things to edit, and the two should

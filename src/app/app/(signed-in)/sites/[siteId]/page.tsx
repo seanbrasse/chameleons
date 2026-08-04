@@ -19,7 +19,7 @@ import { ProjectRow } from './ProjectRow';
 import { Phase } from './Phase';
 import { PublishBar } from './PublishBar';
 import { Rail, type RailGroup } from './Rail';
-import { Section } from './Section';
+import { Section, listParts } from './Section';
 import { SettingsForm } from './SettingsForm';
 import { TestimonialRow } from './TestimonialRow';
 import { TemplatePicker } from './TemplatePicker';
@@ -44,14 +44,121 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
   const uses = chosen?.uses ?? null;
   const templateName = chosen?.name ?? 'This design';
 
-  const section = { uses, templateName };
-
   // Defaults under the site's overrides, so a control shows what a visitor
   // would actually see rather than an empty box next to a true default.
   const optionFields = chosen ? describeOptions(chosen.options) : [];
   const optionValues = chosen
     ? { ...defaultsOf(chosen.options), ...editor.customization }
     : {};
+
+  /**
+   * The content sections, as data, so the chosen design can decide which of
+   * them the builder asks for (plan §23.7).
+   *
+   * The ordering here is the ordering on the page, and `part` is what a
+   * manifest's `uses` names. Everything below reads this list rather than
+   * repeating it, so a section cannot end up in the page and missing from the
+   * rail.
+   */
+  const contentSections = [
+    {
+      id: 'about',
+      title: 'About',
+      part: 'settings' as const,
+      count: undefined,
+      body: <SettingsForm siteId={editor.siteId} settings={issue.settings} />,
+    },
+    {
+      id: 'experience',
+      title: 'Experience',
+      part: 'experiences' as const,
+      count: issue.experiences.length,
+      body: (
+        <div className="admin-rows">
+          {issue.experiences.map((item) => (
+            <ExperienceRow key={item.id} siteId={editor.siteId} experience={item} />
+          ))}
+          <ExperienceRow siteId={editor.siteId} experience={null} />
+        </div>
+      ),
+    },
+    {
+      id: 'projects',
+      title: 'Projects',
+      part: 'projects' as const,
+      count: issue.projects.length,
+      body: (
+        <>
+          <h4 className="admin-subhead">Import from GitHub</h4>
+          <ImportGitHub siteId={editor.siteId} />
+
+          <div className="admin-rows">
+            {issue.projects.map((item) => (
+              <ProjectRow
+                key={item.id}
+                siteId={editor.siteId}
+                project={item}
+                employers={issue.experiences}
+              />
+            ))}
+            <ProjectRow siteId={editor.siteId} project={null} employers={issue.experiences} />
+          </div>
+        </>
+      ),
+    },
+    {
+      id: 'education',
+      title: 'Education',
+      part: 'education' as const,
+      count: issue.education.length,
+      body: (
+        <div className="admin-rows">
+          {issue.education.map((item) => (
+            <EducationRow key={item.id} siteId={editor.siteId} entry={item} />
+          ))}
+          <EducationRow siteId={editor.siteId} entry={null} />
+        </div>
+      ),
+    },
+    {
+      id: 'testimonials',
+      title: 'Testimonials',
+      part: 'testimonials' as const,
+      count: issue.testimonials.length,
+      body: (
+        <div className="admin-rows">
+          {issue.testimonials.map((item) => (
+            <TestimonialRow
+              key={item.id}
+              siteId={editor.siteId}
+              testimonial={item}
+              employers={issue.experiences}
+            />
+          ))}
+          <TestimonialRow siteId={editor.siteId} testimonial={null} employers={issue.experiences} />
+        </div>
+      ),
+    },
+    {
+      id: 'metrics',
+      title: 'Metrics',
+      part: 'metrics' as const,
+      count: issue.metrics.length,
+      body: (
+        <div className="admin-rows">
+          {issue.metrics.map((item) => (
+            <MetricRow key={item.id} siteId={editor.siteId} metric={item} />
+          ))}
+          <MetricRow siteId={editor.siteId} metric={null} />
+        </div>
+      ),
+    },
+  ];
+
+  // An unknown template claims nothing, so everything is asked for. A wrong
+  // "this design does not use it" is worse than no claim at all.
+  const asked = contentSections.filter((entry) => uses === null || uses.includes(entry.part));
+  const kept = contentSections.filter((entry) => !(uses === null || uses.includes(entry.part)));
 
   const rail: RailGroup[] = [
     {
@@ -64,12 +171,10 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
     {
       label: '2 · Content',
       links: [
-        { id: 'about', label: 'About' },
-        { id: 'experience', label: 'Experience', count: issue.experiences.length },
-        { id: 'projects', label: 'Projects', count: issue.projects.length },
-        { id: 'education', label: 'Education', count: issue.education.length },
-        { id: 'testimonials', label: 'Testimonials', count: issue.testimonials.length },
-        { id: 'metrics', label: 'Metrics', count: issue.metrics.length },
+        ...asked.map((entry) => ({ id: entry.id, label: entry.title, count: entry.count })),
+        ...(kept.length > 0
+          ? [{ id: 'kept', label: 'Not on this design', count: kept.length }]
+          : []),
       ],
     },
     {
@@ -125,57 +230,48 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
         </Phase>
 
         <Phase n="02" title="Content" note="Saved as you go">
-          <Section title="About" part="settings" id="about" {...section}>
-            <SettingsForm siteId={editor.siteId} settings={issue.settings} />
-          </Section>
+          {asked.map((entry) => (
+            <Section key={entry.id} title={entry.title} id={entry.id}>
+              {entry.body}
+            </Section>
+          ))}
 
-          <Section title="Experience" part="experiences" id="experience" {...section}>
-            <div className="admin-rows">
-              {issue.experiences.map((item) => (
-                <ExperienceRow key={item.id} siteId={editor.siteId} experience={item} />
+          {/* Everything this design has no place for, moved out of the flow
+              rather than deleted.
+
+              The distinction that makes this safe: the field set is a *view*,
+              not a schema. `Issue` carries every part whatever the template,
+              switching designs preserves all of it, and publishing snapshots
+              the whole thing — so what is in here is genuinely kept and simply
+              not asked for. Leaving these inline with a "not shown" note meant
+              the builder asked for a page of quotes that the live site would
+              discard; deleting them would make trying another design cost the
+              user their work. Collapsed is the honest middle. */}
+          {kept.length > 0 ? (
+            <section className="admin-section" id="kept">
+              <div className="admin-section-head">
+                <h3>Not on this design</h3>
+                <span className="admin-note">{kept.length}</span>
+              </div>
+
+              <p className="admin-note">
+                {templateName} does not show {listParts(kept.map((entry) => entry.part))}. Anything
+                you write here is kept and appears if you switch to a design that uses it.
+              </p>
+
+              {kept.map((entry) => (
+                <details className="admin-fieldset admin-kept" key={entry.id} id={entry.id}>
+                  <summary>
+                    {entry.title}
+                    {entry.count === undefined ? null : (
+                      <span className="admin-rail-count">{entry.count}</span>
+                    )}
+                  </summary>
+                  {entry.body}
+                </details>
               ))}
-              <ExperienceRow siteId={editor.siteId} experience={null} />
-            </div>
-          </Section>
-
-          <Section title="Projects" part="projects" id="projects" {...section}>
-            <h4 className="admin-subhead">Import from GitHub</h4>
-            <ImportGitHub siteId={editor.siteId} />
-
-            <div className="admin-rows">
-              {issue.projects.map((item) => (
-                <ProjectRow key={item.id} siteId={editor.siteId} project={item} employers={issue.experiences} />
-              ))}
-              <ProjectRow siteId={editor.siteId} project={null} employers={issue.experiences} />
-            </div>
-          </Section>
-
-          <Section title="Education" part="education" id="education" {...section}>
-            <div className="admin-rows">
-              {issue.education.map((item) => (
-                <EducationRow key={item.id} siteId={editor.siteId} entry={item} />
-              ))}
-              <EducationRow siteId={editor.siteId} entry={null} />
-            </div>
-          </Section>
-
-          <Section title="Testimonials" part="testimonials" id="testimonials" {...section}>
-            <div className="admin-rows">
-              {issue.testimonials.map((item) => (
-                <TestimonialRow key={item.id} siteId={editor.siteId} testimonial={item} employers={issue.experiences} />
-              ))}
-              <TestimonialRow siteId={editor.siteId} testimonial={null} employers={issue.experiences} />
-            </div>
-          </Section>
-
-          <Section title="Metrics" part="metrics" id="metrics" {...section}>
-            <div className="admin-rows">
-              {issue.metrics.map((item) => (
-                <MetricRow key={item.id} siteId={editor.siteId} metric={item} />
-              ))}
-              <MetricRow siteId={editor.siteId} metric={null} />
-            </div>
-          </Section>
+            </section>
+          ) : null}
         </Phase>
 
         <Phase n="03" title="Publish" note="The last step">
