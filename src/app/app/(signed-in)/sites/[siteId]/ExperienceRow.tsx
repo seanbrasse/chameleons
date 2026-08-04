@@ -46,67 +46,61 @@ export function ExperienceRow({
 
   return (
     <div className="admin-fieldset">
-      <form action={saveAction} className="admin-grid">
+      <form action={saveAction} className="admin-form">
         <input type="hidden" name="siteId" value={siteId} />
         <input type="hidden" name="experienceId" value={id} />
 
-        <div>
-          <label htmlFor={`company-${id}`}>Company</label>
-          <input id={`company-${id}`} name="company" defaultValue={experience?.company} required />
+        <div className="admin-grid">
+          <label className="field">
+            <span className="field-label">Company</span>
+            <input name="company" defaultValue={experience?.company} required />
+          </label>
+
+          <label className="field">
+            <span className="field-label">Role</span>
+            <input name="role" defaultValue={experience?.role} required />
+          </label>
+
+          <label className="field">
+            <span className="field-label">Location</span>
+            <input name="location" defaultValue={experience?.location} />
+          </label>
+
+          <label className="field">
+            <span className="field-label">Start</span>
+            <input name="startDate" defaultValue={experience?.startDate} placeholder="2022-01" />
+          </label>
+
+          <label className="field">
+            <span className="field-label">End</span>
+            <input
+              name="endDate"
+              defaultValue={experience?.endDate ?? ''}
+              placeholder="Blank means current"
+            />
+          </label>
         </div>
 
-        <div>
-          <label htmlFor={`role-${id}`}>Role</label>
-          <input id={`role-${id}`} name="role" defaultValue={experience?.role} required />
-        </div>
-
-        <div>
-          <label htmlFor={`location-${id}`}>Location</label>
-          <input id={`location-${id}`} name="location" defaultValue={experience?.location} />
-        </div>
-
-        <div>
-          <label htmlFor={`startDate-${id}`}>Start (yyyy-mm)</label>
+        <label className="field">
+          <span className="field-label">Summary</span>
           <input
-            id={`startDate-${id}`}
-            name="startDate"
-            defaultValue={experience?.startDate}
-            placeholder="2022-01"
-          />
-        </div>
-
-        <div>
-          <label htmlFor={`endDate-${id}`}>End (yyyy-mm)</label>
-          <input
-            id={`endDate-${id}`}
-            name="endDate"
-            defaultValue={experience?.endDate ?? ''}
-            placeholder="Blank means current"
-          />
-        </div>
-
-        <div>
-          <label htmlFor={`summary-${id}`}>Summary</label>
-          <input
-            id={`summary-${id}`}
             name="summary"
             defaultValue={experience?.summary}
             maxLength={CAPS.experienceSummary}
           />
-        </div>
+        </label>
 
-        <div>
-          <label htmlFor={`impactBullets-${id}`}>Impact, one per line</label>
+        <label className="field">
+          <span className="field-label">Impact</span>
           <textarea
-            id={`impactBullets-${id}`}
             name="impactBullets"
+            rows={3}
             defaultValue={experience?.impactBullets.join('\n')}
-            aria-describedby={`impact-hint-${id}`}
           />
-          <p className="admin-note" id={`impact-hint-${id}`}>
-            Up to {CAPS.impactBulletCount}, {CAPS.impactBullet} characters each.
-          </p>
-        </div>
+          <span className="admin-note">
+            One per line, up to {CAPS.impactBulletCount}, {CAPS.impactBullet} characters each.
+          </span>
+        </label>
 
         <div className="admin-buttons">
           <button type="submit" className="admin-button" disabled={saving}>
@@ -116,7 +110,7 @@ export function ExperienceRow({
       </form>
 
       {!isNew ? (
-        <form action={removeAction}>
+        <form action={removeAction} className="admin-buttons">
           <input type="hidden" name="siteId" value={siteId} />
           <input type="hidden" name="experienceId" value={id} />
           <button type="submit" className="admin-button admin-danger" disabled={removing}>

@@ -36,33 +36,31 @@ export function SettingsForm({
       <form action={saveAction} className="admin-form">
         <input type="hidden" name="siteId" value={siteId} />
 
-        {TEXT_FIELDS.map(({ name, label, cap, hint }) => (
-          <div key={name}>
-            <label htmlFor={name}>{label}</label>
-            <input
-              id={name}
-              name={name}
-              defaultValue={String(settings[name] ?? '')}
-              maxLength={cap}
-              type={name === 'contactEmail' ? 'email' : 'text'}
-            />
-            {hint ? <p className="admin-note">{hint}</p> : null}
-          </div>
-        ))}
+        <div className="admin-grid">
+          {TEXT_FIELDS.map(({ name, label, cap, hint }) => (
+            // The label wraps its own control, so the association needs no
+            // `htmlFor`/`id` pair to keep in sync.
+            <label className="field" key={name}>
+              <span className="field-label">{label}</span>
+              <input
+                name={name}
+                defaultValue={String(settings[name] ?? '')}
+                maxLength={cap}
+                type={name === 'contactEmail' ? 'email' : 'text'}
+              />
+              {hint ? <span className="admin-note">{hint}</span> : null}
+            </label>
+          ))}
+        </div>
 
-        <div>
-          <label htmlFor="skills">Skills</label>
-          <input
-            id="skills"
-            name="skills"
-            defaultValue={settings.skills.join(', ')}
-            aria-describedby="skills-hint"
-          />
-          <p className="admin-note" id="skills-hint">
+        <label className="field">
+          <span className="field-label">Skills</span>
+          <input name="skills" defaultValue={settings.skills.join(', ')} />
+          <span className="admin-note">
             Comma separated. They render as one row, so the whole line counts against{' '}
             {CAPS.skills} characters.
-          </p>
-        </div>
+          </span>
+        </label>
 
         <div className="admin-buttons">
           <button type="submit" className="admin-button" disabled={saving}>

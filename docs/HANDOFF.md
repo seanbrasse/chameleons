@@ -251,6 +251,25 @@ The two function findings above appeared the first time the schema met an actual
 Postgres. `has_function_privilege('authenticated', …)` is the check that settles
 it.
 
+**The builder's markup has to match the stylesheet it inherited, and the
+stylesheet is the original's.** `builder.css` was ported from a sheet whose
+markup already existed, so writing fresh JSX against it invents structure the
+CSS was never written for. Three separate bugs came from this: class names that
+did not exist (`admin-field`, `admin-button-quiet`), a page-level sticky save
+bar borrowed for per-row buttons, and `<div><label>` where the sheet expects
+`<label class="field"><span class="field-label">`. **Read the original's markup
+in `src/app/admin/*.tsx` before writing a builder screen** — it is the comp,
+and it is already in the repo.
+
+Two rules the split stranded in the public half are now restored to
+`builder.css` (`.field`, `.link-arrow`); an audit of all 83 classes the original
+admin uses found no others.
+
+**Screenshot the builder, not just the render path.** A static harness with
+`builder.css` and the real markup catches layout problems in seconds without
+needing a session — `build` and `tsc` say nothing about whether a label sits
+above its input.
+
 **A lint rule that does not fire looks like a clean codebase.** Two of the six
 anti-slop rules silently failed to match when first written, and `npm run lint`
 reported success the whole time. Found only by writing a deliberate violation
