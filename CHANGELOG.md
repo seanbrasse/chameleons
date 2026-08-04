@@ -190,6 +190,19 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
   rather than implied. A blank portfolio looks identical in every design, so
   previewing one would tell a new user nothing about the choice being asked of
   them.
+- **The chosen design decides which fields the builder asks for.** Sections a
+  template cannot render move out of the content flow into a collapsed "Not on
+  this design" group, and out of the rail's list. `manifest.uses` drove a note
+  before, which meant the builder still asked for a page of quotes that the live
+  site would discard.
+- The invariant that makes this safe, stated because it is easy to get wrong:
+  **the field set is a view, not a schema.** `Issue` carries every part whatever
+  the template, switching designs preserves all of it, and publishing snapshots
+  the whole thing. Hidden content is genuinely kept and simply not asked for —
+  deleting it would make trying another design cost the user their work, which
+  is the opposite of what template-agnostic content is for.
+- The editor's content sections are now one list of data rather than six blocks
+  of markup, so a section cannot end up on the page and missing from the rail.
 
 ### Builder (Phase 2, in progress)
 
