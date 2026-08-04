@@ -6,7 +6,9 @@ import { loadHistory } from '@/server/services/rollbackSite';
 // Manifests rather than the registry: this page names templates, it does not
 // render one, so there is no reason to pull every design's stylesheet into it.
 import { getManifest, listManifests } from '@/templates/manifests';
+import { defaultsOf, describeOptions } from '@/server/domain/template-options';
 
+import { Customize } from './Customize';
 import { DeleteSite } from './DeleteSite';
 import { EducationRow } from './EducationRow';
 import { History } from './History';
@@ -43,6 +45,13 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
 
   const section = { uses, templateName };
 
+  // Defaults under the site's overrides, so a control shows what a visitor
+  // would actually see rather than an empty box next to a true default.
+  const optionFields = chosen ? describeOptions(chosen.options) : [];
+  const optionValues = chosen
+    ? { ...defaultsOf(chosen.options), ...editor.customization }
+    : {};
+
   return (
     <>
       <h1>{editor.subdomain ?? (issue.settings.displayName || 'Untitled portfolio')}</h1>
@@ -58,6 +67,15 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
           constraint: manifest.constraint,
         }))}
       />
+
+      {chosen ? (
+        <Customize
+          siteId={editor.siteId}
+          templateId={editor.templateId}
+          fields={optionFields}
+          values={optionValues}
+        />
+      ) : null}
 
       <Section title="Settings" part="settings" {...section}>
         <SettingsForm siteId={editor.siteId} settings={issue.settings} />

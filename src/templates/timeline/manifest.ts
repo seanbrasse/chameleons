@@ -2,13 +2,22 @@ import { z } from 'zod';
 
 import type { TemplateManifest } from '../types';
 
+/**
+ * `.describe()` rather than a JSDoc comment on each option: the builder renders
+ * its customization form from this schema (plan §6), and a comment cannot reach
+ * the browser. The sentence a user reads has to be data.
+ */
 export const options = z.object({
-  /** Which theme a visitor sees before choosing one. */
-  defaultTheme: z.enum(['dark', 'light']).default('light'),
-  /** The carousel opens on the starred project rather than the newest. */
-  leadWithStarred: z.boolean().default(true),
-  showTimeline: z.boolean().default(true),
-  showSkills: z.boolean().default(true),
+  defaultTheme: z
+    .enum(['dark', 'light'])
+    .default('light')
+    .describe('Which theme a visitor sees before choosing one.'),
+  leadWithStarred: z
+    .boolean()
+    .default(true)
+    .describe('Open the carousel on your starred project rather than the newest.'),
+  showTimeline: z.boolean().default(true).describe('Show the career timeline under the work.'),
+  showSkills: z.boolean().default(true).describe('List your skills beside the introduction.'),
 });
 
 export type TimelineOptions = z.infer<typeof options>;

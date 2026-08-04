@@ -32,7 +32,13 @@ import { projectFrom, type RepoSummary } from '@/server/domain/github';
 import { fetchRepos } from '@/server/services/importGitHub';
 import { publishSite } from '@/server/services/publishSite';
 import { rollbackSite } from '@/server/services/rollbackSite';
-import { chooseTemplate, claimAddress, removeSite, unpublishSite } from '@/server/services/sites';
+import {
+  chooseTemplate,
+  claimAddress,
+  removeSite,
+  saveCustomization,
+  unpublishSite,
+} from '@/server/services/sites';
 
 export type EditorState = {
   saved?: boolean;
@@ -379,4 +385,37 @@ export async function destroySite(_state: EditorState, form: FormData): Promise<
 
   revalidatePath(builderRoute('/'));
   redirect(builderPath('/', tenantConfig()));
+}
+
+/**
+ * Template options.
+ *
+ * Each checkbox is submitted alongside a hidden field of the same name, because
+ * an unchecked box sends nothing at all and "nothing" has to mean false rather
+ * than "leave it alone". That makes `getAll` the correct reader and `get` the
+ * wrong one — `get` returns the *first* value, which is always the hidden
+ * `false`.
+ */
+export async function customize(_state: EditorState, form: FormData): Promise<EditorState> {
+  const siteId = siteIdOf(form);
+  const templateId = rowId(form, 'templateId');
+  if (!siteId || !templateId) return { problem: REFUSALS['not-found'] };
+
+  const submitted: Record<string, unknown> = {};
+  for (const key of new Set(form.keys())) {
+    if (key === 'siteId' || key === 'templateId') continue;
+
+    const values = form.getAll(key).filter((value): value is string => typeof value === 'string');
+    const last = values[values.length - 1];
+    if (last === undefined) continue;
+
+    submitted[key] = last === 'true' ? true : last === 'false' ? false : last;
+  }
+
+  if (!(await saveCustomization(siteId, templateId, submitted))) {
+    return { problem: REFUSALS.unavailable };
+  }
+
+  revalidatePath(builderRoute(`/sites/${siteId}`));
+  return { saved: true };
 }

@@ -6,10 +6,12 @@ import { starterIssue } from '@/content/starter';
 import { ISSUE_SCHEMA_VERSION } from '@/content/types';
 import { currentUser } from '@/server/auth/session';
 import { validateSubdomain, type SubdomainRejection } from '@/server/domain/subdomain';
+import { diffFromDefaults } from '@/server/domain/template-options';
 import {
   clearCurrentVersion,
   createSite,
   deleteSite,
+  setCustomization,
   listSitesFor,
   setSubdomain,
   setTemplate,
@@ -145,4 +147,31 @@ export async function removeSite(siteId: string, confirmation: string): Promise<
  */
 export function confirmationFor(site: { subdomain: string | null }): string {
   return site.subdomain ?? 'delete';
+}
+
+/**
+ * Saving a template's options.
+ *
+ * The submitted values are parsed by the template's own schema rather than
+ * trusted, and then reduced to the diff from its defaults before storing —
+ * plan §6, so that improving a default improves every site that never
+ * overrode it. Writing the resolved object instead would freeze today's
+ * defaults into the row and quietly opt the owner out of the next improvement.
+ */
+export async function saveCustomization(
+  siteId: string,
+  templateId: string,
+  submitted: Record<string, unknown>,
+): Promise<boolean> {
+  const owner = await currentUser();
+  if (!owner) return false;
+
+  const template = getTemplate(templateId);
+  if (!template) return false;
+
+  const parsed = template.manifest.options.safeParse(submitted);
+  if (!parsed.success) return false;
+
+  const diff = diffFromDefaults(template.manifest.options, parsed.data as Record<string, unknown>);
+  return setCustomization(siteId, owner.id, diff);
 }
