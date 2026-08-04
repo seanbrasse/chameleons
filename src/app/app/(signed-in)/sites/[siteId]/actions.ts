@@ -23,14 +23,19 @@ import {
   saveProject,
   saveSettings,
   saveTestimonial,
+  addImportedProjects,
   type SaveResult,
 } from '@/server/services/editSite';
+import { projectFrom, type RepoSummary } from '@/server/domain/github';
+import { fetchRepos } from '@/server/services/importGitHub';
 import { publishSite } from '@/server/services/publishSite';
 import { rollbackSite } from '@/server/services/rollbackSite';
 import { chooseTemplate, claimAddress, unpublishSite } from '@/server/services/sites';
 
 export type EditorState = {
   saved?: boolean;
+  /** A specific success message, where `saved` is the generic one. */
+  note?: string;
   published?: number;
   problem?: string;
   problems?: ContentProblem[];
@@ -300,4 +305,58 @@ export async function removeMetricRow(_state: EditorState, form: FormData): Prom
   const result = await deleteMetric(siteId, metricId);
   if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
   return toState(result);
+}
+
+/* ── GitHub import ─────────────────────────────────────────────────────── */
+
+export type ImportState = EditorState & {
+  /** Echoed back so the second form knows which account to look up again. */
+  login?: string;
+  repos?: RepoSummary[];
+};
+
+const IMPORT_REFUSALS: Record<string, string> = {
+  'not-found': 'No GitHub account by that name.',
+  'rate-limited': 'GitHub is rate limiting us. Try again in a few minutes.',
+  unavailable: 'GitHub could not be reached just now.',
+};
+
+export async function lookUpRepos(_state: ImportState, form: FormData): Promise<ImportState> {
+  const login = String(form.get('login') ?? '').trim();
+
+  const result = await fetchRepos(login);
+  if (!result.ok) return { login, problem: IMPORT_REFUSALS[result.reason] };
+
+  if (result.repos.length === 0) {
+    return { login, problem: 'That account has no public repositories to import.' };
+  }
+
+  return { login, repos: result.repos };
+}
+
+export async function importRepos(_state: ImportState, form: FormData): Promise<ImportState> {
+  const siteId = siteIdOf(form);
+  if (!siteId) return { problem: REFUSALS['not-found'] };
+
+  const login = String(form.get('login') ?? '').trim();
+  const chosen = new Set(form.getAll('repo').filter((v): v is string => typeof v === 'string'));
+  if (chosen.size === 0) return { login, problem: 'Choose at least one repository.' };
+
+  // Looked up again rather than taken from the form. The cached fetch makes it
+  // free, and it means a tampered payload cannot write a title and a link of
+  // its choosing into someone's portfolio.
+  const result = await fetchRepos(login);
+  if (!result.ok) return { login, problem: IMPORT_REFUSALS[result.reason] };
+
+  const picked = result.repos.filter((repo) => chosen.has(repo.fullName));
+  if (picked.length === 0) return { login, problem: REFUSALS.unavailable };
+
+  const saved = await addImportedProjects(siteId, picked.map(projectFrom));
+  if (!saved.ok) return { login, ...toState(saved) };
+
+  revalidatePath(builderRoute(`/sites/${siteId}`));
+  return {
+    login,
+    note: `Imported ${picked.length} ${picked.length === 1 ? 'project' : 'projects'}. Add what each one was for, then publish.`,
+  };
 }

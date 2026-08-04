@@ -1,12 +1,17 @@
 import 'server-only';
 
-import type { Issue } from '@/content/types';
+import type { Issue, Project } from '@/content/types';
 import type { Customization } from '@/server/domain/publish';
 import { currentUser } from '@/server/auth/session';
 import { applySettings, type SettingsEdit } from '@/server/domain/edit-settings';
 import { removeExperience, upsertExperience, type ExperienceEdit } from '@/server/domain/edit-experiences';
 import { removeEducation, upsertEducation, type EducationEdit } from '@/server/domain/edit-education';
-import { removeProject, upsertProject, type ProjectEdit } from '@/server/domain/edit-projects';
+import {
+  addProjects,
+  removeProject,
+  upsertProject,
+  type ProjectEdit,
+} from '@/server/domain/edit-projects';
 import { removeMetric, upsertMetric, type MetricEdit } from '@/server/domain/edit-metrics';
 import {
   removeTestimonial,
@@ -107,6 +112,15 @@ export function saveProject(
 
 export function deleteProject(siteId: string, projectId: string): Promise<SaveResult> {
   return saveIssue(siteId, (issue) => removeProject(issue, projectId));
+}
+
+/**
+ * Import goes through `saveIssue` like every other write, so it inherits the
+ * same ownership guard and the same draft round trip the hand-written editors
+ * use. An import is not a second way into the draft.
+ */
+export function addImportedProjects(siteId: string, projects: Project[]): Promise<SaveResult> {
+  return saveIssue(siteId, (issue) => addProjects(issue, projects));
 }
 
 export function saveEducation(

@@ -4,11 +4,14 @@ import type { ContentProblem } from '@/server/domain/validate-issue';
 export function Feedback({
   problem,
   saved,
+  note,
   published,
   problems,
 }: {
   problem?: string;
   saved?: boolean;
+  /** A specific success message, where `saved` is the generic one. */
+  note?: string;
   published?: number;
   problems?: ContentProblem[];
 }) {
@@ -23,6 +26,12 @@ export function Feedback({
       {saved ? (
         <p className="admin-ok" role="status">
           Saved.
+        </p>
+      ) : null}
+
+      {note ? (
+        <p className="admin-ok" role="status">
+          {note}
         </p>
       ) : null}
 

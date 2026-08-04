@@ -9,6 +9,7 @@ import { getManifest, listManifests } from '@/templates/manifests';
 
 import { EducationRow } from './EducationRow';
 import { History } from './History';
+import { ImportGitHub } from './ImportGitHub';
 import { MetricRow } from './MetricRow';
 import { ExperienceRow } from './ExperienceRow';
 import { ProjectRow } from './ProjectRow';
@@ -71,6 +72,9 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
       </Section>
 
       <Section title="Projects" part="projects" {...section}>
+        <h3 className="admin-subhead">Import from GitHub</h3>
+        <ImportGitHub siteId={editor.siteId} />
+
         <RowList
           items={issue.projects}
           render={(project, onCreated) => (
