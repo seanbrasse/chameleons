@@ -19,7 +19,7 @@ export function NewPortfolio() {
       ) : null}
 
       <div className="admin-buttons">
-        <button type="submit" className="admin-button" disabled={pending}>
+        <button type="submit" className="admin-button admin-primary" disabled={pending}>
           {pending ? 'Creating…' : 'New portfolio'}
         </button>
       </div>

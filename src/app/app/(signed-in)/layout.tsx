@@ -21,12 +21,19 @@ export default async function SignedIn({ children }: { children: ReactNode }) {
   if (!user) redirect(builderHref('/enter'));
 
   return (
-    <div className="admin">
+    <>
       <header className="admin-bar">
-        <span className="admin-note">{user.email}</span>
-        <SignOut />
+        <span className="admin-wordmark">Chameleons</span>
+        <span className="admin-who">
+          <span className="admin-note">{user.email}</span>
+          <SignOut />
+        </span>
       </header>
-      <main className="admin-main">{children}</main>
-    </div>
+      {/* The shell is a grid of rail plus work, and the page supplies its own
+          rail — the dashboard has no sections to list, the editor does. Pages
+          that have none render an empty first column rather than collapsing
+          the grid, so the work column keeps the same measure on every screen. */}
+      <div className="admin">{children}</div>
+    </>
   );
 }

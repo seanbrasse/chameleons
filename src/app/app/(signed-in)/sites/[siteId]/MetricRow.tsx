@@ -1,20 +1,19 @@
 'use client';
 
-import { useActionState, useEffect, useId } from 'react';
+import { useActionState } from 'react';
 
 import type { Metric } from '@/content/types';
 
 import { removeMetricRow, saveMetricRow, type EditorState } from './actions';
 import { Feedback } from './Feedback';
+import { useBlankRow } from './useBlankRow';
 
 export function MetricRow({
   siteId,
   metric,
-  onCreated,
 }: {
   siteId: string;
   metric: Metric | null;
-  onCreated?: () => void;
 }) {
   const [saveState, saveAction, saving] = useActionState<EditorState, FormData>(saveMetricRow, {});
   const [removeState, removeAction, removing] = useActionState<EditorState, FormData>(
@@ -22,17 +21,16 @@ export function MetricRow({
     {},
   );
 
-  const generatedId = useId();
-  const isNew = metric === null;
-  const id = metric?.id ?? generatedId;
-
-  useEffect(() => {
-    if (isNew && saveState.saved) onCreated?.();
-  }, [isNew, saveState, onCreated]);
+  const { id, isNew, generation } = useBlankRow(metric?.id, saveState);
 
   return (
-    <div className="admin-fieldset">
-      <form action={saveAction} className="admin-form">
+    // A row is closed until you want it. With three roles and four projects
+    // every form open at once made the editor 11,000px of identical fields.
+    // `details` rather than state: it works server-rendered, it is keyboard
+    // and screen-reader native, and a row nobody opened costs nothing.
+    <details className="admin-fieldset">
+      <summary>{metric ? `${metric.value} — ${metric.label}` : 'Add a number'}</summary>
+      <form key={generation} action={saveAction} className="admin-form">
         <input type="hidden" name="siteId" value={siteId} />
         <input type="hidden" name="metricId" value={id} />
 
@@ -67,6 +65,6 @@ export function MetricRow({
 
       <Feedback {...saveState} />
       <Feedback {...removeState} />
-    </div>
+    </details>
   );
 }

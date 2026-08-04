@@ -135,7 +135,39 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 - `twitter:card` is `summary` rather than `summary_large_image`, because there
   is no card image yet and asking for a large one renders an empty box.
 
+### Fixed
+
+- **The editor page rendered a 500 and had done since the projects and
+  education editors landed.** `RowList` was a client component taking a
+  `render` function from the editor page, which is a Server Component — React
+  refuses to pass a function across that boundary, so all five row lists threw.
+  `next build` compiles it, `tsc` types it, and no test loads the editor
+  because it needs a session, so nothing caught it. Every screenshot taken of
+  the builder had been a hand-written harness rather than the real components.
+- `RowList` is gone. The blank "add a row" form now owns its own reset, so only
+  serialisable props cross from the page to a row. A test in the editor folder
+  now fails on any function-typed prop declared by a client component there —
+  verified by reintroducing the exact prop that caused this.
+
 ### Builder (Phase 2, in progress)
+
+- **A design pass on the builder.** Type went from twelve sizes with no ratio
+  to six at ~1.32, and spacing from sixteen values to seven deliberately uneven
+  steps. Colour was already tokenised and was never the problem; type and space
+  were raw numbers scattered across the sheet, which is plan §20.2's finding
+  about the original inherited wholesale.
+- **The page is three phases, not eight peers.** Design, content, publish, with
+  a rail indexing them. Previously every section was an identical `h2`, so
+  Publish carried the same weight as Delete and nothing showed the flow.
+- **Filled buttons mean "this ends a phase".** Every Save used to be a filled
+  accent pill, so eight competed with Publish.
+- **Rows are collapsed until opened.** With three roles and four projects, every
+  form open at once made the editor 11,854px of identical fields; it is now
+  4,951px and scannable. `details` rather than client state — server-rendered,
+  keyboard and screen-reader native.
+- **`--accent-ink`**, because the accent is 4.34:1 on paper: fine filled or
+  large, under AA at body size. The original never met this since it only used
+  the accent large or filled. A role, so the brand value stays put.
 
 - **A template's options are adjustable**, as a form rendered from its own Zod
   schema (plan §6). `timeline` declared four — default theme, lead with

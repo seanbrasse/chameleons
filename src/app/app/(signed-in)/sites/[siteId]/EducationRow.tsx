@@ -1,20 +1,19 @@
 'use client';
 
-import { useActionState, useEffect, useId } from 'react';
+import { useActionState } from 'react';
 
 import type { Education } from '@/content/types';
 
 import { removeEducationRow, saveEducationRow, type EditorState } from './actions';
 import { Feedback } from './Feedback';
+import { useBlankRow } from './useBlankRow';
 
 export function EducationRow({
   siteId,
   entry,
-  onCreated,
 }: {
   siteId: string;
   entry: Education | null;
-  onCreated?: () => void;
 }) {
   const [saveState, saveAction, saving] = useActionState<EditorState, FormData>(
     saveEducationRow,
@@ -25,17 +24,16 @@ export function EducationRow({
     {},
   );
 
-  const generatedId = useId();
-  const isNew = entry === null;
-  const id = entry?.id ?? generatedId;
-
-  useEffect(() => {
-    if (isNew && saveState.saved) onCreated?.();
-  }, [isNew, saveState, onCreated]);
+  const { id, isNew, generation } = useBlankRow(entry?.id, saveState);
 
   return (
-    <div className="admin-fieldset">
-      <form action={saveAction} className="admin-form">
+    // A row is closed until you want it. With three roles and four projects
+    // every form open at once made the editor 11,000px of identical fields.
+    // `details` rather than state: it works server-rendered, it is keyboard
+    // and screen-reader native, and a row nobody opened costs nothing.
+    <details className="admin-fieldset">
+      <summary>{entry ? `${entry.school} · ${entry.credential}` : 'Add a school'}</summary>
+      <form key={generation} action={saveAction} className="admin-form">
         <input type="hidden" name="siteId" value={siteId} />
         <input type="hidden" name="educationId" value={id} />
 
@@ -89,6 +87,6 @@ export function EducationRow({
 
       <Feedback {...saveState} />
       <Feedback {...removeState} />
-    </div>
+    </details>
   );
 }
