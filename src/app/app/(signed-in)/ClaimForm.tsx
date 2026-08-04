@@ -10,19 +10,19 @@ export function ClaimForm({ suffix }: { suffix: string }) {
 
   return (
     <form action={action} className="admin-form">
-      <label htmlFor="subdomain">Your address</label>
-      <input
-        id="subdomain"
-        name="subdomain"
-        required
-        autoComplete="off"
-        spellCheck={false}
-        placeholder="yourname"
-        aria-describedby="subdomain-suffix"
-      />
-      <p className="admin-note" id="subdomain-suffix">
-        Your portfolio will be read at <code>yourname{suffix}</code>.
-      </p>
+      <label className="field">
+        <span className="field-label">Your address</span>
+        <input
+          name="subdomain"
+          required
+          autoComplete="off"
+          spellCheck={false}
+          placeholder="yourname"
+        />
+        <span className="admin-note">
+          Your portfolio will be read at <code>yourname{suffix}</code>.
+        </span>
+      </label>
 
       {state.problem ? (
         <p className="admin-error" role="status">

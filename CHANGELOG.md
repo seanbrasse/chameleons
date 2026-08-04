@@ -149,6 +149,23 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ### Fixed
 
+- **The builder's forms were unreadable, and the cause was one missing rule.**
+  `.field` — the flex column that stacks a label above its input — is defined at
+  line 2093 of the original stylesheet, inside the *public* half, because the
+  admin section sat within that sheet and inherited it. The split left it in
+  `template.css`, which `src/app/` cannot read. Without it every `<label>` fell
+  back to `display: inline` and sat on the same line as its own input, each
+  starting at a different x depending on how long the label text was.
+  `.field`, the base `.field-label` typography and `.link-arrow` are now
+  declared in `builder.css`, and every form uses the
+  `label.field > span.field-label > input` structure the sheet was written for.
+  An audit of all 83 classes the original admin uses found these were the only
+  two the split had stranded.
+- `:user-invalid` replaces `:invalid` on builder inputs. `:invalid` matches an
+  empty `required` field before it has been touched, so a list editor's blank
+  "add a row" form rendered pre-emptively red. The original had no
+  always-empty form, so the distinction never showed there.
+
 - **`revalidatePath` was being handed the browser's path, not the route's.**
   `builderHref` answers "where does the browser see this page"; `revalidatePath`
   asks "which route do I invalidate". They coincide in path mode and diverge in
