@@ -103,6 +103,16 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ### Builder (Phase 2, in progress)
 
+- The experience editor: add, edit and remove roles, each row saving itself.
+- **Publish is now its own control rather than a second button on the settings
+  form.** With one section that trick was honest — the form knew everything on
+  screen. With several it stops being: an unsaved edit in a different `<form>`
+  than the one submitting publish would be silently skipped while the button
+  still reported success. Publish now operates on the saved draft and says so.
+- `saveIssue` in the service layer is the read → transform → write → validate
+  ceremony every editor screen needs, extracted at the second caller rather
+  than guessed at the first.
+
 - The editor's first screen. Site settings can be edited, saved to
   `site_drafts.issue`, and published — which makes `publishSite` reachable for
   the first time and closes the loop from sign-in to a live page.
@@ -138,6 +148,16 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
   now a copy that can drift rather than a dependency that cannot.
 
 ### Fixed
+
+- **`revalidatePath` was being handed the browser's path, not the route's.**
+  `builderHref` answers "where does the browser see this page"; `revalidatePath`
+  asks "which route do I invalidate". They coincide in path mode and diverge in
+  host mode, where `builderHref('/')` is `/` — marketing. So in production every
+  publish busted the landing page's static cache and left the builder's own
+  alone, and `/sites/<id>` matched no route at all. `builderRoute()` is the
+  inverse helper, always `/app/*` because that is where `proxy.ts` rewrites to,
+  and a test asserts the two disagree in host mode so the distinction cannot
+  quietly collapse. Present since the subdomain claim landed.
 
 - **`0003`'s revoke on `update_draft_issue` did nothing.** Postgres grants
   EXECUTE on a new function to PUBLIC, and `anon`/`authenticated` inherit from

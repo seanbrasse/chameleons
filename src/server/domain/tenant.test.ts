@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { builderPath, resolveTenant, siteUrl, type TenantConfig } from './tenant';
+import { builderPath, builderRoute, resolveTenant, siteUrl, type TenantConfig } from './tenant';
 
 const HOST: TenantConfig = { mode: 'host', rootDomain: 'chameleons.dev' };
 const PATH: TenantConfig = { mode: 'path', rootDomain: 'chameleons.dev' };
@@ -166,5 +166,39 @@ describe('siteUrl', () => {
       subdomain: 'sean',
       pathname: '/',
     });
+  });
+});
+
+describe('builderRoute', () => {
+  it('is always beneath /app, because that is where proxy.ts rewrites to', () => {
+    expect(builderRoute('/')).toBe('/app');
+    expect(builderRoute('/enter')).toBe('/app/enter');
+    expect(builderRoute('/sites/abc')).toBe('/app/sites/abc');
+  });
+
+  /**
+   * The bug this exists to prevent: `builderPath('/', HOST)` is `/`, which is
+   * marketing. Passing it to `revalidatePath` busts the landing page and leaves
+   * the builder's own cache alone.
+   */
+  it('differs from builderPath in host mode, which is the whole point', () => {
+    expect(builderPath('/', HOST)).toBe('/');
+    expect(builderRoute('/')).toBe('/app');
+    expect(builderRoute('/')).not.toBe(builderPath('/', HOST));
+  });
+
+  it('agrees with builderPath in path mode, where the origin is shared', () => {
+    for (const pathname of ['/', '/enter', '/sites/abc']) {
+      expect(builderRoute(pathname)).toBe(builderPath(pathname, PATH));
+    }
+  });
+
+  it('names a route the resolver reads back as the same builder page', () => {
+    for (const pathname of ['/', '/enter', '/sites/abc']) {
+      expect(resolveTenant('anything', builderRoute(pathname), PATH)).toEqual({
+        kind: 'builder',
+        pathname,
+      });
+    }
   });
 });
