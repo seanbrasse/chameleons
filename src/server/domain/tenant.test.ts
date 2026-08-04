@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { builderPath, resolveTenant, type TenantConfig } from './tenant';
+import { builderPath, resolveTenant, siteUrl, type TenantConfig } from './tenant';
 
 const HOST: TenantConfig = { mode: 'host', rootDomain: 'chameleons.dev' };
 const PATH: TenantConfig = { mode: 'path', rootDomain: 'chameleons.dev' };
@@ -138,5 +138,33 @@ describe('builderPath', () => {
         pathname,
       });
     }
+  });
+});
+
+describe('siteUrl', () => {
+  it('is absolute in host mode, where the site is a different origin', () => {
+    expect(siteUrl('sean', HOST)).toBe('https://sean.chameleons.dev');
+  });
+
+  it('is a path in path mode, where it is the same origin', () => {
+    expect(siteUrl('sean', PATH)).toBe('/s/sean');
+  });
+
+  it('drops to http only for localhost', () => {
+    expect(siteUrl('sean', DEV)).toBe('http://sean.localhost:3000');
+  });
+
+  it('points at a host the resolver reads back as that site', () => {
+    const url = new URL(siteUrl('sean', HOST));
+    expect(resolveTenant(url.host, '/', HOST)).toEqual({
+      kind: 'site',
+      subdomain: 'sean',
+      pathname: '/',
+    });
+    expect(resolveTenant('anything', siteUrl('sean', PATH), PATH)).toEqual({
+      kind: 'site',
+      subdomain: 'sean',
+      pathname: '/',
+    });
   });
 });

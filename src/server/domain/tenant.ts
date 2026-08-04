@@ -80,6 +80,23 @@ export function builderPath(pathname: string, config: TenantConfig): string {
   return path === '/' ? `/${BUILDER_LABEL}` : `/${BUILDER_LABEL}${path}`;
 }
 
+/**
+ * Where a published portfolio is read. In host mode that is a different origin
+ * from the builder, so this has to be absolute; in path mode it is a path on
+ * the same one. Plain HTTP only for localhost — every real root this runs under
+ * is HSTS-preloaded, so an `http://` link there is a redirect at best.
+ */
+export function siteUrl(subdomain: string, config: TenantConfig): string {
+  if (config.mode === 'path') return `${SITE_ROOT}/${subdomain}`;
+
+  const root = normalizeRoot(config.rootDomain);
+  const scheme = root === 'localhost' || root.endsWith('.localhost') ? 'http' : 'https';
+
+  // The port is kept here, unlike in resolution, because this is a link someone
+  // follows rather than a host to match.
+  return `${scheme}://${subdomain}.${config.rootDomain}`;
+}
+
 export function resolveTenant(host: string, pathname: string, config: TenantConfig): Tenant {
   const path = normalizePath(pathname);
 
