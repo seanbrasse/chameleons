@@ -30,9 +30,11 @@ export function ClaimForm({ suffix }: { suffix: string }) {
         </p>
       ) : null}
 
-      <button type="submit" className="admin-button" disabled={pending}>
-        {pending ? 'Claiming…' : 'Claim it'}
-      </button>
+      <div className="admin-buttons">
+        <button type="submit" className="admin-button" disabled={pending}>
+          {pending ? 'Claiming…' : 'Claim it'}
+        </button>
+      </div>
     </form>
   );
 }
