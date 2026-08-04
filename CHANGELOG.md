@@ -103,6 +103,21 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ### Builder (Phase 2, in progress)
 
+- **Publishing is the last step, not the first.** A portfolio starts with no
+  address: you write it, then choose where it lives. Claiming a name before
+  anything exists meant naming a thing that had not been made, and burning a
+  name on a portfolio that might never ship.
+- `subdomain` is nullable (`0006`). Uniqueness is unaffected — Postgres treats
+  NULLs as distinct under a unique constraint — so any number of unclaimed
+  drafts coexist while claimed names stay unique.
+- Publishing refuses a site with no address (`no-address`), which is the one
+  thing publishing requires that editing does not.
+- The same form renames a published site, and the old name returns to the pool.
+- **Unpublish** clears the pointer without discarding versions, so taking a
+  site down and putting it back does not restart the numbering or lose history.
+- Drafts are listed by their `displayName`, falling back to "Untitled
+  portfolio", since they have no address to be known by yet.
+
 - The experience editor: add, edit and remove roles, each row saving itself.
 - **Publish is now its own control rather than a second button on the settings
   form.** With one section that trick was honest — the form knew everything on
