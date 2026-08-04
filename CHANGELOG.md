@@ -120,6 +120,21 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ### Builder (Phase 2, in progress)
 
+- **Delete a portfolio.** Until now a site could be unpublished but never
+  removed — the row, its draft and every version it published stayed forever,
+  and the address stayed claimed.
+- One statement does it: `site_drafts` and `site_versions` cascade from `sites`,
+  and `sites_current_version_fk` is `on delete set null deferrable initially
+  deferred`, which is exactly the case it was declared for — without the
+  deferral the cascade trips on the site's own pointer.
+- **The owner types the address rather than clicking through a confirm.** A
+  dialog is dismissed by reflex; typing `yourname` is not. The server checks the
+  same string, because a confirmation only the browser enforces is decoration.
+  Compared case-insensitively — the point is deliberateness, not typing.
+- Deleting invalidates the address immediately rather than at the next
+  revalidation window. A deleted site still serving for an hour is the one
+  outcome nobody expects.
+
 - **Import projects from a GitHub account.** Type a username, pick from the
   public repositories, and each one arrives as a project draft.
 - **Unauthenticated**, so it works the same for a Google-signed-in user as for

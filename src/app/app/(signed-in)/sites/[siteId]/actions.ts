@@ -1,8 +1,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
-import { builderRoute } from '@/server/domain/tenant';
+import { tenantConfig } from '@/lib/tenant-config';
+import { builderPath, builderRoute } from '@/server/domain/tenant';
 import { readExperienceForm } from '@/server/domain/edit-experiences';
 import { readEducationForm } from '@/server/domain/edit-education';
 import { readProjectForm } from '@/server/domain/edit-projects';
@@ -30,7 +32,7 @@ import { projectFrom, type RepoSummary } from '@/server/domain/github';
 import { fetchRepos } from '@/server/services/importGitHub';
 import { publishSite } from '@/server/services/publishSite';
 import { rollbackSite } from '@/server/services/rollbackSite';
-import { chooseTemplate, claimAddress, unpublishSite } from '@/server/services/sites';
+import { chooseTemplate, claimAddress, removeSite, unpublishSite } from '@/server/services/sites';
 
 export type EditorState = {
   saved?: boolean;
@@ -54,6 +56,7 @@ const REFUSALS: Record<string, string> = {
   taken: 'That name is already claimed.',
   unavailable: 'That could not be saved right now.',
   'no-such-version': 'That version no longer exists.',
+  mismatch: 'That did not match. Nothing was deleted.',
   'not-live': 'This portfolio is not published, so there is nothing to roll back to.',
 };
 
@@ -359,4 +362,21 @@ export async function importRepos(_state: ImportState, form: FormData): Promise<
     login,
     note: `Imported ${picked.length} ${picked.length === 1 ? 'project' : 'projects'}. Add what each one was for, then publish.`,
   };
+}
+
+/**
+ * Deleting redirects rather than returning state: the page this ran from no
+ * longer has a site to render, so staying on it would 404 on the next paint.
+ * `redirect` throws, which is why it sits after every fallible step.
+ */
+export async function destroySite(_state: EditorState, form: FormData): Promise<EditorState> {
+  const siteId = siteIdOf(form);
+  if (!siteId) return { problem: REFUSALS['not-found'] };
+
+  const confirmation = String(form.get('confirm') ?? '');
+  const result = await removeSite(siteId, confirmation);
+  if (!result.ok) return { problem: REFUSALS[result.reason] ?? REFUSALS.unavailable };
+
+  revalidatePath(builderRoute('/'));
+  redirect(builderPath('/', tenantConfig()));
 }
