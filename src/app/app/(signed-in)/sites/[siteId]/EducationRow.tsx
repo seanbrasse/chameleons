@@ -6,13 +6,14 @@ import type { Education } from '@/content/types';
 
 import { removeEducationRow, saveEducationRow, type EditorState } from './actions';
 import { Feedback } from './Feedback';
+import { ScopeFields, type EditScope } from './scope';
 import { useBlankRow } from './useBlankRow';
 
 export function EducationRow({
-  siteId,
+  scope,
   entry,
 }: {
-  siteId: string;
+  scope: EditScope;
   entry: Education | null;
 }) {
   const [saveState, saveAction, saving] = useActionState<EditorState, FormData>(
@@ -34,7 +35,7 @@ export function EducationRow({
     <details className="admin-fieldset">
       <summary>{entry ? `${entry.school} · ${entry.credential}` : 'Add a school'}</summary>
       <form key={generation} action={saveAction} className="admin-form">
-        <input type="hidden" name="siteId" value={siteId} />
+        <ScopeFields scope={scope} />
         <input type="hidden" name="educationId" value={id} />
 
         <div className="admin-grid">
@@ -77,7 +78,7 @@ export function EducationRow({
 
       {!isNew ? (
         <form action={removeAction} className="admin-buttons">
-          <input type="hidden" name="siteId" value={siteId} />
+          <ScopeFields scope={scope} />
           <input type="hidden" name="educationId" value={id} />
           <button type="submit" className="admin-button admin-danger" disabled={removing}>
             {removing ? 'Removing…' : 'Remove'}

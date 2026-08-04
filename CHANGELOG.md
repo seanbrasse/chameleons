@@ -203,6 +203,23 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
   is the opposite of what template-agnostic content is for.
 - The editor's content sections are now one list of data rather than six blocks
   of markup, so a section cannot end up on the page and missing from the rail.
+- **A profile at `/app/profile`: your content, not any one portfolio's.**
+  `source_material` existed but only an import could write it, which made a
+  person's own content something that happened to them rather than something
+  they kept.
+- Every section is asked for there, unconditionally. A design decides what *it*
+  shows, but the profile belongs to no design — filtering it by a template would
+  be the tail wagging the dog, and material owned by the person is meant to
+  outlive whichever portfolio was open when it was typed.
+- One set of row components serves both, because a site draft and source
+  material both hold an `Issue` and every `domain/edit-*.ts` transform already
+  works on either. `saveIssue` takes a `Target` — a site with an id, or the
+  profile with none — instead of a `siteId`. A parallel profile stack would have
+  been twelve more services drifting out of step with these.
+- The profile target carries no id, so unlike `siteId` there is nothing in the
+  request to forge: it is keyed on the session's owner. Verified on the rendered
+  page that all six forms post `scope=profile` and none carries a stray
+  `siteId`.
 
 ### Builder (Phase 2, in progress)
 

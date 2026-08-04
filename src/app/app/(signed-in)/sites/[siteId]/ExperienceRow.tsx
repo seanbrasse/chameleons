@@ -6,6 +6,7 @@ import { CAPS, type Experience } from '@/content/types';
 
 import { removeExperienceRow, saveExperienceRow, type EditorState } from './actions';
 import { Feedback } from './Feedback';
+import { ScopeFields, type EditScope } from './scope';
 import { useBlankRow } from './useBlankRow';
 
 /**
@@ -16,10 +17,10 @@ import { useBlankRow } from './useBlankRow';
  * field. `upsertExperience` takes any string, so React's own id format works.
  */
 export function ExperienceRow({
-  siteId,
+  scope,
   experience,
 }: {
-  siteId: string;
+  scope: EditScope;
   experience: Experience | null;
 }) {
   const [saveState, saveAction, saving] = useActionState<EditorState, FormData>(
@@ -41,7 +42,7 @@ export function ExperienceRow({
     <details className="admin-fieldset">
       <summary>{experience ? `${experience.company} · ${experience.role}` : 'Add a role'}</summary>
       <form key={generation} action={saveAction} className="admin-form">
-        <input type="hidden" name="siteId" value={siteId} />
+        <ScopeFields scope={scope} />
         <input type="hidden" name="experienceId" value={id} />
 
         <div className="admin-grid">
@@ -105,7 +106,7 @@ export function ExperienceRow({
 
       {!isNew ? (
         <form action={removeAction} className="admin-buttons">
-          <input type="hidden" name="siteId" value={siteId} />
+          <ScopeFields scope={scope} />
           <input type="hidden" name="experienceId" value={id} />
           <button type="submit" className="admin-button admin-danger" disabled={removing}>
             {removing ? 'Removing…' : 'Remove'}

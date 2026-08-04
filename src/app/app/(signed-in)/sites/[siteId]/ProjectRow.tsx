@@ -6,6 +6,7 @@ import { CAPS, type Experience, type Project } from '@/content/types';
 
 import { removeProjectRow, saveProjectRow, type EditorState } from './actions';
 import { Feedback } from './Feedback';
+import { ScopeFields, type EditScope } from './scope';
 import { useBlankRow } from './useBlankRow';
 
 /**
@@ -14,11 +15,11 @@ import { useBlankRow } from './useBlankRow';
  * publish-time refusal and a field you cannot get wrong.
  */
 export function ProjectRow({
-  siteId,
+  scope,
   project,
   employers,
 }: {
-  siteId: string;
+  scope: EditScope;
   project: Project | null;
   employers: Experience[];
 }) {
@@ -41,7 +42,7 @@ export function ProjectRow({
     <details className="admin-fieldset">
       <summary>{project ? project.title : 'Add a project'}</summary>
       <form key={generation} action={saveAction} className="admin-form">
-        <input type="hidden" name="siteId" value={siteId} />
+        <ScopeFields scope={scope} />
         <input type="hidden" name="projectId" value={id} />
 
         <div className="admin-grid">
@@ -137,7 +138,7 @@ export function ProjectRow({
 
       {!isNew ? (
         <form action={removeAction} className="admin-buttons">
-          <input type="hidden" name="siteId" value={siteId} />
+          <ScopeFields scope={scope} />
           <input type="hidden" name="projectId" value={id} />
           <button type="submit" className="admin-button admin-danger" disabled={removing}>
             {removing ? 'Removing…' : 'Remove'}

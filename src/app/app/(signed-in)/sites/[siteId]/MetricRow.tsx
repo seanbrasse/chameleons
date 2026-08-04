@@ -6,13 +6,14 @@ import type { Metric } from '@/content/types';
 
 import { removeMetricRow, saveMetricRow, type EditorState } from './actions';
 import { Feedback } from './Feedback';
+import { ScopeFields, type EditScope } from './scope';
 import { useBlankRow } from './useBlankRow';
 
 export function MetricRow({
-  siteId,
+  scope,
   metric,
 }: {
-  siteId: string;
+  scope: EditScope;
   metric: Metric | null;
 }) {
   const [saveState, saveAction, saving] = useActionState<EditorState, FormData>(saveMetricRow, {});
@@ -31,7 +32,7 @@ export function MetricRow({
     <details className="admin-fieldset">
       <summary>{metric ? `${metric.value} — ${metric.label}` : 'Add a number'}</summary>
       <form key={generation} action={saveAction} className="admin-form">
-        <input type="hidden" name="siteId" value={siteId} />
+        <ScopeFields scope={scope} />
         <input type="hidden" name="metricId" value={id} />
 
         <div className="admin-grid">
@@ -55,7 +56,7 @@ export function MetricRow({
 
       {!isNew ? (
         <form action={removeAction} className="admin-buttons">
-          <input type="hidden" name="siteId" value={siteId} />
+          <ScopeFields scope={scope} />
           <input type="hidden" name="metricId" value={id} />
           <button type="submit" className="admin-button admin-danger" disabled={removing}>
             {removing ? 'Removing…' : 'Remove'}

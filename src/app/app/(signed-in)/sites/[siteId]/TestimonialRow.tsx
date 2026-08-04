@@ -11,14 +11,15 @@ import {
   type EditorState,
 } from './actions';
 import { Feedback } from './Feedback';
+import { ScopeFields, type EditScope } from './scope';
 import { useBlankRow } from './useBlankRow';
 
 export function TestimonialRow({
-  siteId,
+  scope,
   testimonial,
   employers,
 }: {
-  siteId: string;
+  scope: EditScope;
   testimonial: Testimonial | null;
   employers: Experience[];
 }) {
@@ -45,7 +46,7 @@ export function TestimonialRow({
     <details className="admin-fieldset">
       <summary>{testimonial ? `${testimonial.authorName}${testimonial.approved ? '' : ' · pending'}` : 'Add a quote'}</summary>
       <form key={generation} action={saveAction} className="admin-form">
-        <input type="hidden" name="siteId" value={siteId} />
+        <ScopeFields scope={scope} />
         <input type="hidden" name="testimonialId" value={id} />
 
         <label className="field">
@@ -100,7 +101,7 @@ export function TestimonialRow({
       {testimonial !== null ? (
         <>
           <form action={approveAction} className="admin-buttons">
-            <input type="hidden" name="siteId" value={siteId} />
+            <ScopeFields scope={scope} />
             <input type="hidden" name="testimonialId" value={id} />
             {testimonial.approved ? null : <input type="hidden" name="approved" value="on" />}
             <button
@@ -117,7 +118,7 @@ export function TestimonialRow({
           </form>
 
           <form action={removeAction} className="admin-buttons">
-            <input type="hidden" name="siteId" value={siteId} />
+            <ScopeFields scope={scope} />
             <input type="hidden" name="testimonialId" value={id} />
             <button type="submit" className="admin-button admin-danger" disabled={removing}>
               {removing ? 'Removing…' : 'Remove'}
