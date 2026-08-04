@@ -101,6 +101,23 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 - `validateIssue` moved from a build-time module-load assertion to a pure domain
   function, ready to gate a publish.
 
+### Templates
+
+- **Per-template changelogs**, keyed by `template_version`, starting with
+  `templates/timeline/CHANGELOG.md` at v1.
+- This is a requirement rather than hygiene (plan §22.2). A snapshot pins the
+  template version, so improving a design cannot retroactively change a site
+  published last month — which is what we want, and which creates the
+  obligation: a user on v1 with v3 current needs to know what moved in order to
+  decide whether to upgrade. Without the record, version pinning silently forks
+  every template into abandoned variants with no migration path.
+- **One CI rule enforces it** (§22.4): if a template's manifest changes its
+  `version`, that template's `CHANGELOG.md` must change in the same range.
+  Narrow on purpose — it fires only on a version bump, so it never nags
+  ordinary work, and editing a description or adding an option does not trip
+  it. There is no equivalent rule for this file; a bot demanding an entry on
+  every PR is how changelogs fill with "fix typo".
+
 ### Builder (Phase 2, in progress)
 
 - **Import projects from a GitHub account.** Type a username, pick from the
