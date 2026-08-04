@@ -125,6 +125,7 @@ export async function createSite(
   ownerId: string,
   issue: unknown,
   issueSchemaVersion: number,
+  templateId: string,
 ): Promise<{ ok: true; siteId: string } | { ok: false; reason: 'unavailable' }> {
   if (!hasServiceRole()) return { ok: false, reason: 'unavailable' };
 
@@ -132,7 +133,7 @@ export async function createSite(
 
   const { data, error } = await db
     .from('sites')
-    .insert({ owner_id: ownerId })
+    .insert({ owner_id: ownerId, template_id: templateId })
     .select('id')
     .single();
 

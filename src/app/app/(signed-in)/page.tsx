@@ -2,10 +2,15 @@ import { hasServiceRole } from '@/lib/supabase/service';
 import { builderHref, siteHref } from '@/lib/tenant-config';
 import { ownedSites } from '@/server/services/sites';
 
-import { NewPortfolio } from './NewPortfolio';
+import { redirect } from 'next/navigation';
 
 export default async function Builder() {
   const sites = await ownedSites();
+
+  // An empty account has nothing to choose between, so a dashboard listing
+  // nothing is a dead end wearing the clothes of a choice (plan §23.1). A
+  // returning user is never sent here — they land on their list and decide.
+  if (sites.length === 0 && hasServiceRole()) redirect(builderHref('/new'));
 
   return (
     // No rail: the dashboard is one list and has nothing to index. The shell's
@@ -44,7 +49,14 @@ export default async function Builder() {
       )}
 
         {hasServiceRole() ? (
-          <NewPortfolio />
+          // A link to the gallery, not a button that creates. A returning user
+          // chooses a design for the new portfolio the same way a new one does
+          // — they simply are not sent there automatically (plan §23.1).
+          <p className="admin-buttons">
+            <a className="admin-button admin-primary" href={builderHref('/new')}>
+              New portfolio
+            </a>
+          </p>
         ) : (
           <p className="admin-note" role="status">
             Portfolios cannot be created because this deployment has no Supabase project

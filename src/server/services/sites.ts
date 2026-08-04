@@ -18,7 +18,7 @@ import {
   type ClaimFailure,
   type OwnedSite,
 } from '@/server/repos/sites';
-import { getTemplate } from '@/templates/registry';
+import { DEFAULT_TEMPLATE_ID, getTemplate } from '@/templates/registry';
 
 import { siteTag } from './publishedSite';
 
@@ -30,15 +30,29 @@ export type CreateResult =
   | { ok: true; siteId: string }
   | { ok: false; reason: 'unauthenticated' | 'unavailable' };
 
-/** Starts an empty portfolio. No address — that is claimed at publish. */
-export async function createPortfolio(): Promise<CreateResult> {
+/**
+ * Starts an empty portfolio on a chosen design. No address — that is claimed at
+ * publish (§14 Phase 2).
+ *
+ * The template is chosen here rather than defaulted and corrected later,
+ * because picking one *is* the create step for a new user (§23.1): the gallery
+ * is the first screen, and the site it makes should be the design they picked.
+ *
+ * An unknown id falls back to the default rather than refusing. The value comes
+ * from a form, and starting on the wrong design is a click to fix, where
+ * refusing to create anything is a dead end on someone's first action.
+ */
+export async function createPortfolio(templateId?: string): Promise<CreateResult> {
   const owner = await currentUser();
   if (!owner) return { ok: false, reason: 'unauthenticated' };
+
+  const chosen = templateId && getTemplate(templateId) ? templateId : DEFAULT_TEMPLATE_ID;
 
   const created = await createSite(
     owner.id,
     starterIssue(owner.email.split('@')[0] ?? '', owner.email),
     ISSUE_SCHEMA_VERSION,
+    chosen,
   );
 
   return created.ok
