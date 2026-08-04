@@ -27,6 +27,7 @@ import {
   saveTestimonial,
   addImportedProjects,
   type SaveResult,
+  type Target,
 } from '@/server/services/editSite';
 import { projectFrom, type RepoSummary } from '@/server/domain/github';
 import { fetchRepos } from '@/server/services/importGitHub';
@@ -76,6 +77,27 @@ function siteIdOf(form: FormData): string | null {
   return typeof siteId === 'string' ? siteId : null;
 }
 
+/**
+ * Which thing the form is editing.
+ *
+ * `scope=profile` means the person's own source material, which is keyed on the
+ * session's owner and carries no id — so unlike `siteId`, there is nothing here
+ * for a caller to forge. Anything else is a site, and `siteId` stays untrusted
+ * exactly as before: the service resolves the owner and scopes the write.
+ */
+function targetOf(form: FormData): Target | null {
+  if (form.get('scope') === 'profile') return { kind: 'profile' };
+  const siteId = siteIdOf(form);
+  return siteId ? { kind: 'site', siteId } : null;
+}
+
+/** The profile is its own page, so a site edit and a profile edit expire different routes. */
+function revalidateFor(target: Target): void {
+  revalidatePath(
+    target.kind === 'profile' ? builderRoute('/profile') : builderRoute(`/sites/${target.siteId}`),
+  );
+}
+
 function toState(result: SaveResult): EditorState {
   return result.ok
     ? { saved: true, problems: result.problems }
@@ -84,23 +106,23 @@ function toState(result: SaveResult): EditorState {
 
 /** `siteId` arrives from the form and is untrusted; the service resolves the owner from the session. */
 export async function save(_state: EditorState, form: FormData): Promise<EditorState> {
-  const siteId = siteIdOf(form);
-  if (!siteId) return { problem: REFUSALS['not-found'] };
+  const target = targetOf(form);
+  if (!target) return { problem: REFUSALS['not-found'] };
 
-  const result = await saveSettings(siteId, readSettingsForm(fieldReader(form)));
-  if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
+  const result = await saveSettings(target, readSettingsForm(fieldReader(form)));
+  if (result.ok) revalidateFor(target);
   return toState(result);
 }
 
 export async function saveExperienceRow(_state: EditorState, form: FormData): Promise<EditorState> {
-  const siteId = siteIdOf(form);
+  const target = targetOf(form);
   const experienceId = form.get('experienceId');
-  if (!siteId || typeof experienceId !== 'string' || experienceId === '') {
+  if (!target || typeof experienceId !== 'string' || experienceId === '') {
     return { problem: REFUSALS['not-found'] };
   }
 
-  const result = await saveExperience(siteId, experienceId, readExperienceForm(fieldReader(form)));
-  if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
+  const result = await saveExperience(target, experienceId, readExperienceForm(fieldReader(form)));
+  if (result.ok) revalidateFor(target);
   return toState(result);
 }
 
@@ -108,14 +130,14 @@ export async function removeExperienceRow(
   _state: EditorState,
   form: FormData,
 ): Promise<EditorState> {
-  const siteId = siteIdOf(form);
+  const target = targetOf(form);
   const experienceId = form.get('experienceId');
-  if (!siteId || typeof experienceId !== 'string' || experienceId === '') {
+  if (!target || typeof experienceId !== 'string' || experienceId === '') {
     return { problem: REFUSALS['not-found'] };
   }
 
-  const result = await deleteExperience(siteId, experienceId);
-  if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
+  const result = await deleteExperience(target, experienceId);
+  if (result.ok) revalidateFor(target);
   return toState(result);
 }
 
@@ -197,32 +219,32 @@ function rowId(form: FormData, field: string): string | null {
 }
 
 export async function saveProjectRow(_state: EditorState, form: FormData): Promise<EditorState> {
-  const siteId = siteIdOf(form);
+  const target = targetOf(form);
   const projectId = rowId(form, 'projectId');
-  if (!siteId || !projectId) return { problem: REFUSALS['not-found'] };
+  if (!target || !projectId) return { problem: REFUSALS['not-found'] };
 
-  const result = await saveProject(siteId, projectId, readProjectForm(fieldReader(form)));
-  if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
+  const result = await saveProject(target, projectId, readProjectForm(fieldReader(form)));
+  if (result.ok) revalidateFor(target);
   return toState(result);
 }
 
 export async function removeProjectRow(_state: EditorState, form: FormData): Promise<EditorState> {
-  const siteId = siteIdOf(form);
+  const target = targetOf(form);
   const projectId = rowId(form, 'projectId');
-  if (!siteId || !projectId) return { problem: REFUSALS['not-found'] };
+  if (!target || !projectId) return { problem: REFUSALS['not-found'] };
 
-  const result = await deleteProject(siteId, projectId);
-  if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
+  const result = await deleteProject(target, projectId);
+  if (result.ok) revalidateFor(target);
   return toState(result);
 }
 
 export async function saveEducationRow(_state: EditorState, form: FormData): Promise<EditorState> {
-  const siteId = siteIdOf(form);
+  const target = targetOf(form);
   const educationId = rowId(form, 'educationId');
-  if (!siteId || !educationId) return { problem: REFUSALS['not-found'] };
+  if (!target || !educationId) return { problem: REFUSALS['not-found'] };
 
-  const result = await saveEducation(siteId, educationId, readEducationForm(fieldReader(form)));
-  if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
+  const result = await saveEducation(target, educationId, readEducationForm(fieldReader(form)));
+  if (result.ok) revalidateFor(target);
   return toState(result);
 }
 
@@ -230,12 +252,12 @@ export async function removeEducationRow(
   _state: EditorState,
   form: FormData,
 ): Promise<EditorState> {
-  const siteId = siteIdOf(form);
+  const target = targetOf(form);
   const educationId = rowId(form, 'educationId');
-  if (!siteId || !educationId) return { problem: REFUSALS['not-found'] };
+  if (!target || !educationId) return { problem: REFUSALS['not-found'] };
 
-  const result = await deleteEducation(siteId, educationId);
-  if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
+  const result = await deleteEducation(target, educationId);
+  if (result.ok) revalidateFor(target);
   return toState(result);
 }
 
@@ -257,16 +279,15 @@ export async function saveTestimonialRow(
   _state: EditorState,
   form: FormData,
 ): Promise<EditorState> {
-  const siteId = siteIdOf(form);
+  const target = targetOf(form);
   const testimonialId = rowId(form, 'testimonialId');
-  if (!siteId || !testimonialId) return { problem: REFUSALS['not-found'] };
+  if (!target || !testimonialId) return { problem: REFUSALS['not-found'] };
 
-  const result = await saveTestimonial(
-    siteId,
+  const result = await saveTestimonial(target,
     testimonialId,
     readTestimonialForm(fieldReader(form)),
   );
-  if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
+  if (result.ok) revalidateFor(target);
   return toState(result);
 }
 
@@ -274,12 +295,12 @@ export async function approveTestimonialRow(
   _state: EditorState,
   form: FormData,
 ): Promise<EditorState> {
-  const siteId = siteIdOf(form);
+  const target = targetOf(form);
   const testimonialId = rowId(form, 'testimonialId');
-  if (!siteId || !testimonialId) return { problem: REFUSALS['not-found'] };
+  if (!target || !testimonialId) return { problem: REFUSALS['not-found'] };
 
-  const result = await approveTestimonial(siteId, testimonialId, form.get('approved') !== null);
-  if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
+  const result = await approveTestimonial(target, testimonialId, form.get('approved') !== null);
+  if (result.ok) revalidateFor(target);
   return toState(result);
 }
 
@@ -287,32 +308,32 @@ export async function removeTestimonialRow(
   _state: EditorState,
   form: FormData,
 ): Promise<EditorState> {
-  const siteId = siteIdOf(form);
+  const target = targetOf(form);
   const testimonialId = rowId(form, 'testimonialId');
-  if (!siteId || !testimonialId) return { problem: REFUSALS['not-found'] };
+  if (!target || !testimonialId) return { problem: REFUSALS['not-found'] };
 
-  const result = await deleteTestimonial(siteId, testimonialId);
-  if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
+  const result = await deleteTestimonial(target, testimonialId);
+  if (result.ok) revalidateFor(target);
   return toState(result);
 }
 
 export async function saveMetricRow(_state: EditorState, form: FormData): Promise<EditorState> {
-  const siteId = siteIdOf(form);
+  const target = targetOf(form);
   const metricId = rowId(form, 'metricId');
-  if (!siteId || !metricId) return { problem: REFUSALS['not-found'] };
+  if (!target || !metricId) return { problem: REFUSALS['not-found'] };
 
-  const result = await saveMetric(siteId, metricId, readMetricForm(fieldReader(form)));
-  if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
+  const result = await saveMetric(target, metricId, readMetricForm(fieldReader(form)));
+  if (result.ok) revalidateFor(target);
   return toState(result);
 }
 
 export async function removeMetricRow(_state: EditorState, form: FormData): Promise<EditorState> {
-  const siteId = siteIdOf(form);
+  const target = targetOf(form);
   const metricId = rowId(form, 'metricId');
-  if (!siteId || !metricId) return { problem: REFUSALS['not-found'] };
+  if (!target || !metricId) return { problem: REFUSALS['not-found'] };
 
-  const result = await deleteMetric(siteId, metricId);
-  if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
+  const result = await deleteMetric(target, metricId);
+  if (result.ok) revalidateFor(target);
   return toState(result);
 }
 
@@ -344,8 +365,8 @@ export async function lookUpRepos(_state: ImportState, form: FormData): Promise<
 }
 
 export async function importRepos(_state: ImportState, form: FormData): Promise<ImportState> {
-  const siteId = siteIdOf(form);
-  if (!siteId) return { problem: REFUSALS['not-found'] };
+  const target = targetOf(form);
+  if (!target) return { problem: REFUSALS['not-found'] };
 
   const login = String(form.get('login') ?? '').trim();
   const chosen = new Set(form.getAll('repo').filter((v): v is string => typeof v === 'string'));
@@ -360,10 +381,10 @@ export async function importRepos(_state: ImportState, form: FormData): Promise<
   const picked = result.repos.filter((repo) => chosen.has(repo.fullName));
   if (picked.length === 0) return { login, problem: REFUSALS.unavailable };
 
-  const saved = await addImportedProjects(siteId, picked.map(projectFrom));
+  const saved = await addImportedProjects(target, picked.map(projectFrom));
   if (!saved.ok) return { login, ...toState(saved) };
 
-  revalidatePath(builderRoute(`/sites/${siteId}`));
+  revalidateFor(target);
   return {
     login,
     note: `Imported ${picked.length} ${picked.length === 1 ? 'project' : 'projects'}. Add what each one was for, then publish.`,

@@ -56,6 +56,12 @@ export default async function Builder() {
             <a className="admin-button admin-primary" href={builderHref('/new')}>
               New portfolio
             </a>
+            {/* Kept apart from any one portfolio, because it belongs to the
+                person rather than to a site (§23.4), and every new portfolio
+                starts from it. */}
+            <a className="admin-button" href={builderHref('/profile')}>
+              Your content
+            </a>
           </p>
         ) : (
           <p className="admin-note" role="status">

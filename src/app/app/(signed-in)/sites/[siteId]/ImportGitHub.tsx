@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 
 import { importRepos, lookUpRepos, type ImportState } from './actions';
 import { Feedback } from './Feedback';
+import { ScopeFields, type EditScope } from './scope';
 
 /**
  * Two steps, because picking is the point.
@@ -13,7 +14,7 @@ import { Feedback } from './Feedback';
  * portfolio that lists them says less than one that lists three. So the first
  * form finds the account and the second is a list of checkboxes, all unticked.
  */
-export function ImportGitHub({ siteId }: { siteId: string }) {
+export function ImportGitHub({ scope }: { scope: EditScope }) {
   const [found, lookUp, looking] = useActionState<ImportState, FormData>(lookUpRepos, {});
   const [imported, importAction, importing] = useActionState<ImportState, FormData>(
     importRepos,
@@ -45,7 +46,7 @@ export function ImportGitHub({ siteId }: { siteId: string }) {
 
       {repos.length > 0 ? (
         <form action={importAction}>
-          <input type="hidden" name="siteId" value={siteId} />
+          <ScopeFields scope={scope} />
           {/* The account, not the repositories. The server looks them up again
               (the fetch is cached for an hour, so this is free) rather than
               trusting a description and a URL that came back through the

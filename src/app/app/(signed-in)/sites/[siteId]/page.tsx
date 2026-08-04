@@ -20,6 +20,7 @@ import { Phase } from './Phase';
 import { PublishBar } from './PublishBar';
 import { Rail, type RailGroup } from './Rail';
 import { Section, listParts } from './Section';
+import { siteScope } from './scope';
 import { SettingsForm } from './SettingsForm';
 import { TestimonialRow } from './TestimonialRow';
 import { TemplatePicker } from './TemplatePicker';
@@ -44,6 +45,8 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
   const uses = chosen?.uses ?? null;
   const templateName = chosen?.name ?? 'This design';
 
+  const scope = siteScope(editor.siteId);
+
   // Defaults under the site's overrides, so a control shows what a visitor
   // would actually see rather than an empty box next to a true default.
   const optionFields = chosen ? describeOptions(chosen.options) : [];
@@ -66,7 +69,7 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
       title: 'About',
       part: 'settings' as const,
       count: undefined,
-      body: <SettingsForm siteId={editor.siteId} settings={issue.settings} />,
+      body: <SettingsForm scope={scope} settings={issue.settings} />,
     },
     {
       id: 'experience',
@@ -76,9 +79,9 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
       body: (
         <div className="admin-rows">
           {issue.experiences.map((item) => (
-            <ExperienceRow key={item.id} siteId={editor.siteId} experience={item} />
+            <ExperienceRow key={item.id} scope={scope} experience={item} />
           ))}
-          <ExperienceRow siteId={editor.siteId} experience={null} />
+          <ExperienceRow scope={scope} experience={null} />
         </div>
       ),
     },
@@ -90,18 +93,18 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
       body: (
         <>
           <h4 className="admin-subhead">Import from GitHub</h4>
-          <ImportGitHub siteId={editor.siteId} />
+          <ImportGitHub scope={scope} />
 
           <div className="admin-rows">
             {issue.projects.map((item) => (
               <ProjectRow
                 key={item.id}
-                siteId={editor.siteId}
+                scope={scope}
                 project={item}
                 employers={issue.experiences}
               />
             ))}
-            <ProjectRow siteId={editor.siteId} project={null} employers={issue.experiences} />
+            <ProjectRow scope={scope} project={null} employers={issue.experiences} />
           </div>
         </>
       ),
@@ -114,9 +117,9 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
       body: (
         <div className="admin-rows">
           {issue.education.map((item) => (
-            <EducationRow key={item.id} siteId={editor.siteId} entry={item} />
+            <EducationRow key={item.id} scope={scope} entry={item} />
           ))}
-          <EducationRow siteId={editor.siteId} entry={null} />
+          <EducationRow scope={scope} entry={null} />
         </div>
       ),
     },
@@ -130,12 +133,12 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
           {issue.testimonials.map((item) => (
             <TestimonialRow
               key={item.id}
-              siteId={editor.siteId}
+              scope={scope}
               testimonial={item}
               employers={issue.experiences}
             />
           ))}
-          <TestimonialRow siteId={editor.siteId} testimonial={null} employers={issue.experiences} />
+          <TestimonialRow scope={scope} testimonial={null} employers={issue.experiences} />
         </div>
       ),
     },
@@ -147,9 +150,9 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
       body: (
         <div className="admin-rows">
           {issue.metrics.map((item) => (
-            <MetricRow key={item.id} siteId={editor.siteId} metric={item} />
+            <MetricRow key={item.id} scope={scope} metric={item} />
           ))}
-          <MetricRow siteId={editor.siteId} metric={null} />
+          <MetricRow scope={scope} metric={null} />
         </div>
       ),
     },

@@ -6,6 +6,7 @@ import { CAPS, type SiteSettings } from '@/content/types';
 
 import { save, type EditorState } from './actions';
 import { Feedback } from './Feedback';
+import { ScopeFields, type EditScope } from './scope';
 
 const TEXT_FIELDS: Array<{
   name: keyof SiteSettings;
@@ -23,10 +24,10 @@ const TEXT_FIELDS: Array<{
 ];
 
 export function SettingsForm({
-  siteId,
+  scope,
   settings,
 }: {
-  siteId: string;
+  scope: EditScope;
   settings: SiteSettings;
 }) {
   const [state, saveAction, saving] = useActionState<EditorState, FormData>(save, {});
@@ -34,7 +35,7 @@ export function SettingsForm({
   return (
     <>
       <form action={saveAction} className="admin-form">
-        <input type="hidden" name="siteId" value={siteId} />
+        <ScopeFields scope={scope} />
 
         <div className="admin-grid">
           {TEXT_FIELDS.map(({ name, label, cap, hint }) => (
