@@ -7,6 +7,7 @@ import { loadHistory } from '@/server/services/rollbackSite';
 // render one, so there is no reason to pull every design's stylesheet into it.
 import { getManifest, listManifests } from '@/templates/manifests';
 
+import { DeleteSite } from './DeleteSite';
 import { EducationRow } from './EducationRow';
 import { History } from './History';
 import { ImportGitHub } from './ImportGitHub';
@@ -134,6 +135,17 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
           siteId={editor.siteId}
           entries={history}
           liveVersion={editor.publishedVersion}
+        />
+      </section>
+
+      {/* Last on the page on purpose. Nothing below it, and nothing to scroll
+          past it to reach. */}
+      <section className="admin-section">
+        <h2>Delete</h2>
+        <DeleteSite
+          siteId={editor.siteId}
+          subdomain={editor.subdomain}
+          publishedVersion={editor.publishedVersion}
         />
       </section>
     </>

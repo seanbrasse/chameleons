@@ -276,3 +276,33 @@ export async function writeDraftIssue(
 
   return !error && data === true;
 }
+
+/**
+ * Removes the site and everything hanging off it.
+ *
+ * One statement is enough: `site_drafts` and `site_versions` cascade from
+ * `sites`, `site_version_media` cascades from those, and
+ * `sites_current_version_fk` is `on delete set null deferrable initially
+ * deferred` — which is precisely the case it was declared for. The two tables
+ * point at each other, so without the deferral the cascade would trip on the
+ * site's own pointer.
+ *
+ * Returns the address it had, because the caller has to invalidate that cache
+ * tag and cannot look it up afterwards.
+ */
+export async function deleteSite(
+  siteId: string,
+  ownerId: string,
+): Promise<{ deleted: boolean; subdomain: string | null }> {
+  if (!hasServiceRole()) return { deleted: false, subdomain: null };
+
+  const { data } = await supabaseService()
+    .from('sites')
+    .delete()
+    .eq('id', siteId)
+    .eq('owner_id', ownerId)
+    .select('subdomain');
+
+  const row = data?.[0];
+  return row ? { deleted: true, subdomain: row.subdomain } : { deleted: false, subdomain: null };
+}
