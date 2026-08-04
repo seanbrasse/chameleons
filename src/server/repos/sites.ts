@@ -4,7 +4,7 @@ import { issue as demoIssue } from '@/content/demo';
 import { ISSUE_SCHEMA_VERSION } from '@/content/types';
 import { hasServiceRole, supabaseService } from '@/lib/supabase/service';
 import type { Customization, StoredSnapshot } from '@/server/domain/publish';
-import { DEFAULT_TEMPLATE_ID } from '@/templates/registry';
+import { DEFAULT_TEMPLATE_ID, listManifests } from '@/templates/manifests';
 
 /** Which version of a site is live. The only mutable half of a published read. */
 export type PublishedPointer = {
@@ -26,30 +26,41 @@ export type WorkingState = {
   publishedVersion: number | null;
 };
 
-const SEED_SITE_ID = '00000000-0000-4000-8000-000000000001';
 const SEED_VERSION = 1;
 
 /**
- * Stands in for a database until the builder can create sites. Local dev and CI
- * run with no Supabase at all, so the whole render path has to work without one.
+ * Stands in for a database when there is no service role — local dev and CI,
+ * where the whole render path has to work without a Supabase at all.
+ *
+ * One tenant per registered template, which is what gives `e2e/floor.spec.ts` a
+ * URL for every design. Deriving it from the manifests rather than listing them
+ * is the point: a new template is covered by the floor check the day it is
+ * registered, not the day someone remembers to add it to the spec.
  */
-const SEED: Record<string, StoredSnapshot> = {
-  sean: {
+const SEEDS = [
+  // `sean` first and on the default template — the routing specs name it.
+  { subdomain: 'sean', templateId: DEFAULT_TEMPLATE_ID },
+  ...listManifests().map((manifest) => ({ subdomain: manifest.id, templateId: manifest.id })),
+].map((seed, index) => ({
+  subdomain: seed.subdomain,
+  siteId: `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+  snapshot: {
     issue: demoIssue,
     issueSchemaVersion: ISSUE_SCHEMA_VERSION,
-    templateId: DEFAULT_TEMPLATE_ID,
+    templateId: seed.templateId,
     templateVersion: 1,
     customization: {},
-  },
-};
+  } satisfies StoredSnapshot,
+}));
 
 export function seedPointer(subdomain: string): PublishedPointer | null {
-  return SEED[subdomain] ? { siteId: SEED_SITE_ID, subdomain, version: SEED_VERSION } : null;
+  const seed = SEEDS.find((candidate) => candidate.subdomain === subdomain);
+  return seed ? { siteId: seed.siteId, subdomain, version: SEED_VERSION } : null;
 }
 
 export function seedSnapshot(siteId: string, version: number): StoredSnapshot | null {
-  if (siteId !== SEED_SITE_ID || version !== SEED_VERSION) return null;
-  return SEED.sean ?? null;
+  if (version !== SEED_VERSION) return null;
+  return SEEDS.find((candidate) => candidate.siteId === siteId)?.snapshot ?? null;
 }
 
 export async function readCurrentPointer(subdomain: string): Promise<PublishedPointer | null> {
