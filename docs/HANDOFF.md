@@ -38,38 +38,20 @@ Users sign up, pick a template, edit their portfolio, and publish it to
 
 ## 2. Outstanding work
 
-### 2.1 `feat/snapshot-publish-path` needs rebasing (the one real blocker)
+### 2.1 `feat/snapshot-publish-path` — reconciled
 
-This branch is pushed but **unmergeable as-is**. It was built on `80e981c`, five
-commits behind `main`, so it does not know the template port happened.
+Superseded by `feat/snapshot-publish-rebased`, which is cut from current `main`.
+The duplicates its stale base created (`server/domain/issue.ts`, a second `Issue`
+contract, and a second `validate-issue.ts`) are gone; everything reads
+`src/content/types.ts`. `ISSUE_SCHEMA_VERSION` moved there with it.
 
-What it got wrong, from the stale base:
+Kept: the migrating reader, `buildSnapshot`/`collectMediaUrls`, `siteVersions.ts`,
+the two services, `0002_site_drafts.sql`, and the version-keyed caching. Do not
+re-derive these.
 
-- Adds `src/server/domain/issue.ts`, a **second `Issue` contract**. The real one
-  is `src/content/types.ts` and every template consumes it. Two contracts is
-  precisely what the architecture exists to prevent.
-- Re-creates `src/server/domain/validate-issue.ts`, which already exists.
-- Reported "lint clean, zero warnings" — only because `Work.tsx` is absent from
-  its tree. A passing check that is actually evidence of a wrong base.
-
-What it got right and is worth keeping:
-
-- `parse-issue.ts` — a migrating reader with an `UPGRADES` map keyed by the
-  version each function upgrades *from*, which also refuses snapshots newer than
-  the build understands rather than silently dropping fields.
-- `publish.ts` — `buildSnapshot` and `collectMediaUrls` (restricted to
-  `/storage/v1/object/` URLs, since reaping only applies to our own bucket).
-- `siteVersions.ts`, `publishSite.ts`, and the version-keyed caching split.
-- Its argument for putting `readCurrentSnapshot` in the **service** rather than
-  the repo: version-keyed caching is impossible if one repo call hides the
-  version behind the pointer. That reasoning is correct.
-- It noticed `0001` has no working tables to publish *from* — only frozen
-  snapshots — and added a `site_drafts` table. That gap is real and needs
-  solving one way or another.
-
-**To finish:** rebase onto current `main`, delete its `issue.ts` and
-`validate-issue.ts`, and re-point everything at `src/content/types.ts` and the
-existing `server/domain/validate-issue.ts`.
+**Do not delete the old branch's lesson:** it reported "lint clean, zero
+warnings" only because `Work.tsx` was absent from its tree. `npm run lint` on a
+correct base shows exactly two `<img>` warnings. Zero means the base is wrong.
 
 ### 2.2 Smaller, well-specified
 
