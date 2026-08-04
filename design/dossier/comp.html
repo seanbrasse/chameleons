@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>dossier — comp</title>
+
+    <!--
+      Template #2, stage 2 of plan §20.4. One standalone file, no React, no
+      build step, no data layer: open it by double-clicking.
+
+      The content is real — Sean's actual projects, titles and numbers out of
+      src/content/demo.ts — because lorem ipsum hides the thing a comp is for.
+      A layout that cannot survive "Cadence" next to "LLM Knowledge Engine",
+      or a sixty-word summary next to a nine-word one, has not been tested.
+
+      The constraint is: no images, anywhere. See BRIEF.md.
+    -->
+
+    <style>
+      /*
+        This template's own vocabulary. Not timeline's 27 keys — there is no
+        universal palette (plan §6), and this design needs about a dozen names,
+        most of which timeline has no use for.
+      */
+      :root {
+        --paper: #faf8f4;
+        --ink: #17161a;
+        --ink-quiet: #57545e;
+        /*
+          Darker than it looks like it wants to be. The first pass used #8b8792,
+          which reads as a proper margin note and fails WCAG AA at 3.2:1 — and
+          the sidenotes are the most characteristic thing in this design, so the
+          whole margin column was unreadable. 5.8:1 here. A quiet note still has
+          to be a legible one.
+        */
+        --ink-faint: #63606b;
+        --rule: #ddd7cc;
+        /* Printer's red. Two jobs only: metric numerals and section rules. */
+        --accent: #b3311c;
+
+        /*
+          A serif body deliberately, against timeline's system sans — the two
+          templates should not read as the same site in different colours.
+          Fonts proper are Phase 3; these are system stacks until then.
+        */
+        --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Charter, Georgia, serif;
+        --mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+
+        /*
+          The scale, 12 → 88. Roughly 7×, against the ~4× floor §20.3 warns
+          below. With no images the type is the only hierarchy there is.
+        */
+        --t-note: 0.75rem;
+        --t-label: 0.8125rem;
+        --t-body: 1.0625rem;
+        --t-lead: 1.375rem;
+        --t-entry: 1.5rem;
+        --t-name: 3.25rem;
+        /* Clamped rather than fixed: "~$50M" is five glyphs where "~50%" is
+           four, and a size that fits the shortest overruns the longest. */
+        --t-numeral: clamp(2.75rem, 5.5vw, 4rem);
+
+        /*
+          Deliberately uneven. Tight inside an entry, enormous between sections
+          — the ratio is the hierarchy (§20.1 cause 3), and an even 16/24/32
+          rhythm is what makes a page read as generic.
+        */
+        --gap-line: 0.35rem;
+        --gap-entry: 2.75rem;
+        --gap-section: 7rem;
+
+        --measure: 34em;
+        --margin-col: 11rem;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #14131a;
+          --ink: #f2efe9;
+          --ink-quiet: #a5a1ab;
+          /* Same correction the other way: #6e6a76 was 3.5:1, this is 5.3:1. */
+          --ink-faint: #8b8796;
+          --rule: #322f3a;
+          --accent: #ff6a4d;
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--serif);
+        font-size: var(--t-body);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /*
+        The margin column is the design, not an ornament on it — this grid is
+        the whole idea, borrowed from Tufte's sidenotes. An aside sits beside
+        the line it refers to instead of interrupting it.
+      */
+      /*
+        The two-column grid is declared on every level that needs it rather
+        than inherited through nested `subgrid`. Subgrid only reaches a parent
+        that is itself a grid, and a section is a section — making it a grid
+        purely so its children can see through it is the kind of structural
+        cleverness that fails silently. Repeating one custom property is
+        cheaper than debugging why a sidenote sat on top of its own heading.
+      */
+      .sheet,
+      .section,
+      .section-head,
+      .entry {
+        display: grid;
+        grid-template-columns: var(--margin-col) minmax(0, var(--measure));
+        column-gap: 3rem;
+      }
+
+      .sheet {
+        /*
+          The asymmetry is inside the block — margin column beside text column
+          — rather than the block being off-centre on the page. Wide enough for
+          both columns and no wider, so there is no dead rail on the right.
+        */
+        margin: 0 auto;
+        padding: 6rem 2rem 10rem;
+        max-width: 52rem;
+      }
+
+      .side {
+        grid-column: 1;
+        font-family: var(--mono);
+        font-size: var(--t-note);
+        line-height: 1.5;
+        color: var(--ink-faint);
+        text-align: right;
+        padding-top: 0.5rem;
+        /* Hanging punctuation of a sort: the note aligns to its subject's cap
+           height, not to the top of the block. */
+      }
+
+      .main {
+        grid-column: 2;
+      }
+
+      .full {
+        grid-column: 1 / -1;
+      }
+
+      /* ── Masthead ───────────────────────────────────────────────────── */
+
+      .name {
+        font-size: var(--t-name);
+        line-height: 1.02;
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        margin: 0;
+      }
+
+      .lead {
+        font-size: var(--t-lead);
+        line-height: 1.4;
+        color: var(--ink-quiet);
+        margin: 1.25rem 0 0;
+        max-width: 28em;
+      }
+
+      .masthead-meta {
+        margin: 2rem 0 0;
+        font-family: var(--mono);
+        font-size: var(--t-label);
+        color: var(--ink-quiet);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 1.75rem;
+        padding: 0;
+        list-style: none;
+      }
+
+      .masthead-meta a {
+        color: inherit;
+        text-decoration-color: var(--rule);
+        text-underline-offset: 0.25em;
+      }
+
+      .masthead-meta a:hover {
+        color: var(--accent);
+        text-decoration-color: currentColor;
+      }
+
+      /* ── Section headings ───────────────────────────────────────────── */
+
+      /*
+        Fixed, terse, always in the same voice — the man-page lesson. The rule
+        runs the full width including the margin column, which is what makes
+        the sidenotes read as part of the section rather than as floating
+        annotations.
+      */
+      .section {
+        margin-top: var(--gap-section);
+      }
+
+      .section-head {
+        grid-column: 1 / -1;
+        border-top: 2px solid var(--accent);
+        padding-top: 0.6rem;
+        margin-bottom: 2.5rem;
+      }
+
+      .section-title {
+        grid-column: 1;
+        font-family: var(--mono);
+        font-size: var(--t-label);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--accent);
+        margin: 0;
+        text-align: right;
+      }
+
+      .section-note {
+        grid-column: 2;
+        font-family: var(--mono);
+        font-size: var(--t-note);
+        color: var(--ink-faint);
+        margin: 0.2rem 0 0;
+      }
+
+      /* ── Numbers ────────────────────────────────────────────────────── */
+
+      /*
+        The FT reference. A number set enormous with a caption under it carries
+        the whole story; a chart here would be decoration.
+      */
+      /*
+        Grid rather than wrapping flex: three numerals should sit on one line
+        or stack cleanly, never leave one orphaned beside a gap the width of
+        the two it followed.
+      */
+      /*
+        The one element that breaks the two-column grid and runs the full
+        width. That is the point rather than an exception: the numbers are the
+        loudest claim on the page, and letting them cross the spine is what
+        says so. Confined to the text column they collide at this size, which
+        is the design telling you where they belong.
+      */
+      .numbers {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+        gap: 2.5rem 2rem;
+        margin: 0;
+      }
+
+      .numbers p {
+        margin: 0;
+      }
+
+      .numeral {
+        font-size: var(--t-numeral);
+        line-height: 0.9;
+        letter-spacing: -0.04em;
+        color: var(--accent);
+        font-variant-numeric: tabular-nums;
+        display: block;
+      }
+
+      .numeral-label {
+        display: block;
+        font-family: var(--mono);
+        font-size: var(--t-note);
+        line-height: 1.4;
+        color: var(--ink-quiet);
+        margin-top: 0.85rem;
+        max-width: 11em;
+      }
+
+      /* ── Entries ────────────────────────────────────────────────────── */
+
+      .entry {
+        grid-column: 1 / -1;
+      }
+
+      .entry + .entry {
+        margin-top: var(--gap-entry);
+      }
+
+      .entry-title {
+        font-size: var(--t-entry);
+        font-weight: 400;
+        line-height: 1.2;
+        margin: 0 0 var(--gap-line);
+        letter-spacing: -0.01em;
+      }
+
+      .entry-role {
+        margin: 0 0 0.85rem;
+        color: var(--ink-quiet);
+        font-size: var(--t-body);
+      }
+
+      .entry-body {
+        margin: 0;
+      }
+
+      .entry-body + .entry-body {
+        margin-top: 0.7rem;
+      }
+
+      /*
+        The impact line. A rule in the margin rather than a badge or a coloured
+        chip — the emphasis comes from position and a hairline, not from a
+        container.
+      */
+      .impact {
+        margin: 0.85rem 0 0;
+        padding-left: 1rem;
+        border-left: 2px solid var(--accent);
+        color: var(--ink);
+      }
+
+      .side-stack {
+        display: block;
+        margin-top: 0.5rem;
+        color: var(--ink-quiet);
+      }
+
+      .side-date {
+        display: block;
+        color: var(--ink-faint);
+      }
+
+      .side-where {
+        display: block;
+        margin-top: 0.15rem;
+      }
+
+      .link-out {
+        color: var(--accent);
+        text-decoration-thickness: 1px;
+        text-underline-offset: 0.2em;
+      }
+
+      /* ── Colophon ───────────────────────────────────────────────────── */
+
+      .colophon {
+        grid-column: 1 / -1;
+        margin-top: var(--gap-section);
+        border-top: 1px solid var(--rule);
+        padding-top: 1.25rem;
+        font-family: var(--mono);
+        font-size: var(--t-note);
+        color: var(--ink-faint);
+      }
+
+      /* ── Focus, which is floor, not styling ─────────────────────────── */
+
+      a:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+        border-radius: 1px;
+      }
+
+      /*
+        Below the margin column's width there is no margin column: the notes
+        move above their subject and read in DOM order, which is also the order
+        a screen reader has always used.
+      */
+      @media (max-width: 46rem) {
+        :root {
+          --t-name: 2.25rem;
+          --t-numeral: 3.5rem;
+          --gap-section: 4.5rem;
+        }
+
+        .sheet {
+          grid-template-columns: minmax(0, 1fr);
+          padding: 3rem 1.5rem 6rem;
+        }
+
+        .side,
+        .main,
+        .full,
+        .entry,
+        .section-head,
+        .numbers,
+        .colophon {
+          grid-column: 1;
+        }
+
+        .entry,
+        .section-head {
+          display: block;
+        }
+
+        .side {
+          text-align: left;
+          padding-top: 0;
+          margin-bottom: 0.6rem;
+        }
+
+        .section-title {
+          text-align: left;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <main class="sheet">
+      <!-- Masthead. The name is the h1 because that is what a portfolio is
+           found by; the floor spec asserts exactly one. -->
+      <div class="side">
+        <span class="side-date">New York, NY</span>
+        <span class="side-where">Open to Senior Frontend, Full&nbsp;Stack</span>
+      </div>
+
+      <header class="main">
+        <h1 class="name">Sean Brasse</h1>
+        <p class="lead">Frontend engineer who ships the feature nobody wants to own.</p>
+        <ul class="masthead-meta">
+          <li><a href="mailto:seanbrasse@gmail.com">seanbrasse@gmail.com</a></li>
+          <li><a href="https://github.com/seanbrasse">GitHub</a></li>
+          <li><a href="https://linkedin.com/in/seanbrasse">LinkedIn</a></li>
+          <li><a href="/resume.pdf">Résumé</a></li>
+        </ul>
+      </header>
+
+      <!-- Numbers -->
+      <section class="section full" aria-labelledby="s-numbers">
+        <div class="section-head">
+          <h2 class="section-title" id="s-numbers">Numbers</h2>
+          <p class="section-note">Outcomes, not activity</p>
+        </div>
+
+        <div class="numbers">
+          <p>
+            <span class="numeral">100K+</span>
+            <span class="numeral-label">QBO merchants activated</span>
+          </p>
+          <p>
+            <span class="numeral">~$50M</span>
+            <span class="numeral-label">ARR segment unlocked</span>
+          </p>
+          <p>
+            <span class="numeral">~50%</span>
+            <span class="numeral-label">Lift in customer opt-in rate</span>
+          </p>
+        </div>
+      </section>
+
+      <!-- Work -->
+      <section class="section full" aria-labelledby="s-work">
+        <div class="section-head">
+          <h2 class="section-title" id="s-work">Work</h2>
+          <p class="section-note">Four selected, newest first</p>
+        </div>
+
+        <article class="entry">
+          <div class="side">
+            <span class="side-date">2026-01</span>
+            <span class="side-where">Intuit Mailchimp</span>
+            <span class="side-stack">Python · RAG · Claude · Jira API</span>
+          </div>
+          <div class="main">
+            <h3 class="entry-title">LLM Knowledge Engine</h3>
+            <p class="entry-body">
+              Ingests merged PRs and their linked Jira tickets into a searchable changelog, with a
+              RAG layer so you can ask it questions in plain English.
+            </p>
+            <p class="impact">Demoed to engineering leadership as V1 of an internal AI platform.</p>
+          </div>
+        </article>
+
+        <article class="entry">
+          <div class="side">
+            <span class="side-date">2026-07</span>
+            <span class="side-where">Personal</span>
+            <span class="side-stack">React · Pyodide · Web Speech API · Claude · Supabase</span>
+          </div>
+          <div class="main">
+            <h3 class="entry-title">Pass the Interview</h3>
+            <p class="entry-body">
+              LeetCode you can talk to. Think out loud while you code and an AI interviewer listens,
+              pushes back, and grades you — in speech and in writing.
+            </p>
+            <p class="impact">69 problems across DSA, system design, OOD, backend, and frontend.</p>
+            <p class="entry-body">
+              <a class="link-out" href="https://passtheinterview.dev">passtheinterview.dev</a>
+            </p>
+          </div>
+        </article>
+
+        <article class="entry">
+          <div class="side">
+            <span class="side-date">2026-07</span>
+            <span class="side-where">Personal · building</span>
+            <span class="side-stack">Swift · SwiftUI · SwiftData · HealthKit · Supabase</span>
+          </div>
+          <div class="main">
+            <h3 class="entry-title">Cadence</h3>
+            <p class="entry-body">
+              Consistency-first fitness tracker. Native SwiftUI with an offline-first SwiftData
+              store and read-only Apple Health sync for sleep, weight, and nutrition.
+            </p>
+            <p class="impact">Agentic coach that logs your weight and edits your split from chat.</p>
+          </div>
+        </article>
+
+        <article class="entry">
+          <div class="side">
+            <span class="side-date">2026-07</span>
+            <span class="side-where">Personal · building</span>
+            <span class="side-stack">React · Supabase · Claude · Vercel · PWA</span>
+          </div>
+          <div class="main">
+            <h3 class="entry-title">JARVIS Life OS</h3>
+            <p class="entry-body">
+              Cross-device life tracking PWA. Goal gauges, a backfillable timeline, Apple Health
+              ingest, and an accountability engine that writes you a review each night.
+            </p>
+            <p class="impact">Nightly reviews written by Claude, delivered as web push.</p>
+          </div>
+        </article>
+      </section>
+
+      <!-- History -->
+      <section class="section full" aria-labelledby="s-history">
+        <div class="section-head">
+          <h2 class="section-title" id="s-history">History</h2>
+          <p class="section-note">Where the work happened</p>
+        </div>
+
+        <article class="entry">
+          <div class="side">
+            <span class="side-date">2023 — now</span>
+            <span class="side-where">New York, NY</span>
+          </div>
+          <div class="main">
+            <h3 class="entry-title">Intuit Mailchimp</h3>
+            <p class="entry-role">Software Engineer II</p>
+            <p class="entry-body">
+              React and TypeScript on the customer-facing surface, and the PHP and Dojo underneath
+              it that nobody else volunteers for.
+            </p>
+          </div>
+        </article>
+
+        <article class="entry">
+          <div class="side">
+            <span class="side-date">2021 — 2023</span>
+            <span class="side-where">New York, NY</span>
+          </div>
+          <div class="main">
+            <h3 class="entry-title">Avarint</h3>
+            <p class="entry-role">Full-Stack Software Engineer</p>
+            <p class="entry-body">
+              Full-stack product work in React and Node, from schema to the screen it ends up on.
+            </p>
+          </div>
+        </article>
+
+        <article class="entry">
+          <div class="side">
+            <span class="side-date">2020 — 2021</span>
+            <span class="side-where">Buffalo, NY</span>
+          </div>
+          <div class="main">
+            <h3 class="entry-title">PayPal</h3>
+            <p class="entry-role">Software Engineer</p>
+            <p class="entry-body">Test coverage in Jest across a payments surface that could not afford to be wrong.</p>
+          </div>
+        </article>
+      </section>
+
+      <!-- Before that -->
+      <section class="section full" aria-labelledby="s-education">
+        <div class="section-head">
+          <h2 class="section-title" id="s-education">Before that</h2>
+          <p class="section-note">&nbsp;</p>
+        </div>
+
+        <article class="entry">
+          <div class="side">
+            <!-- demo.ts has no end date on purpose: the résumé gives a school and
+                 a degree, not a graduation year, and an inferred one would read
+                 as fact. The design has to say "from" without looking broken. -->
+            <span class="side-date">from Sep 2017</span>
+          </div>
+          <div class="main">
+            <h3 class="entry-title">University at Buffalo</h3>
+            <p class="entry-role">B.S. Computer Science</p>
+          </div>
+        </article>
+      </section>
+
+      <footer class="colophon">
+        React · TypeScript · Node · PHP · Swift · Python · Supabase · Jest
+      </footer>
+    </main>
+  </body>
+</html>
