@@ -41,8 +41,6 @@ export function PublishBar({
 
   return (
     <section>
-      <h2>Publish</h2>
-
       <form action={addressAction} className="admin-form">
         <input type="hidden" name="siteId" value={siteId} />
         <label className="field">
@@ -78,7 +76,13 @@ export function PublishBar({
 
         <form action={publishAction}>
           <input type="hidden" name="siteId" value={siteId} />
-          <button type="submit" className="admin-button" disabled={publishing || !subdomain}>
+          {/* The one filled button in the editor. Every Save is quiet now, so
+              this is the only thing on the page that looks like a conclusion. */}
+          <button
+            type="submit"
+            className="admin-button admin-primary"
+            disabled={publishing || !subdomain}
+          >
             {publishing ? 'Publishing…' : live ? 'Publish changes' : 'Publish'}
           </button>
         </form>

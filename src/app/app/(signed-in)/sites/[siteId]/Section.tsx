@@ -23,6 +23,8 @@ export function Section({
   part,
   uses,
   templateName,
+  id,
+  aside,
   children,
 }: {
   title: string;
@@ -31,6 +33,10 @@ export function Section({
   /** Null when the site names a template this build does not ship. */
   uses: Array<keyof Issue> | null;
   templateName: string;
+  /** Anchors the rail's link for this section. */
+  id: string;
+  /** A count or short aside beside the heading. */
+  aside?: string;
   children: ReactNode;
 }) {
   // No manifest means no claim either way. Say nothing rather than guess: a
@@ -38,8 +44,13 @@ export function Section({
   const shown = uses === null || uses.includes(part);
 
   return (
-    <section className="admin-section">
-      <h2>{title}</h2>
+    <section className="admin-section" id={id}>
+      {/* h3 inside a phase's h2, so the outline matches what the page looks
+          like. When these were the page's only headings they were h2s. */}
+      <div className="admin-section-head">
+        <h3>{title}</h3>
+        {aside ? <span className="admin-note">{aside}</span> : null}
+      </div>
       {shown ? null : (
         <p className="admin-note">
           {templateName} does not show {LABELS[part]}. What you write here is kept, and appears if

@@ -8,8 +8,17 @@ export default async function Builder() {
   const sites = await ownedSites();
 
   return (
+    // No rail: the dashboard is one list and has nothing to index. The shell's
+    // first column stays empty so the work column keeps the same measure it has
+    // in the editor — a page that widened when it lost its rail would make the
+    // two screens feel like different applications.
     <>
-      <h1>Your portfolios</h1>
+      <div />
+
+      <main className="admin-main">
+        <div className="admin-head">
+          <h1>Your portfolios</h1>
+        </div>
 
       {sites.length === 0 ? (
         <p className="admin-note">
@@ -34,14 +43,15 @@ export default async function Builder() {
         </ul>
       )}
 
-      {hasServiceRole() ? (
-        <NewPortfolio />
-      ) : (
-        <p className="admin-note" role="status">
-          Portfolios cannot be created because this deployment has no Supabase project
-          configured.
-        </p>
-      )}
+        {hasServiceRole() ? (
+          <NewPortfolio />
+        ) : (
+          <p className="admin-note" role="status">
+            Portfolios cannot be created because this deployment has no Supabase project
+            configured.
+          </p>
+        )}
+      </main>
     </>
   );
 }

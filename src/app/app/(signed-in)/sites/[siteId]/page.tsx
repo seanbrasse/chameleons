@@ -16,8 +16,9 @@ import { ImportGitHub } from './ImportGitHub';
 import { MetricRow } from './MetricRow';
 import { ExperienceRow } from './ExperienceRow';
 import { ProjectRow } from './ProjectRow';
+import { Phase } from './Phase';
 import { PublishBar } from './PublishBar';
-import { RowList } from './RowList';
+import { Rail, type RailGroup } from './Rail';
 import { Section } from './Section';
 import { SettingsForm } from './SettingsForm';
 import { TestimonialRow } from './TestimonialRow';
@@ -52,120 +53,165 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
     ? { ...defaultsOf(chosen.options), ...editor.customization }
     : {};
 
+  const rail: RailGroup[] = [
+    {
+      label: '1 · Design',
+      links: [
+        { id: 'template', label: 'Template', count: editor.templateId },
+        { id: 'options', label: 'Options' },
+      ],
+    },
+    {
+      label: '2 · Content',
+      links: [
+        { id: 'about', label: 'About' },
+        { id: 'experience', label: 'Experience', count: issue.experiences.length },
+        { id: 'projects', label: 'Projects', count: issue.projects.length },
+        { id: 'education', label: 'Education', count: issue.education.length },
+        { id: 'testimonials', label: 'Testimonials', count: issue.testimonials.length },
+        { id: 'metrics', label: 'Metrics', count: issue.metrics.length },
+      ],
+    },
+    {
+      label: '3 · Publish',
+      links: [
+        { id: 'publish', label: 'Address & publish' },
+        { id: 'history', label: 'History', count: history.length },
+        { id: 'delete', label: 'Delete' },
+      ],
+    },
+  ];
+
   return (
     <>
-      <h1>{editor.subdomain ?? (issue.settings.displayName || 'Untitled portfolio')}</h1>
+      <Rail groups={rail} />
 
-      <h2>Design</h2>
-      <TemplatePicker
-        siteId={editor.siteId}
-        selectedId={editor.templateId}
-        templates={listManifests().map((manifest) => ({
-          id: manifest.id,
-          name: manifest.name,
-          description: manifest.description,
-          constraint: manifest.constraint,
-        }))}
-      />
+      <main className="admin-main">
+        <div className="admin-head">
+          <h1>{issue.settings.displayName || editor.subdomain || 'Untitled portfolio'}</h1>
+          {issue.settings.tagline ? <p>{issue.settings.tagline}</p> : null}
+        </div>
 
-      {chosen ? (
-        <Customize
-          siteId={editor.siteId}
-          templateId={editor.templateId}
-          fields={optionFields}
-          values={optionValues}
-        />
-      ) : null}
-
-      <Section title="Settings" part="settings" {...section}>
-        <SettingsForm siteId={editor.siteId} settings={issue.settings} />
-      </Section>
-
-      <Section title="Experience" part="experiences" {...section}>
-        <RowList
-          items={issue.experiences}
-          render={(experience, onCreated) => (
-            <ExperienceRow siteId={editor.siteId} experience={experience} onCreated={onCreated} />
-          )}
-        />
-      </Section>
-
-      <Section title="Projects" part="projects" {...section}>
-        <h3 className="admin-subhead">Import from GitHub</h3>
-        <ImportGitHub siteId={editor.siteId} />
-
-        <RowList
-          items={issue.projects}
-          render={(project, onCreated) => (
-            <ProjectRow
+        <Phase n="01" title="Design" note="Decides what content is worth entering">
+          <section className="admin-section" id="template">
+            <div className="admin-section-head">
+              <h3>Template</h3>
+            </div>
+            <TemplatePicker
               siteId={editor.siteId}
-              project={project}
-              employers={issue.experiences}
-              onCreated={onCreated}
+              selectedId={editor.templateId}
+              templates={listManifests().map((manifest) => ({
+                id: manifest.id,
+                name: manifest.name,
+                description: manifest.description,
+                constraint: manifest.constraint,
+              }))}
             />
-          )}
-        />
-      </Section>
+          </section>
 
-      <Section title="Education" part="education" {...section}>
-        <RowList
-          items={issue.education}
-          render={(entry, onCreated) => (
-            <EducationRow siteId={editor.siteId} entry={entry} onCreated={onCreated} />
-          )}
-        />
-      </Section>
+          {chosen ? (
+            <section className="admin-section" id="options">
+              <div className="admin-section-head">
+                <h3>Options</h3>
+              </div>
+              <Customize
+                siteId={editor.siteId}
+                templateId={editor.templateId}
+                fields={optionFields}
+                values={optionValues}
+              />
+            </section>
+          ) : null}
+        </Phase>
 
-      <Section title="Testimonials" part="testimonials" {...section}>
-        <RowList
-          items={issue.testimonials}
-          render={(testimonial, onCreated) => (
-            <TestimonialRow
+        <Phase n="02" title="Content" note="Saved as you go">
+          <Section title="About" part="settings" id="about" {...section}>
+            <SettingsForm siteId={editor.siteId} settings={issue.settings} />
+          </Section>
+
+          <Section title="Experience" part="experiences" id="experience" {...section}>
+            <div className="admin-rows">
+              {issue.experiences.map((item) => (
+                <ExperienceRow key={item.id} siteId={editor.siteId} experience={item} />
+              ))}
+              <ExperienceRow siteId={editor.siteId} experience={null} />
+            </div>
+          </Section>
+
+          <Section title="Projects" part="projects" id="projects" {...section}>
+            <h4 className="admin-subhead">Import from GitHub</h4>
+            <ImportGitHub siteId={editor.siteId} />
+
+            <div className="admin-rows">
+              {issue.projects.map((item) => (
+                <ProjectRow key={item.id} siteId={editor.siteId} project={item} employers={issue.experiences} />
+              ))}
+              <ProjectRow siteId={editor.siteId} project={null} employers={issue.experiences} />
+            </div>
+          </Section>
+
+          <Section title="Education" part="education" id="education" {...section}>
+            <div className="admin-rows">
+              {issue.education.map((item) => (
+                <EducationRow key={item.id} siteId={editor.siteId} entry={item} />
+              ))}
+              <EducationRow siteId={editor.siteId} entry={null} />
+            </div>
+          </Section>
+
+          <Section title="Testimonials" part="testimonials" id="testimonials" {...section}>
+            <div className="admin-rows">
+              {issue.testimonials.map((item) => (
+                <TestimonialRow key={item.id} siteId={editor.siteId} testimonial={item} employers={issue.experiences} />
+              ))}
+              <TestimonialRow siteId={editor.siteId} testimonial={null} employers={issue.experiences} />
+            </div>
+          </Section>
+
+          <Section title="Metrics" part="metrics" id="metrics" {...section}>
+            <div className="admin-rows">
+              {issue.metrics.map((item) => (
+                <MetricRow key={item.id} siteId={editor.siteId} metric={item} />
+              ))}
+              <MetricRow siteId={editor.siteId} metric={null} />
+            </div>
+          </Section>
+        </Phase>
+
+        <Phase n="03" title="Publish" note="The last step">
+          <section className="admin-section" id="publish">
+            <PublishBar
               siteId={editor.siteId}
-              testimonial={testimonial}
-              employers={issue.experiences}
-              onCreated={onCreated}
+              subdomain={editor.subdomain}
+              suffix={mode === 'path' ? '' : `.${rootDomain}`}
+              publishedVersion={editor.publishedVersion}
+              previewHref={builderHref(`/preview/${editor.siteId}`)}
             />
-          )}
-        />
-      </Section>
+          </section>
 
-      <Section title="Metrics" part="metrics" {...section}>
-        <RowList
-          items={issue.metrics}
-          render={(metric, onCreated) => (
-            <MetricRow siteId={editor.siteId} metric={metric} onCreated={onCreated} />
-          )}
-        />
-      </Section>
+          <section className="admin-section" id="history">
+            <div className="admin-section-head">
+              <h3>History</h3>
+            </div>
+            <History
+              siteId={editor.siteId}
+              entries={history}
+              liveVersion={editor.publishedVersion}
+            />
+          </section>
 
-      <PublishBar
-        siteId={editor.siteId}
-        subdomain={editor.subdomain}
-        suffix={mode === 'path' ? '' : `.${rootDomain}`}
-        publishedVersion={editor.publishedVersion}
-        previewHref={builderHref(`/preview/${editor.siteId}`)}
-      />
-
-      <section className="admin-section">
-        <h2>History</h2>
-        <History
-          siteId={editor.siteId}
-          entries={history}
-          liveVersion={editor.publishedVersion}
-        />
-      </section>
-
-      {/* Last on the page on purpose. Nothing below it, and nothing to scroll
-          past it to reach. */}
-      <section className="admin-section">
-        <h2>Delete</h2>
-        <DeleteSite
-          siteId={editor.siteId}
-          subdomain={editor.subdomain}
-          publishedVersion={editor.publishedVersion}
-        />
-      </section>
+          <section className="admin-section" id="delete">
+            <div className="admin-section-head">
+              <h3>Delete</h3>
+            </div>
+            <DeleteSite
+              siteId={editor.siteId}
+              subdomain={editor.subdomain}
+              publishedVersion={editor.publishedVersion}
+            />
+          </section>
+        </Phase>
+      </main>
     </>
   );
 }
