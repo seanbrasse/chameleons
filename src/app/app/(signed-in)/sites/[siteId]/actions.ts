@@ -8,6 +8,7 @@ import { readSettingsForm } from '@/server/domain/edit-settings';
 import type { ContentProblem } from '@/server/domain/validate-issue';
 import { deleteExperience, saveExperience, saveSettings, type SaveResult } from '@/server/services/editSite';
 import { publishSite } from '@/server/services/publishSite';
+import { claimAddress, unpublishSite } from '@/server/services/sites';
 
 export type EditorState = {
   saved?: boolean;
@@ -21,6 +22,13 @@ const REFUSALS: Record<string, string> = {
   'not-found': 'That site is not yours to edit.',
   conflict: 'Someone published this site while you were editing. Try again.',
   invalid: 'Fix the problems below, then publish.',
+  'no-address': 'Claim an address before publishing.',
+  format:
+    'Use 3 to 32 characters — lowercase letters, numbers and hyphens, starting and ending with a letter or number.',
+  reserved: 'That name is reserved.',
+  punycode: 'That name cannot start with “xn--”.',
+  taken: 'That name is already claimed.',
+  unavailable: 'That could not be saved right now.',
 };
 
 const fieldReader = (form: FormData) => (name: string) => {
@@ -100,4 +108,31 @@ export async function publish(_state: EditorState, form: FormData): Promise<Edit
 
   revalidatePath(builderRoute('/'));
   return { published: result.version };
+}
+
+export async function claimAddressAction(
+  _state: EditorState,
+  form: FormData,
+): Promise<EditorState> {
+  const siteId = siteIdOf(form);
+  const raw = form.get('subdomain');
+  if (!siteId || typeof raw !== 'string') return { problem: REFUSALS['not-found'] };
+
+  const result = await claimAddress(siteId, raw);
+  if (!result.ok) return { problem: REFUSALS[result.reason] ?? REFUSALS.unavailable };
+
+  revalidatePath(builderRoute(`/sites/${siteId}`));
+  revalidatePath(builderRoute('/'));
+  return { saved: true };
+}
+
+export async function unpublish(_state: EditorState, form: FormData): Promise<EditorState> {
+  const siteId = siteIdOf(form);
+  if (!siteId) return { problem: REFUSALS['not-found'] };
+
+  if (!(await unpublishSite(siteId))) return { problem: REFUSALS['not-found'] };
+
+  revalidatePath(builderRoute(`/sites/${siteId}`));
+  revalidatePath(builderRoute('/'));
+  return { saved: true };
 }

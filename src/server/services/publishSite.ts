@@ -17,7 +17,7 @@ import { siteTag } from './publishedSite';
 
 export type PublishResult =
   | { ok: true; version: number }
-  | { ok: false; reason: 'unauthenticated' | 'not-found' | 'conflict' }
+  | { ok: false; reason: 'unauthenticated' | 'not-found' | 'conflict' | 'no-address' }
   | { ok: false; reason: 'invalid'; problems: ContentProblem[] };
 
 /**
@@ -33,6 +33,11 @@ export async function publishSite(siteId: string): Promise<PublishResult> {
 
   const working = await readWorkingState(siteId, ownerId);
   if (!working) return { ok: false, reason: 'not-found' };
+
+  // There is nowhere to serve a site that has no address, so this is the one
+  // thing publishing requires that editing does not.
+  const { subdomain } = working;
+  if (!subdomain) return { ok: false, reason: 'no-address' };
 
   const issue = parseIssue(working.issue, working.issueSchemaVersion);
 
@@ -61,7 +66,7 @@ export async function publishSite(siteId: string): Promise<PublishResult> {
   // expire: 0 — a publish must be visible immediately, not at the next
   // revalidation window. (`updateTag` would be the read-your-own-writes
   // spelling, but it is callable only from inside a Server Action.)
-  revalidateTag(siteTag(working.subdomain), { expire: 0 });
+  revalidateTag(siteTag(subdomain), { expire: 0 });
 
   return { ok: true, version: inserted.version };
 }

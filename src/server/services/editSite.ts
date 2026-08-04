@@ -10,8 +10,9 @@ import { readWorkingState, writeDraftIssue } from '@/server/repos/sites';
 
 export type EditorState = {
   siteId: string;
-  subdomain: string;
+  subdomain: string | null;
   issue: Issue;
+  publishedVersion: number | null;
 };
 
 export type SaveResult =
@@ -30,6 +31,7 @@ export async function loadEditor(siteId: string): Promise<EditorState | null> {
     siteId,
     subdomain: working.subdomain,
     issue: parseIssue(working.issue, working.issueSchemaVersion),
+    publishedVersion: working.publishedVersion,
   };
 }
 
