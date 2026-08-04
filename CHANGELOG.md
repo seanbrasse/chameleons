@@ -103,6 +103,13 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ### Builder (Phase 2, in progress)
 
+- **Testimonials and metrics editors**, completing editor coverage of the
+  content contract. Every collection in `Issue` can now be edited.
+- **Approving a testimonial is its own action**, not a field in the form that
+  edits it. A quote is someone else's words; editing the wording and deciding
+  to show it publicly are different decisions, and one should never be a side
+  effect of the other. New quotes are added unapproved for the same reason.
+
 - **The design is chosen before the content**, which is the order the flow
   wants: the template decides what content is worth entering.
 - Each option shows its `manifest.constraint` alongside the description. The

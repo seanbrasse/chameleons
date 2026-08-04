@@ -5,11 +5,13 @@ import { loadEditor } from '@/server/services/editSite';
 import { listTemplates } from '@/templates/registry';
 
 import { EducationRow } from './EducationRow';
+import { MetricRow } from './MetricRow';
 import { ExperienceRow } from './ExperienceRow';
 import { ProjectRow } from './ProjectRow';
 import { PublishBar } from './PublishBar';
 import { RowList } from './RowList';
 import { SettingsForm } from './SettingsForm';
+import { TestimonialRow } from './TestimonialRow';
 import { TemplatePicker } from './TemplatePicker';
 
 export const dynamic = 'force-dynamic';
@@ -70,6 +72,27 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
         items={issue.education}
         render={(entry, onCreated) => (
           <EducationRow siteId={editor.siteId} entry={entry} onCreated={onCreated} />
+        )}
+      />
+
+      <h2>Testimonials</h2>
+      <RowList
+        items={issue.testimonials}
+        render={(testimonial, onCreated) => (
+          <TestimonialRow
+            siteId={editor.siteId}
+            testimonial={testimonial}
+            employers={issue.experiences}
+            onCreated={onCreated}
+          />
+        )}
+      />
+
+      <h2>Metrics</h2>
+      <RowList
+        items={issue.metrics}
+        render={(metric, onCreated) => (
+          <MetricRow siteId={editor.siteId} metric={metric} onCreated={onCreated} />
         )}
       />
 

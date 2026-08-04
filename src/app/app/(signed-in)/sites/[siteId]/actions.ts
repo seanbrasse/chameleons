@@ -6,16 +6,23 @@ import { builderRoute } from '@/server/domain/tenant';
 import { readExperienceForm } from '@/server/domain/edit-experiences';
 import { readEducationForm } from '@/server/domain/edit-education';
 import { readProjectForm } from '@/server/domain/edit-projects';
+import { readMetricForm } from '@/server/domain/edit-metrics';
+import { readTestimonialForm } from '@/server/domain/edit-testimonials';
 import { readSettingsForm } from '@/server/domain/edit-settings';
 import type { ContentProblem } from '@/server/domain/validate-issue';
 import {
+  approveTestimonial,
   deleteEducation,
   deleteExperience,
+  deleteMetric,
   deleteProject,
+  deleteTestimonial,
   saveEducation,
   saveExperience,
+  saveMetric,
   saveProject,
   saveSettings,
+  saveTestimonial,
   type SaveResult,
 } from '@/server/services/editSite';
 import { publishSite } from '@/server/services/publishSite';
@@ -212,4 +219,67 @@ export async function chooseTemplateAction(
 
   revalidatePath(builderRoute(`/sites/${siteId}`));
   return { saved: true };
+}
+
+export async function saveTestimonialRow(
+  _state: EditorState,
+  form: FormData,
+): Promise<EditorState> {
+  const siteId = siteIdOf(form);
+  const testimonialId = rowId(form, 'testimonialId');
+  if (!siteId || !testimonialId) return { problem: REFUSALS['not-found'] };
+
+  const result = await saveTestimonial(
+    siteId,
+    testimonialId,
+    readTestimonialForm(fieldReader(form)),
+  );
+  if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
+  return toState(result);
+}
+
+export async function approveTestimonialRow(
+  _state: EditorState,
+  form: FormData,
+): Promise<EditorState> {
+  const siteId = siteIdOf(form);
+  const testimonialId = rowId(form, 'testimonialId');
+  if (!siteId || !testimonialId) return { problem: REFUSALS['not-found'] };
+
+  const result = await approveTestimonial(siteId, testimonialId, form.get('approved') !== null);
+  if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
+  return toState(result);
+}
+
+export async function removeTestimonialRow(
+  _state: EditorState,
+  form: FormData,
+): Promise<EditorState> {
+  const siteId = siteIdOf(form);
+  const testimonialId = rowId(form, 'testimonialId');
+  if (!siteId || !testimonialId) return { problem: REFUSALS['not-found'] };
+
+  const result = await deleteTestimonial(siteId, testimonialId);
+  if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
+  return toState(result);
+}
+
+export async function saveMetricRow(_state: EditorState, form: FormData): Promise<EditorState> {
+  const siteId = siteIdOf(form);
+  const metricId = rowId(form, 'metricId');
+  if (!siteId || !metricId) return { problem: REFUSALS['not-found'] };
+
+  const result = await saveMetric(siteId, metricId, readMetricForm(fieldReader(form)));
+  if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
+  return toState(result);
+}
+
+export async function removeMetricRow(_state: EditorState, form: FormData): Promise<EditorState> {
+  const siteId = siteIdOf(form);
+  const metricId = rowId(form, 'metricId');
+  if (!siteId || !metricId) return { problem: REFUSALS['not-found'] };
+
+  const result = await deleteMetric(siteId, metricId);
+  if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
+  return toState(result);
 }

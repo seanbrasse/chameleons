@@ -7,6 +7,13 @@ import { applySettings, type SettingsEdit } from '@/server/domain/edit-settings'
 import { removeExperience, upsertExperience, type ExperienceEdit } from '@/server/domain/edit-experiences';
 import { removeEducation, upsertEducation, type EducationEdit } from '@/server/domain/edit-education';
 import { removeProject, upsertProject, type ProjectEdit } from '@/server/domain/edit-projects';
+import { removeMetric, upsertMetric, type MetricEdit } from '@/server/domain/edit-metrics';
+import {
+  removeTestimonial,
+  setTestimonialApproved,
+  upsertTestimonial,
+  type TestimonialEdit,
+} from '@/server/domain/edit-testimonials';
 import { parseIssue } from '@/server/domain/parse-issue';
 import { validateIssue, type ContentProblem } from '@/server/domain/validate-issue';
 import { readWorkingState, writeDraftIssue } from '@/server/repos/sites';
@@ -112,4 +119,37 @@ export function saveEducation(
 
 export function deleteEducation(siteId: string, educationId: string): Promise<SaveResult> {
   return saveIssue(siteId, (issue) => removeEducation(issue, educationId));
+}
+
+export function saveTestimonial(
+  siteId: string,
+  testimonialId: string,
+  edit: TestimonialEdit,
+): Promise<SaveResult> {
+  return saveIssue(siteId, (issue) => upsertTestimonial(issue, testimonialId, edit));
+}
+
+/** Its own entry point, so editing a quote can never publish it as a side effect. */
+export function approveTestimonial(
+  siteId: string,
+  testimonialId: string,
+  approved: boolean,
+): Promise<SaveResult> {
+  return saveIssue(siteId, (issue) => setTestimonialApproved(issue, testimonialId, approved));
+}
+
+export function deleteTestimonial(siteId: string, testimonialId: string): Promise<SaveResult> {
+  return saveIssue(siteId, (issue) => removeTestimonial(issue, testimonialId));
+}
+
+export function saveMetric(
+  siteId: string,
+  metricId: string,
+  edit: MetricEdit,
+): Promise<SaveResult> {
+  return saveIssue(siteId, (issue) => upsertMetric(issue, metricId, edit));
+}
+
+export function deleteMetric(siteId: string, metricId: string): Promise<SaveResult> {
+  return saveIssue(siteId, (issue) => removeMetric(issue, metricId));
 }
