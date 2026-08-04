@@ -103,6 +103,16 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ### Builder (Phase 2, in progress)
 
+- **Preview.** The draft, rendered by its own template, before anything is
+  public — which is the point of ordering publish last. It goes through
+  `buildSnapshot` rather than handing the issue straight to the template, so
+  preview and publish render the same object and cannot drift.
+- Preview is served from the builder origin, authenticated and `noindex`, never
+  from a tenant subdomain — those serve published snapshots only.
+- `builder.css` moved from the `/app` layout down into the signed-in and enter
+  layouts, so the preview route can render a template full-page without the
+  builder's stylesheet or chrome bleeding into it.
+
 - **Publishing is the last step, not the first.** A portfolio starts with no
   address: you write it, then choose where it lives. Claiming a name before
   anything exists meant naming a thing that had not been made, and burning a
