@@ -93,3 +93,4 @@ and there is no HTTP fallback to test against.
 
 - [CHANGELOG.md](CHANGELOG.md)
 - [AGENTS.md](AGENTS.md) — conventions, for humans and agents
+- [docs/HANDOFF.md](docs/HANDOFF.md) — state, outstanding work, and the traps that have already cost time
