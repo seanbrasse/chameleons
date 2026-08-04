@@ -10,24 +10,26 @@ assumes them.
 
 ## 1. Where things stand
 
-**Phases 0 and 1 are done. Phase 2 (the builder) is about half.**
+**Phases 0 and 1 are done. Phase 2 (the builder) is complete except for
+uploads.**
 
 `main` carries: tenant resolution in two modes, the multi-tenant schema with the
 snapshot pointer, the layered `server/` skeleton, the test harness and CI, the
 template contract, template #1 verified pixel-close to the original, the
-snapshot publish path, sign-in, and subdomain claim.
+snapshot publish path, sign-in, site creation, the template picker, six editor
+sections, authenticated preview, and publish.
 
-The builder can now be signed into and a site created. What it cannot do is
-**edit** — the dashboard links a site to its live URL, and nothing writes
-`site_drafts.issue` yet, so `publishSite` has no caller.
+The whole loop now runs from a browser: sign in → create a portfolio → pick a
+template → fill it in → preview it → claim an address and publish. `publishSite`
+has a caller, and six services write `site_drafts.issue`.
 
 | Verified | |
 |---|---|
 | desktop | 0.01% differing pixels vs the original |
 | mobile | 0.03% |
-| tests | 58 unit, 9 e2e |
+| tests | 106 unit, 9 e2e |
 | lint | 2 warnings, both pre-existing `<img>` in `Work.tsx` |
-| CI | ~55s end to end |
+| CI | ~50s end to end |
 
 Both figures are from one run of the same harness against both applications;
 comparing a number from one harness against a number from another is how the
@@ -44,38 +46,49 @@ Users sign up, pick a template, edit their portfolio, and publish it to
 
 ## 2. Outstanding work
 
-### 2.1 `feat/snapshot-publish-path` — reconciled
+### 2.1 What the builder is made of
 
-Superseded by `feat/snapshot-publish-rebased`, which is cut from current `main`.
-The duplicates its stale base created (`server/domain/issue.ts`, a second `Issue`
-contract, and a second `validate-issue.ts`) are gone; everything reads
-`src/content/types.ts`. `ISSUE_SCHEMA_VERSION` moved there with it.
+Worth knowing before adding a seventh section, because the shape is settled and
+a new one is roughly an hour of following it.
 
-Kept: the migrating reader, `buildSnapshot`/`collectMediaUrls`, `siteVersions.ts`,
-the two services, `0002_site_drafts.sql`, and the version-keyed caching. Do not
-re-derive these.
+```
+domain/edit-<thing>.ts     pure. readXForm(get) -> XEdit, upsertX, removeX
+services/editSite.ts       saveIssue(siteId, transform) — one guarded write
+app/…/sites/[siteId]/      XRow.tsx driven by RowList, one Server Action each
+```
 
-**Do not delete the old branch's lesson:** it reported "lint clean, zero
-warnings" only because `Work.tsx` was absent from its tree. `npm run lint` on a
-correct base shows exactly two `<img>` warnings. Zero means the base is wrong.
+`saveIssue` is the whole authorization story for editing: it resolves the owner
+from the session, reads the working state for `(siteId, ownerId)`, applies a
+pure transform, and writes through `update_draft_issue`, whose `exists` clause
+means a mismatched owner affects zero rows. A new section adds a transform and
+inherits all of that — **do not add a second write path.**
 
-### 2.1a What Phase 2 still needs
+Sections exist for settings, experience, projects, education, testimonials and
+metrics. `RowList` handles the add-a-row pattern; `useId()` names new rows,
+because `crypto.randomUUID()` differs between server and client render and
+breaks hydration.
 
-1. **The editor.** Port the admin forms from the original, scoped to one owned
-   site, writing `site_drafts.issue`. Every write folds the ownership check in
-   (`… and exists (select 1 from sites where id = $2 and owner_id = $3)`) rather
-   than checking first — see §3.
-2. **A publish button.** `publishSite` is written, tested and unreachable; it
-   needs a Server Action and somewhere to show `ContentProblem[]` when
-   `validateIssue` refuses.
-3. **Signed upload URLs.** The original uploads browser → Storage directly. With
-   no browser privileges that path is gone: the server authorizes and names the
-   key, the browser still moves the bytes.
+**Approval is deliberately not part of editing.** `TestimonialEdit` excludes
+`approved`, and `setTestimonialApproved` is its own action, because changing the
+wording of someone else's quote and deciding to show it publicly are different
+decisions — folding them into one submit means fixing a typo republishes a quote
+that had been pulled.
 
-Nothing above needs a new abstraction. The layering, the contract and the
-publish path all exist; this is wiring plus the port of the admin UI.
+### 2.2 What Phase 2 still needs
 
-### 2.2 Smaller, well-specified
+1. **Signed upload URLs, and only under supervision.** The original uploads
+   browser → Storage directly. With no browser privileges that path is gone: the
+   server authorizes and names the key, the browser still moves the bytes. This
+   is the one remaining Phase 2 item and it was **deliberately left unbuilt by
+   the overnight loop** — a partial implementation of plan §8 (EXIF stripping,
+   MIME sniffing, the SVG ban, per-site quotas) is a security surface rather
+   than a feature, and half of it shipped is worse than none.
+2. **An end-to-end run by a human.** Every part of the loop is tested and the
+   pieces have been screenshotted, but nobody has yet sat down and gone signup →
+   publish → load the live subdomain in one sitting. That is the acceptance test
+   and it is the highest-value thing to do next.
+
+### 2.3 Smaller, well-specified
 
 - ~~**Mobile 2.8% residual**~~ — closed. It was `.project-status`, missing from
   `template.css` because it sits *after* the original stylesheet's `Admin`
@@ -91,7 +104,7 @@ publish path all exist; this is wiring plus the port of the admin UI.
 - **Merged branches are still on the remote.** Ref deletion does not work here —
   see §5. Turn on *Settings → General → Automatically delete head branches*.
 
-### 2.3 Outside the repo entirely
+### 2.4 Outside the repo entirely
 
 Nobody can do these from a checkout:
 
@@ -104,10 +117,16 @@ Nobody can do these from a checkout:
 2. Set `TENANT_MODE=host` + `ROOT_DOMAIN=chameleons.dev` on production and
    `TENANT_MODE=path` on preview, then redeploy — environment variables do not
    apply to a deployment that already exists.
-3. **Enable the sign-in providers in Supabase.** Google and GitHub under
-   Authentication → Providers, and the three callback URLs under Authentication
-   → URL Configuration. The README lists them; the preview one carries an `/app`
-   prefix because previews run in `path` mode.
+3. ~~**Enable the sign-in providers in Supabase.**~~ — **Google is done.**
+   GitHub is deliberately skipped for now; §13.1 of the plan explains why it is
+   an upgrade to the repo-import feature rather than a prerequisite for it.
+
+   The callback URLs are the part worth remembering. Supabase **silently falls
+   back to the project's Site URL** when a `redirectTo` is not on the allowlist,
+   which presents as a successful Google sign-in landing on
+   `http://localhost:3000/?code=…` in production with no error anywhere. All
+   three callbacks are allowlisted under Authentication → URL Configuration; the
+   preview one carries an `/app` prefix because previews run in `path` mode.
 
 `.dev` is HSTS-preloaded, so HTTPS is mandatory on every host under it and there
 is no HTTP fallback to test against. `sean.localhost:3000` is unaffected.
@@ -143,6 +162,27 @@ Production and local dev both run `host`.
 **`TENANT_MODE` is server-only and read at runtime.** As `NEXT_PUBLIC_` it would
 be inlined at build time and one build could not serve both production and
 preview.
+
+**There are three path concepts and conflating two of them is silent.**
+`tenant.ts` exports all three deliberately:
+
+| | answers | mode-dependent |
+|---|---|---|
+| `builderPath(p, config)` | where the *browser* sees a builder page | yes — `/app`-prefixed in `path` mode |
+| `builderRoute(p)` | where *Next* routes it | no — always `/app/*`, because `proxy.ts` rewrites there |
+| `siteUrl(sub, config)` | where a *published* portfolio is read | yes — absolute in `host` mode |
+
+`revalidatePath` wants the middle one. Handing it `builderPath` looks right and
+is not: in `host` mode that returns `/`, which is **marketing**, so every publish
+busted the landing page's cache and never the builder's, with no error and no
+failing test. A test asserts the two disagree in `host` mode — keep it.
+
+**Nothing is named until it ships.** `sites.subdomain` is nullable (`0006`) and
+the address is claimed at publish, not at creation. Postgres treats NULLs as
+distinct under a unique constraint, so this costs nothing in uniqueness. The
+product reason is in plan §14 Phase 2: asking for a subdomain first makes a user
+name a thing that does not exist yet, and burns a name on a portfolio that may
+never be written.
 
 ---
 
@@ -193,6 +233,10 @@ hanging-indent block comments.
   anyway and once sat for over twenty minutes doing so. If e2e ever fails on a
   missing `.so`, that assumption has expired and `playwright install-deps` goes
   back in `.github/workflows/ci.yml`.
+- **Zero lint warnings means the base is wrong.** `npm run lint` on a correct
+  tree shows exactly two `<img>` warnings from `Work.tsx`. A branch once
+  reported "lint clean, zero warnings" — because `Work.tsx` was absent from its
+  tree entirely. Treat a clean lint as a signal to check the merge-base.
 - **`next build` root inference** walks up to the nearest lockfile. Not an issue
   now the repo stands alone, but it is why the app once needed `turbopack.root`
   pinned.
@@ -279,6 +323,21 @@ file. That is why `lint-rules.test.ts` exists — keep it.
 `noUncheckedIndexedAccess` fixes touched carousel positioning and timeline row
 assignment. A clean `tsc` says nothing about whether the maths still produces the
 same layout; the screenshot diff did.
+
+**`:invalid` matches before the user has done anything.** Blank `required`
+fields are invalid from first paint, so an "add a row" form rendered every input
+pre-emptively red. `:user-invalid` waits for interaction, which is what the rule
+always meant. Cheap to fix, invisible to every automated check, and it made the
+builder look broken.
+
+**The cheap checks were green through every single UI bug in this project.**
+`build`, `tsc`, `lint` and the full unit suite passed while the builder had
+labels beside their inputs, a sticky save bar sitting on top of the field being
+typed into, and every form outlined in red. Three visual defects, all caught only
+by a screenshot; two security defects, caught only by running against a real
+Postgres. **A green suite is evidence that nothing regressed, never evidence that
+the thing works.** Screenshot anything visual and run the advisor against
+anything with a function in it.
 
 **Do not trust a subagent's framing of its own failure.** One reported "the
 brief's premises were wrong" and worked around it. The actual problem was that
