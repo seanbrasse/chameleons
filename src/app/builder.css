@@ -403,24 +403,13 @@ body {
   font-size: 14px;
 }
 
-/* The page-level save bar, which follows you down a long editor. There is only
-   ever one: stacking sticky bars is what happens if a per-section button row
-   borrows this, so those use `.admin-buttons` instead. */
-.admin-actions {
-  position: sticky;
-  bottom: 0;
-  z-index: 4;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  padding: 18px 0 12px;
-  margin-top: 4px;
-  background: linear-gradient(to top, var(--paper) 62%, transparent);
-}
+/* A button row. Flex rather than inheriting `.admin-form`'s grid, where a
+   button stretches to the full column width.
 
-/* A button row inside a section. Flex rather than inheriting `.admin-form`'s
-   grid, where a button stretches to the full column width. */
+   The original also had a `.admin-actions` sticky save bar for its one long
+   form. This builder saves per section and publishes from a section of its
+   own, so nothing needs to follow the reader — and a bar pinned to the
+   viewport bottom sat on top of whichever field was being filled in. */
 .admin-buttons {
   display: flex;
   align-items: center;

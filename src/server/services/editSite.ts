@@ -5,6 +5,8 @@ import type { Customization } from '@/server/domain/publish';
 import { currentUser } from '@/server/auth/session';
 import { applySettings, type SettingsEdit } from '@/server/domain/edit-settings';
 import { removeExperience, upsertExperience, type ExperienceEdit } from '@/server/domain/edit-experiences';
+import { removeEducation, upsertEducation, type EducationEdit } from '@/server/domain/edit-education';
+import { removeProject, upsertProject, type ProjectEdit } from '@/server/domain/edit-projects';
 import { parseIssue } from '@/server/domain/parse-issue';
 import { validateIssue, type ContentProblem } from '@/server/domain/validate-issue';
 import { readWorkingState, writeDraftIssue } from '@/server/repos/sites';
@@ -86,4 +88,28 @@ export function saveExperience(
 
 export function deleteExperience(siteId: string, experienceId: string): Promise<SaveResult> {
   return saveIssue(siteId, (issue) => removeExperience(issue, experienceId));
+}
+
+export function saveProject(
+  siteId: string,
+  projectId: string,
+  edit: ProjectEdit,
+): Promise<SaveResult> {
+  return saveIssue(siteId, (issue) => upsertProject(issue, projectId, edit));
+}
+
+export function deleteProject(siteId: string, projectId: string): Promise<SaveResult> {
+  return saveIssue(siteId, (issue) => removeProject(issue, projectId));
+}
+
+export function saveEducation(
+  siteId: string,
+  educationId: string,
+  edit: EducationEdit,
+): Promise<SaveResult> {
+  return saveIssue(siteId, (issue) => upsertEducation(issue, educationId, edit));
+}
+
+export function deleteEducation(siteId: string, educationId: string): Promise<SaveResult> {
+  return saveIssue(siteId, (issue) => removeEducation(issue, educationId));
 }

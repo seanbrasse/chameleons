@@ -103,6 +103,24 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ### Builder (Phase 2, in progress)
 
+- **Projects and education editors**, completing the content a portfolio needs.
+  A project's employer is a select over the owner's own experiences rather than
+  a free-text id — the difference between a publish-time refusal and a field
+  that cannot be got wrong.
+- Switching a project from professional to personal now clears its employer.
+  A naive spread would have left the old id behind, passing `validateIssue`
+  while being wrong.
+- `images` and `links` survive an edit untouched. They belong to the upload
+  pipeline that does not exist yet, so the edit spreads over the existing row.
+- `RowList` extracted at the third identical use. The subtle part is the blank
+  row's key: remounting it on a successful add is what clears the fields *and*
+  gives it a fresh id, where resetting by hand would leave the id behind and
+  the next add would overwrite the row just created.
+- **The sticky save bar is gone.** It was the original's answer to one long
+  form with one save button. This builder saves per section and publishes from
+  a section of its own, so a bar pinned to the viewport bottom just sat on top
+  of whichever field was being filled in.
+
 - **Preview.** The draft, rendered by its own template, before anything is
   public — which is the point of ordering publish last. It goes through
   `buildSnapshot` rather than handing the issue straight to the template, so

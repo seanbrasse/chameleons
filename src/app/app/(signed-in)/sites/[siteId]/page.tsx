@@ -3,8 +3,11 @@ import { notFound } from 'next/navigation';
 import { builderHref, tenantConfig } from '@/lib/tenant-config';
 import { loadEditor } from '@/server/services/editSite';
 
-import { ExperiencesForm } from './ExperiencesForm';
+import { EducationRow } from './EducationRow';
+import { ExperienceRow } from './ExperienceRow';
+import { ProjectRow } from './ProjectRow';
 import { PublishBar } from './PublishBar';
+import { RowList } from './RowList';
 import { SettingsForm } from './SettingsForm';
 
 export const dynamic = 'force-dynamic';
@@ -18,16 +21,43 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
   if (!editor) notFound();
 
   const { mode, rootDomain } = tenantConfig();
+  const { issue } = editor;
 
   return (
     <>
-      <h1>{editor.subdomain ?? (editor.issue.settings.displayName || 'Untitled portfolio')}</h1>
+      <h1>{editor.subdomain ?? (issue.settings.displayName || 'Untitled portfolio')}</h1>
 
       <h2>Settings</h2>
-      <SettingsForm siteId={editor.siteId} settings={editor.issue.settings} />
+      <SettingsForm siteId={editor.siteId} settings={issue.settings} />
 
       <h2>Experience</h2>
-      <ExperiencesForm siteId={editor.siteId} experiences={editor.issue.experiences} />
+      <RowList
+        items={issue.experiences}
+        render={(experience, onCreated) => (
+          <ExperienceRow siteId={editor.siteId} experience={experience} onCreated={onCreated} />
+        )}
+      />
+
+      <h2>Projects</h2>
+      <RowList
+        items={issue.projects}
+        render={(project, onCreated) => (
+          <ProjectRow
+            siteId={editor.siteId}
+            project={project}
+            employers={issue.experiences}
+            onCreated={onCreated}
+          />
+        )}
+      />
+
+      <h2>Education</h2>
+      <RowList
+        items={issue.education}
+        render={(entry, onCreated) => (
+          <EducationRow siteId={editor.siteId} entry={entry} onCreated={onCreated} />
+        )}
+      />
 
       <PublishBar
         siteId={editor.siteId}
