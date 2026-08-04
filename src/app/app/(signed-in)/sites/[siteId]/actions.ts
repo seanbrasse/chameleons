@@ -19,7 +19,7 @@ import {
   type SaveResult,
 } from '@/server/services/editSite';
 import { publishSite } from '@/server/services/publishSite';
-import { claimAddress, unpublishSite } from '@/server/services/sites';
+import { chooseTemplate, claimAddress, unpublishSite } from '@/server/services/sites';
 
 export type EditorState = {
   saved?: boolean;
@@ -198,4 +198,18 @@ export async function removeEducationRow(
   const result = await deleteEducation(siteId, educationId);
   if (result.ok) revalidatePath(builderRoute(`/sites/${siteId}`));
   return toState(result);
+}
+
+export async function chooseTemplateAction(
+  _state: EditorState,
+  form: FormData,
+): Promise<EditorState> {
+  const siteId = siteIdOf(form);
+  const templateId = form.get('templateId');
+  if (!siteId || typeof templateId !== 'string') return { problem: REFUSALS['not-found'] };
+
+  if (!(await chooseTemplate(siteId, templateId))) return { problem: REFUSALS['not-found'] };
+
+  revalidatePath(builderRoute(`/sites/${siteId}`));
+  return { saved: true };
 }

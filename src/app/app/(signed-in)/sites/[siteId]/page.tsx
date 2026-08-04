@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 
 import { builderHref, tenantConfig } from '@/lib/tenant-config';
 import { loadEditor } from '@/server/services/editSite';
+import { listTemplates } from '@/templates/registry';
 
 import { EducationRow } from './EducationRow';
 import { ExperienceRow } from './ExperienceRow';
@@ -9,6 +10,7 @@ import { ProjectRow } from './ProjectRow';
 import { PublishBar } from './PublishBar';
 import { RowList } from './RowList';
 import { SettingsForm } from './SettingsForm';
+import { TemplatePicker } from './TemplatePicker';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +28,18 @@ export default async function Editor({ params }: { params: Promise<{ siteId: str
   return (
     <>
       <h1>{editor.subdomain ?? (issue.settings.displayName || 'Untitled portfolio')}</h1>
+
+      <h2>Design</h2>
+      <TemplatePicker
+        siteId={editor.siteId}
+        selectedId={editor.templateId}
+        templates={listTemplates().map(({ manifest }) => ({
+          id: manifest.id,
+          name: manifest.name,
+          description: manifest.description,
+          constraint: manifest.constraint,
+        }))}
+      />
 
       <h2>Settings</h2>
       <SettingsForm siteId={editor.siteId} settings={issue.settings} />
