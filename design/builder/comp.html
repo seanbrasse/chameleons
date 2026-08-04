@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>builder — comp</title>
+
+    <!--
+      A design pass on the builder, as a standalone file (plan §20.4). Real
+      content, no React, no build step.
+
+      The diagnosis it answers, measured off the current builder.css:
+
+        type     12 distinct sizes — 8,9,10,11,12,13,14,15,16,19,20,36. Five of
+                 them within 4px of each other. Body 16 against a section
+                 heading of 19 is a 1.19x step, which is no step at all.
+        space    16 distinct values with no rhythm; 8/9, 12/14 and 16/18 are
+                 noise pairs.
+        result   eight identical h2s down one column, so Publish — the point of
+                 the page — carries the same weight as Delete.
+
+      Colour was already tokenised. Type and space were not, which is exactly
+      plan §20.2's finding about the original, inherited and made worse because
+      the builder never got a page-level design of its own.
+    -->
+
+    <style>
+      :root {
+        /* ── Colour: carried over unchanged. It was never the problem. ── */
+        --paper: #f4f1ea;
+        --ink: #141414;
+        --ink-muted: #5f5a52;
+        /* 5.2:1 on paper. The first pass used #8a8478, which reads correctly
+           as a quiet note and fails AA at ~3.3:1 across 19 nodes — the rail
+           labels, the counts and every hint on the page. */
+        --ink-faint: #6b6459;
+        --matte: #ffffff;
+        --surface: #faf8f3;
+        --rule: #e0dbd1;
+        --rule-strong: #c6c0b4;
+        --accent: #c24a1e;
+        --on-accent: #faf8f3;
+        /*
+          The accent as *text*, which is a different job from the accent as a
+          fill. #c24a1e on paper is 4.34:1 — fine for a filled button or a rule,
+          under AA for anything at body size or below. The original never hit
+          this because it only ever used the accent large or filled.
+
+          A role, not a shade: anywhere accent-coloured type sits on paper uses
+          this, and the fill keeps the brand value.
+        */
+        --accent-ink: #b0421a;
+
+        --font: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+        /*
+          ── Type: six sizes, ~1.32 ratio, 12 -> 44. ──
+          Six, not twelve. Every size below is a decision; the old sheet's
+          13-vs-14-vs-15 were not decisions, they were drift. The range is 3.7x,
+          against the ~4x floor §20.3 warns below — a builder does not want
+          poster type, but it does want a step you can see.
+        */
+        --t-micro: 12px;
+        --t-small: 14px;
+        --t-body: 16px;
+        --t-lead: 21px;
+        --t-section: 28px;
+        --t-page: 44px;
+
+        /*
+          ── Space: seven steps, deliberately uneven. ──
+          Roughly 1.6x apart rather than a flat 8px grid. §20.1 cause 3: the
+          ratio is the hierarchy, and an even rhythm is what makes a page read
+          as generic. Inside a field is 8; between phases is 96.
+        */
+        --s-1: 4px;
+        --s-2: 8px;
+        --s-3: 14px;
+        --s-4: 24px;
+        --s-5: 40px;
+        --s-6: 64px;
+        --s-7: 96px;
+
+        --radius: 10px;
+        --measure: 60ch;
+        --rail: 232px;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #0d0d0d;
+          --ink: #f1ece1;
+          --ink-muted: #9c968b;
+          /* Same correction inverted: #726c62 was 3.7:1, this is 5.5:1. */
+          --ink-faint: #8f8878;
+          --matte: #1a1a1a;
+          --surface: #141414;
+          --rule: #242424;
+          --rule-strong: #383838;
+          --accent: #e4693b;
+          --on-accent: #0d0d0d;
+          /* On near-black the accent is already 6.5:1, so text and fill agree. */
+          --accent-ink: #e4693b;
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font: var(--t-body) / 1.55 var(--font);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* ── Frame ───────────────────────────────────────────────────────── */
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--s-4);
+        padding: var(--s-3) var(--s-5);
+        border-bottom: 1px solid var(--rule);
+      }
+
+      .wordmark {
+        font-size: var(--t-small);
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+
+      .who {
+        font-size: var(--t-micro);
+        color: var(--ink-muted);
+        font-family: var(--mono);
+      }
+
+      /*
+        A rail, which is the structural fix. The old page was eight equal
+        headings in one column: no sense of where you are, how much is left, or
+        that publishing is the end of a sequence rather than another form. The
+        rail makes the flow — design, then content, then publish — a thing you
+        can see rather than a thing you have to infer by scrolling.
+      */
+      .shell {
+        display: grid;
+        grid-template-columns: var(--rail) minmax(0, 1fr);
+        gap: var(--s-6);
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: var(--s-6) var(--s-5) var(--s-7);
+        align-items: start;
+      }
+
+      .rail {
+        position: sticky;
+        top: var(--s-4);
+        display: grid;
+        gap: var(--s-4);
+      }
+
+      .rail-phase {
+        display: grid;
+        gap: var(--s-1);
+      }
+
+      .rail-label {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-faint);
+        margin: 0 0 var(--s-2);
+      }
+
+      .rail a {
+        display: flex;
+        align-items: baseline;
+        gap: var(--s-2);
+        padding: 5px var(--s-2);
+        margin-left: -8px;
+        border-radius: 6px;
+        font-size: var(--t-small);
+        color: var(--ink-muted);
+        text-decoration: none;
+        border-left: 2px solid transparent;
+      }
+
+      .rail a:hover {
+        color: var(--ink);
+        background: var(--surface);
+      }
+
+      .rail a[aria-current='true'] {
+        color: var(--ink);
+        font-weight: 600;
+        border-left-color: var(--accent);
+        background: var(--surface);
+      }
+
+      /* A count, not a badge. Tells you whether a section has anything in it. */
+      .rail .count {
+        margin-left: auto;
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--ink-faint);
+      }
+
+      .rail a[aria-current='true'] .count {
+        color: var(--accent-ink);
+      }
+
+      /* ── Page head ───────────────────────────────────────────────────── */
+
+      .page-head {
+        margin-bottom: var(--s-6);
+      }
+
+      h1 {
+        font-size: var(--t-page);
+        line-height: 1.05;
+        letter-spacing: -0.025em;
+        margin: 0;
+      }
+
+      .page-sub {
+        margin: var(--s-2) 0 0;
+        color: var(--ink-muted);
+        font-size: var(--t-lead);
+      }
+
+      .live-dot {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--s-2);
+        margin-top: var(--s-3);
+        font-family: var(--mono);
+        font-size: var(--t-micro);
+        color: var(--ink-muted);
+      }
+
+      .live-dot::before {
+        content: '';
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+
+      .live-dot a {
+        color: inherit;
+      }
+
+      /* ── Phases and sections ─────────────────────────────────────────── */
+
+      /*
+        Three phases, not eight peers. The old page gave Publish and Delete the
+        same 19px heading as Settings, so nothing said which one ends the job
+        and which one destroys it.
+      */
+      .phase + .phase {
+        margin-top: var(--s-7);
+      }
+
+      .phase-head {
+        display: flex;
+        align-items: baseline;
+        gap: var(--s-3);
+        padding-bottom: var(--s-3);
+        border-bottom: 2px solid var(--ink);
+        margin-bottom: var(--s-5);
+      }
+
+      .phase-n {
+        font-family: var(--mono);
+        font-size: var(--t-micro);
+        color: var(--accent-ink);
+        letter-spacing: 0.1em;
+      }
+
+      .phase-head h2 {
+        font-size: var(--t-section);
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+        margin: 0;
+      }
+
+      .phase-note {
+        margin-left: auto;
+        font-size: var(--t-micro);
+        color: var(--ink-faint);
+        font-family: var(--mono);
+      }
+
+      section + section {
+        margin-top: var(--s-5);
+      }
+
+      .sec-head {
+        display: flex;
+        align-items: baseline;
+        gap: var(--s-3);
+        margin-bottom: var(--s-3);
+      }
+
+      h3 {
+        font-size: var(--t-lead);
+        letter-spacing: -0.01em;
+        margin: 0;
+      }
+
+      .hint {
+        margin: 0 0 var(--s-3);
+        font-size: var(--t-small);
+        color: var(--ink-muted);
+        max-width: var(--measure);
+      }
+
+      /* ── Cards, forms, fields ────────────────────────────────────────── */
+
+      /*
+        One width for everything. The old sheet capped inputs at 62ch while
+        their containing cards ran the full column, so every card had a ragged
+        right edge with the input floating inside it.
+      */
+      .card {
+        background: var(--matte);
+        border: 1px solid var(--rule);
+        border-radius: var(--radius);
+        padding: var(--s-4);
+        max-width: var(--measure);
+      }
+
+      .card + .card {
+        margin-top: var(--s-3);
+      }
+
+      .form {
+        display: grid;
+        gap: var(--s-3);
+        max-width: var(--measure);
+      }
+
+      .pair {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: var(--s-3);
+      }
+
+      .field {
+        display: grid;
+        gap: var(--s-1);
+        min-width: 0;
+      }
+
+      /*
+        An explicit class, not `.field > span`. That selector matched every
+        direct span child — the note under an input and the domain suffix
+        beside one — so both rendered as uppercase bold labels. Positional and
+        element selectors invite exactly this; naming the thing does not.
+      */
+      .field-label {
+        font-size: var(--t-micro);
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--ink-muted);
+      }
+
+      input[type='text'],
+      input:not([type]),
+      select,
+      textarea {
+        width: 100%;
+        font: inherit;
+        font-size: var(--t-small);
+        color: var(--ink);
+        background: var(--surface);
+        border: 1px solid var(--rule-strong);
+        border-radius: 6px;
+        padding: 9px 11px;
+      }
+
+      textarea {
+        resize: vertical;
+        line-height: 1.5;
+      }
+
+      input:focus-visible,
+      select:focus-visible,
+      textarea:focus-visible,
+      button:focus-visible,
+      a:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      .note {
+        font-size: var(--t-micro);
+        color: var(--ink-faint);
+      }
+
+      .check {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--s-2);
+        font-size: var(--t-small);
+      }
+
+      .check input {
+        margin-top: 3px;
+      }
+
+      /* ── Buttons: three weights, so the page says what it wants ──────── */
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--s-2);
+        margin-top: var(--s-3);
+      }
+
+      button,
+      .btn {
+        font: inherit;
+        font-size: var(--t-small);
+        font-weight: 600;
+        border-radius: 999px;
+        padding: 8px 16px;
+        cursor: pointer;
+        border: 1px solid transparent;
+        text-decoration: none;
+        display: inline-block;
+      }
+
+      /*
+        Quiet is the default, and that is the change. Previously every Save was
+        a filled accent pill, so eight of them competed with Publish. Filled is
+        reserved for the one action that ends the phase.
+      */
+      .btn-quiet {
+        background: transparent;
+        border-color: var(--rule-strong);
+        color: var(--ink);
+      }
+
+      .btn-quiet:hover {
+        border-color: var(--ink);
+      }
+
+      .btn-primary {
+        background: var(--accent);
+        color: var(--on-accent);
+      }
+
+      .btn-danger {
+        background: transparent;
+        border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+        color: var(--accent-ink);
+      }
+
+      .btn-danger:hover {
+        border-color: var(--accent);
+      }
+
+      /* ── Rows ────────────────────────────────────────────────────────── */
+
+      .row {
+        display: flex;
+        align-items: center;
+        gap: var(--s-3);
+        padding: var(--s-3) var(--s-4);
+        background: var(--matte);
+        border: 1px solid var(--rule);
+        border-radius: var(--radius);
+        max-width: var(--measure);
+      }
+
+      .row + .row {
+        margin-top: var(--s-2);
+      }
+
+      .row-main {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .row-main strong {
+        font-size: var(--t-small);
+      }
+
+      .flag {
+        margin-left: auto;
+        flex: none;
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--ink-muted);
+        border: 1px solid var(--rule-strong);
+        border-radius: 999px;
+        padding: 3px 9px;
+      }
+
+      .flag-live {
+        color: var(--accent-ink);
+        border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+      }
+
+      .row .btn {
+        margin-left: auto;
+        flex: none;
+      }
+
+      /* The chosen design reads as chosen rather than as another list item. */
+      .row-chosen {
+        border-color: var(--accent);
+        box-shadow: inset 3px 0 0 var(--accent);
+      }
+
+      /* ── Publish: the one place that is allowed to be loud ───────────── */
+
+      .publish {
+        background: var(--surface);
+        border: 1px solid var(--rule-strong);
+        border-radius: var(--radius);
+        padding: var(--s-4);
+        max-width: var(--measure);
+      }
+
+      .address {
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+      }
+
+      .address input {
+        border-radius: 6px 0 0 6px;
+        border-right: none;
+      }
+
+      .address .suffix {
+        display: flex;
+        align-items: center;
+        padding: 0 11px;
+        font-family: var(--mono);
+        font-size: var(--t-micro);
+        color: var(--ink-muted);
+        background: var(--paper);
+        border: 1px solid var(--rule-strong);
+        border-radius: 0 6px 6px 0;
+      }
+
+      .danger-zone {
+        margin-top: var(--s-6);
+        padding-top: var(--s-4);
+        border-top: 1px solid var(--rule);
+        max-width: var(--measure);
+      }
+
+      code {
+        font-family: var(--mono);
+        font-size: 0.9em;
+      }
+
+      @media (max-width: 900px) {
+        .shell {
+          grid-template-columns: minmax(0, 1fr);
+          gap: var(--s-5);
+          padding: var(--s-5) var(--s-4) var(--s-6);
+        }
+
+        .rail {
+          position: static;
+          display: none;
+        }
+
+        :root {
+          --t-page: 32px;
+          --t-section: 23px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <header class="topbar">
+      <span class="wordmark">Chameleons</span>
+      <span class="who">seanbrasse@gmail.com</span>
+    </header>
+
+    <div class="shell">
+      <nav class="rail" aria-label="Sections">
+        <div class="rail-phase">
+          <p class="rail-label">1 · Design</p>
+          <a href="#design" aria-current="true">Template <span class="count">timeline</span></a>
+          <a href="#options">Options</a>
+        </div>
+
+        <div class="rail-phase">
+          <p class="rail-label">2 · Content</p>
+          <a href="#about">About <span class="count">✓</span></a>
+          <a href="#experience">Experience <span class="count">3</span></a>
+          <a href="#projects">Projects <span class="count">4</span></a>
+          <a href="#education">Education <span class="count">1</span></a>
+          <a href="#testimonials">Testimonials <span class="count">0</span></a>
+          <a href="#metrics">Metrics <span class="count">3</span></a>
+        </div>
+
+        <div class="rail-phase">
+          <p class="rail-label">3 · Publish</p>
+          <a href="#publish">Address &amp; publish</a>
+          <a href="#history">History <span class="count">3</span></a>
+        </div>
+      </nav>
+
+      <main>
+        <div class="page-head">
+          <h1>Sean Brasse</h1>
+          <p class="page-sub">Frontend engineer who ships the feature nobody wants to own.</p>
+          <p class="live-dot">
+            Live at <a href="#">seanbrasse.chameleons.dev</a> · version 3
+          </p>
+        </div>
+
+        <!-- ── Phase 1 ────────────────────────────────────────────────── -->
+        <div class="phase">
+          <div class="phase-head">
+            <span class="phase-n">01</span>
+            <h2>Design</h2>
+            <span class="phase-note">Decides what content is worth entering</span>
+          </div>
+
+          <section id="design">
+            <div class="sec-head"><h3>Template</h3></div>
+            <div class="row row-chosen">
+              <span class="row-main">
+                <strong>Timeline</strong>
+                <span class="note">Does not scroll on a desktop viewport. The work is a carousel, the career a line.</span>
+              </span>
+              <span class="flag flag-live">Chosen</span>
+            </div>
+          </section>
+
+          <section id="options">
+            <div class="sec-head"><h3>Options</h3></div>
+            <div class="card">
+              <div class="form">
+                <label class="field">
+                  <span class="field-label">Default theme</span>
+                  <select><option>dark</option><option selected>light</option></select>
+                </label>
+                <label class="check">
+                  <input type="checkbox" checked />
+                  <span>Open the carousel on your starred project rather than the newest.</span>
+                </label>
+                <label class="check">
+                  <input type="checkbox" checked />
+                  <span>Show the career timeline under the work.</span>
+                </label>
+                <label class="check">
+                  <input type="checkbox" checked />
+                  <span>List your skills beside the introduction.</span>
+                </label>
+                <div class="actions"><button class="btn-quiet">Save options</button></div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- ── Phase 2 ────────────────────────────────────────────────── -->
+        <div class="phase">
+          <div class="phase-head">
+            <span class="phase-n">02</span>
+            <h2>Content</h2>
+            <span class="phase-note">Saved as you go</span>
+          </div>
+
+          <section id="about">
+            <div class="sec-head"><h3>About</h3></div>
+            <div class="card">
+              <div class="form">
+                <div class="pair">
+                  <label class="field"><span class="field-label">Name</span><input value="Sean Brasse" /></label>
+                  <label class="field"><span class="field-label">Role</span><input value="Software Engineer" /></label>
+                </div>
+                <div class="pair">
+                  <label class="field"><span class="field-label">Location</span><input value="New York, NY" /></label>
+                  <label class="field"><span class="field-label">Email</span><input value="seanbrasse@gmail.com" /></label>
+                </div>
+                <label class="field">
+                  <span class="field-label">Tagline</span>
+                  <input value="Frontend engineer who ships the feature nobody wants to own." />
+                </label>
+                <div class="actions"><button class="btn-quiet">Save</button></div>
+              </div>
+            </div>
+          </section>
+
+          <section id="experience">
+            <div class="sec-head"><h3>Experience</h3><span class="note">3 roles</span></div>
+
+            <div class="card">
+              <div class="form">
+                <div class="pair">
+                  <label class="field"><span class="field-label">Company</span><input value="Intuit Mailchimp" /></label>
+                  <label class="field"><span class="field-label">Role</span><input value="Software Engineer II" /></label>
+                </div>
+                <div class="pair">
+                  <label class="field"><span class="field-label">Start</span><input value="2023-04" /></label>
+                  <label class="field"><span class="field-label">End</span><input placeholder="blank = current" /></label>
+                </div>
+                <label class="field">
+                  <span class="field-label">Summary</span>
+                  <textarea rows="2">React and TypeScript on the customer-facing surface, and the PHP and Dojo underneath it that nobody else volunteers for.</textarea>
+                </label>
+                <div class="actions">
+                  <button class="btn-quiet">Save</button>
+                  <button class="btn-danger">Remove</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="form">
+                <div class="pair">
+                  <label class="field"><span class="field-label">Company</span><input value="Avarint" /></label>
+                  <label class="field"><span class="field-label">Role</span><input value="Full-Stack Software Engineer" /></label>
+                </div>
+                <div class="actions"><button class="btn-quiet">Add another</button></div>
+              </div>
+            </div>
+          </section>
+
+          <section id="projects">
+            <div class="sec-head"><h3>Projects</h3><span class="note">4 shown</span></div>
+            <p class="hint">
+              Import from GitHub to start from your public repositories, or add one by hand.
+            </p>
+            <div class="card">
+              <div class="form">
+                <label class="field">
+                  <span class="field-label">GitHub username</span>
+                  <input placeholder="octocat" />
+                  <span class="note">Public repositories only. Nothing is added until you choose.</span>
+                </label>
+                <div class="actions"><button class="btn-quiet">Find repositories</button></div>
+              </div>
+            </div>
+          </section>
+
+          <section id="testimonials">
+            <div class="sec-head"><h3>Testimonials</h3></div>
+            <p class="hint">
+              Timeline does not show testimonials. What you write here is kept, and appears if you
+              switch to a design that uses it.
+            </p>
+          </section>
+        </div>
+
+        <!-- ── Phase 3 ────────────────────────────────────────────────── -->
+        <div class="phase">
+          <div class="phase-head">
+            <span class="phase-n">03</span>
+            <h2>Publish</h2>
+            <span class="phase-note">The last step</span>
+          </div>
+
+          <section id="publish">
+            <div class="publish">
+              <div class="form">
+                <label class="field">
+                  <span class="field-label">Address</span>
+                  <span class="address">
+                    <input value="seanbrasse" />
+                    <span class="suffix">.chameleons.dev</span>
+                  </span>
+                </label>
+                <div class="actions">
+                  <a class="btn btn-quiet" href="#">Preview</a>
+                  <button class="btn-primary">Publish changes</button>
+                  <button class="btn-danger">Unpublish</button>
+                </div>
+                <p class="note">Publishes what you have already saved.</p>
+              </div>
+            </div>
+          </section>
+
+          <section id="history">
+            <div class="sec-head"><h3>History</h3></div>
+            <div class="row">
+              <span class="row-main">
+                <strong>Version 3</strong>
+                <span class="note">Aug 4, 2026, 3:12 PM</span>
+              </span>
+              <span class="flag flag-live">Live</span>
+            </div>
+            <div class="row">
+              <span class="row-main">
+                <strong>Version 2</strong>
+                <span class="note">Aug 2, 2026, 9:41 AM</span>
+              </span>
+              <button class="btn btn-quiet">Make live</button>
+            </div>
+          </section>
+
+          <div class="danger-zone">
+            <div class="sec-head"><h3>Delete</h3></div>
+            <p class="hint">
+              Removes the portfolio, its draft and all 3 published versions, and returns
+              <code>seanbrasse</code> to the pool. It cannot be undone.
+            </p>
+            <div class="form">
+              <label class="field">
+                <span class="field-label">Confirm</span>
+                <input />
+                <span class="note">Type <code>seanbrasse</code> to continue.</span>
+              </label>
+              <div class="actions"><button class="btn-danger">Delete this portfolio</button></div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
