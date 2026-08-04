@@ -1,4 +1,6 @@
 import { builderHref } from '@/lib/tenant-config';
+import { currentUser } from '@/server/auth/session';
+import { readSourceMaterial } from '@/server/repos/sourceMaterial';
 import { ownedSites } from '@/server/services/sites';
 import { listManifests } from '@/templates/manifests';
 
@@ -16,6 +18,12 @@ export default async function NewPortfolio() {
   // Only to decide whether there is anywhere to go back to. An empty account
   // arrives here from the dashboard and has no list to return to.
   const sites = await ownedSites();
+
+  // Not the content itself — the previews fetch that themselves, one route per
+  // template. This only decides whether to promise the user their own work or
+  // admit the previews are samples.
+  const owner = await currentUser();
+  const hasContent = owner ? (await readSourceMaterial(owner.id)) !== null : false;
 
   return (
     <>
@@ -39,6 +47,7 @@ export default async function NewPortfolio() {
             constraint: manifest.constraint,
           }))}
           backHref={sites.length > 0 ? builderHref('/') : null}
+          hasContent={hasContent}
         />
       </main>
     </>

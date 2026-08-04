@@ -1271,9 +1271,42 @@ body {
    not look the same. */
 .admin-gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  /* Wide enough that a 1280px design scaled into it is still legible. Much
+     below this the preview stops being a picture of the design and becomes a
+     smudge, which is worse than no preview at all. */
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
   gap: var(--s-3);
   margin-bottom: var(--s-4);
+}
+
+/* A template previewed at its real size and scaled down, rather than re-laid-out
+   small: a design built not to scroll at 1280px is a different design at 380px,
+   and the picker has to show the one being chosen.
+
+   `cqw` is why this needs no measuring in JavaScript — the scale factor is the
+   card's own width over the viewport the frame renders at. */
+.admin-preview {
+  container-type: inline-size;
+  aspect-ratio: 1280 / 800;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--surface-sunk);
+}
+
+.admin-preview iframe {
+  display: block;
+  width: 1280px;
+  height: 800px;
+  border: 0;
+  /* Divided by a length, not a number: `calc()` yields a ratio only when both
+     operands carry units, and `scale(<length>)` is invalid, so the whole
+     declaration is dropped silently if the `px` is left off. */
+  transform: scale(calc(100cqw / 1280px));
+  transform-origin: top left;
+  /* The card is one big control. A click belongs to the form that chooses this
+     design, never to the page inside the frame. */
+  pointer-events: none;
 }
 
 .admin-gallery-item {
