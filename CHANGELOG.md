@@ -103,6 +103,21 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ### Builder (Phase 2, in progress)
 
+- **The design is chosen before the content**, which is the order the flow
+  wants: the template decides what content is worth entering.
+- Each option shows its `manifest.constraint` alongside the description. The
+  constraint is what actually distinguishes one template from another — "does
+  not scroll on a desktop viewport" says more about whether it suits your work
+  than any adjective would. It is also why the field exists (plan §20.5).
+- Switching keeps `customization` rather than clearing it. Options parse
+  forward-compatibly, so a foreign template's settings are inert while you are
+  away and still there if you switch back.
+- The submitted `templateId` is checked against the registry, not trusted. A
+  site pointing at a template this build does not ship is a 404 on the render
+  path, which is a bad way to find out.
+- Honest about being one design so far: with a single template the picker
+  states that rather than pretending to offer a choice.
+
 - **Projects and education editors**, completing the content a portfolio needs.
   A project's employer is a select over the owner's own experiences rather than
   a free-text id — the difference between a publish-time refusal and a field

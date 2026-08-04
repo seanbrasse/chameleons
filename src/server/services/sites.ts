@@ -9,9 +9,11 @@ import {
   createSite,
   listSitesFor,
   setSubdomain,
+  setTemplate,
   type ClaimFailure,
   type OwnedSite,
 } from '@/server/repos/sites';
+import { getTemplate } from '@/templates/registry';
 
 export type ClaimResult =
   | { ok: true }
@@ -72,4 +74,19 @@ export async function unpublishSite(siteId: string): Promise<boolean> {
 export async function ownedSites(): Promise<OwnedSite[]> {
   const owner = await currentUser();
   return owner ? listSitesFor(owner.id) : [];
+}
+
+/**
+ * `templateId` arrives from a form and is checked against the registry rather
+ * than trusted — a site pointing at a template this build does not ship is a
+ * 404 on the render path, which is a bad way to find out.
+ */
+export async function chooseTemplate(siteId: string, templateId: string): Promise<boolean> {
+  const owner = await currentUser();
+  if (!owner) return false;
+
+  const template = getTemplate(templateId);
+  if (!template) return false;
+
+  return setTemplate(siteId, owner.id, template.manifest.id, template.manifest.version);
 }

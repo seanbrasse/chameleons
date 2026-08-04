@@ -170,6 +170,30 @@ export async function setSubdomain(
   return (data?.length ?? 0) > 0 ? { ok: true } : { ok: false, reason: 'not-found' };
 }
 
+/**
+ * Switching design. `customization` is left alone rather than cleared: options
+ * are parsed forward-compatibly (`parseOptions` falls back to defaults on a
+ * shape it does not recognise), so a foreign template's settings are inert
+ * while you are away and still there if you switch back.
+ */
+export async function setTemplate(
+  siteId: string,
+  ownerId: string,
+  templateId: string,
+  templateVersion: number,
+): Promise<boolean> {
+  if (!hasServiceRole()) return false;
+
+  const { data } = await supabaseService()
+    .from('sites')
+    .update({ template_id: templateId, template_version: templateVersion })
+    .eq('id', siteId)
+    .eq('owner_id', ownerId)
+    .select('id');
+
+  return (data?.length ?? 0) > 0;
+}
+
 /** Takes a site off the air without discarding the versions it has published. */
 export async function clearCurrentVersion(siteId: string, ownerId: string): Promise<boolean> {
   if (!hasServiceRole()) return false;
