@@ -173,6 +173,23 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
   legitimately differ. Source material is what a site is *seeded from*.
 - GitHub import now writes to both: the site you are looking at, and your source
   material so the next portfolio starts with it.
+- **The gallery shows the designs instead of describing them.** Each card is the
+  real template rendered against your own imported content, in an iframe at
+  1280×800 scaled down by the card's own width. A list of names and adjectives
+  was a menu, not a picker; §23.2 asks for your work rendered in each design.
+  Scaled rather than reflowed, because a design built not to scroll at 1280px is
+  a different design if it is re-laid-out at 380px.
+- An iframe rather than an inline render, because a template owns its whole page:
+  its stylesheet sets custom properties on `:root`. Several composed into one
+  builder page would be several designs fighting over one cascade.
+- The previewed document is `inert`. Keeping the frame out of the tab order alone
+  is what axe calls `frame-focusable-content` — the links inside stay focusable
+  while no keyboard user can reach them — and `inert` does not cross into a
+  nested browsing context, so it has to be set inside the previewed document.
+- Accounts with nothing imported get demo content in the previews, said plainly
+  rather than implied. A blank portfolio looks identical in every design, so
+  previewing one would tell a new user nothing about the choice being asked of
+  them.
 
 ### Builder (Phase 2, in progress)
 
