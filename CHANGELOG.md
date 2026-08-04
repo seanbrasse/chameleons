@@ -103,6 +103,26 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ### Builder (Phase 2, in progress)
 
+- **Upload rules**, as pure logic ahead of the plumbing that will call them:
+  what a file actually is, how big that kind may be, and whether the site has
+  room. Nothing uploads yet — this is the half worth reviewing on its own
+  rather than buried in storage wiring.
+- **Format is decided by the bytes, not by the request.** `Content-Type` and
+  the filename both come from whoever is uploading, so neither can decide
+  whether a file is allowed. AVIF, MP4 and QuickTime share one container and
+  are told apart by the `ftyp` brand; WebP and WAVE are both RIFF, so matching
+  four bytes would accept audio as an image.
+- **SVG is refused as its own case**, not as "unsupported". It is script-bearing
+  and therefore stored XSS, but someone who just exported one from Figma needs
+  to be told to export a PNG instead — a generic refusal reads as a bug.
+- **Separate limits per kind**, 10 MB for images and 50 MB for video, replacing
+  an inherited mismatch: the original advertised one 50 MB limit and accepted
+  three video types while the bucket behind it capped at 10 MB and allowed no
+  video at all. Whichever limit a user hit, the other was a lie.
+- Refusals name the size, the limit and what to do about it. Per-file size is
+  reported before the quota when a file is over both, because that is the one
+  the user can fix.
+
 - **Testimonials and metrics editors**, completing editor coverage of the
   content contract. Every collection in `Issue` can now be edited.
 - **Approving a testimonial is its own action**, not a field in the form that
