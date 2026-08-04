@@ -23,6 +23,34 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 - Session refresh runs on builder requests only; published portfolios are
   anonymous and do not pay for it.
 
+### Publishing
+
+- The snapshot publish path (`src/server/services/publishSite.ts`): require the
+  owner, read the working row, gate on `validateIssue`, freeze a snapshot, write
+  the version and its media, then flip the pointer. Version and media are written
+  before the flip, so a failure part-way leaves an unreferenced version for the
+  reaper rather than a live site pointing at a half-written one.
+- `src/server/domain/parse-issue.ts` reads `Issue` as a migrating reader keyed by
+  `issue_schema_version`, so a snapshot published years ago keeps rendering
+  without a backfill. It refuses a snapshot newer than the build understands
+  rather than silently dropping whatever the next version added.
+- `site_version_media` records only URLs in our own storage bucket. Media we
+  cannot reap is not our business to track.
+- `site_drafts` (`supabase/migrations/0002_site_drafts.sql`) holds the issue a
+  user is still editing — the mutable row publishing freezes. `0001` had only
+  frozen snapshots, so there was nothing to publish *from*.
+
+### Caching
+
+- Snapshots are immutable, so they cache under `site:<id>:v<n>` for a year.
+  `sites.current_version_id` is the only mutable thing, cached under
+  `site:<subdomain>` and purged on publish.
+- `readCurrentSnapshot` lives in the service rather than the repo: one repo call
+  hiding the version behind the pointer would make version-keyed caching
+  impossible.
+- `unstable_cache`, not `use cache` — the latter needs the `cacheComponents`
+  flag, and this path has to work on the stable configuration.
+
 ### Data
 
 - Multi-tenant schema (`supabase/migrations/0001_foundation.sql`): `profiles`,

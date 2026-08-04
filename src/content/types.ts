@@ -130,6 +130,13 @@ export type Issue = {
   metrics: Metric[];
 };
 
+/**
+ * Bumping this is the trigger for a new entry in `parse-issue.ts`: published
+ * snapshots keep their original `issue_schema_version` forever, so the reader —
+ * not a backfill — is what keeps them rendering.
+ */
+export const ISSUE_SCHEMA_VERSION = 1;
+
 export const CAPS = {
   experienceSummary: 200,
   impactBullet: 120,
