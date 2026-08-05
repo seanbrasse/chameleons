@@ -1,5 +1,6 @@
 import type { AnyTemplate } from './types';
 
+import plates from './plates';
 import timeline from './timeline';
 
 export { DEFAULT_TEMPLATE_ID, listManifests } from './manifests';
@@ -11,6 +12,7 @@ export { DEFAULT_TEMPLATE_ID, listManifests } from './manifests';
  */
 const TEMPLATES: Record<string, AnyTemplate> = {
   [timeline.manifest.id]: timeline,
+  [plates.manifest.id]: plates,
 };
 
 export function getTemplate(id: string): AnyTemplate | null {

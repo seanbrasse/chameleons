@@ -1,0 +1,296 @@
+/*
+ * Template #2 — Plates.
+ *
+ * Promoted from `design/gallery/comp.html`, which stays in the repo as the
+ * design record: it is what a change to this file is diffed against when the
+ * template drifts (plan §20.4).
+ *
+ * Its one rule is that no text is ever set over an image. That is why the
+ * layout is asymmetric — the frame bleeds to an edge and the words sit in the
+ * opposite margin — and why there is no scrim, no gradient wash and no centred
+ * hero caption anywhere below. In a multi-tenant product the rule is also the
+ * only way the contrast floor is checkable: a photograph uploaded after the
+ * design ships has unknown tones, so text over it could not be audited for any
+ * tenant.
+ */
+
+:root {
+
+  /* A scale that spans 7.4×. Timid range is a slop signature (§20.1). */
+  --t-caption: 14px; /* The floor's minimum body size, not a taste choice: 13px
+                              failed `e2e/floor.spec.ts` on a real paragraph. */
+  --t-body: 17px;
+  --t-lead: clamp(19px, 1.7vw, 24px);
+  /* Fluid, because a plate title is a real project name in a narrow
+     column and a single long word cannot wrap. "LLM Knowledge Engine"
+     at a fixed 64px overflows its column at 1024px — the failure lorem
+     ipsum hides and real content finds (§20.4). */
+  --t-plate: clamp(30px, 4.2vw, 64px);
+  --t-name: clamp(44px, 7vw, 96px);
+
+  --m: clamp(24px, 6vw, 96px);
+
+  --sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.plates {
+  background: var(--ground);
+  color: var(--figure);
+  font-family: var(--sans);
+  font-size: var(--t-body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Masthead ─────────────────────────────────────────────────────
+   Name at full scale, everything else deliberately small. The gap
+   between 96px and 13px is the hierarchy; nothing else has to signal
+   it. */
+.masthead {
+  padding: clamp(64px, 14vh, 180px) var(--m) clamp(48px, 10vh, 120px);
+  border-bottom: 1px solid var(--rule);
+}
+
+.masthead h1 {
+  margin: 0;
+  font-size: var(--t-name);
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+  font-weight: 600;
+  max-width: 12ch;
+}
+
+.masthead .role {
+  margin: var(--t-body) 0 0;
+  font-size: var(--t-lead);
+  color: var(--quiet);
+  max-width: 44ch;
+}
+
+.label {
+  font-family: var(--mono);
+  font-size: var(--t-caption);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--quiet);
+}
+
+.masthead .label {
+  display: block;
+  margin-bottom: clamp(24px, 5vh, 48px);
+}
+
+.skills {
+  margin: clamp(32px, 6vh, 56px) 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.5em;
+  font-family: var(--mono);
+  font-size: var(--t-caption);
+  color: var(--quiet);
+}
+
+/* ── A plate ──────────────────────────────────────────────────────
+   The constraint made structural: the image bleeds to one edge and the
+   words sit in the opposite margin. Nothing overlaps, so there is no
+   scrim, no gradient, and no contrast we cannot guarantee. */
+.plate {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+  align-items: center;
+  gap: clamp(24px, 5vw, 72px);
+  padding: clamp(56px, 12vh, 140px) 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.plate-words {
+  padding-left: var(--m);
+  max-width: 42ch;
+}
+
+/* Alternating sides. Not decoration: it is what stops a long scroll
+   becoming a column of identical rows, which is the grid this design
+   exists to avoid.
+
+   A class rather than `:nth-child(even)`, because a pull quote between
+   plates is a sibling element — with nth-child, inserting one flips the
+   side of every plate after it. */
+.plate-flipped {
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+}
+
+.plate-flipped .plate-words {
+  order: 2;
+  padding-left: 0;
+  padding-right: var(--m);
+}
+
+.plate-flipped .plate-figure {
+  order: 1;
+}
+
+.plate-number {
+  font-family: var(--mono);
+  font-size: var(--t-caption);
+  color: var(--mark);
+  letter-spacing: 0.14em;
+}
+
+.plate h2 {
+  margin: 0.4em 0 0;
+  font-size: var(--t-plate);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  /* A backstop for a pathological title — a name with no spaces cannot
+     wrap at any size, and one project should not widen the page. */
+  overflow-wrap: break-word;
+}
+
+.plate p {
+  margin: 1em 0 0;
+  color: var(--quiet);
+}
+
+.plate .impact {
+  margin-top: 1.2em;
+  color: var(--figure);
+  font-size: var(--t-caption);
+  font-family: var(--mono);
+  line-height: 1.6;
+}
+
+.plate-figure {
+  background: var(--frame);
+  aspect-ratio: 16 / 10;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.plate-figure img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* The no-image case, which most new accounts will be. Deliberate
+   rather than broken: the title is set in the frame at plate scale, so
+   a portfolio with no screenshots yet still reads as designed. */
+.plate-figure .untitled {
+  font-family: var(--mono);
+  font-size: var(--t-caption);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--quiet);
+}
+
+/* ── A pull quote ─────────────────────────────────────────────────
+   A change of texture partway down a long scroll. `timeline` has no
+   room for one; this design has nothing but room. */
+.quote {
+  padding: clamp(64px, 14vh, 160px) var(--m);
+  border-bottom: 1px solid var(--rule);
+}
+
+.quote blockquote {
+  margin: 0;
+  font-size: var(--t-plate);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-weight: 500;
+  max-width: 20ch;
+}
+
+.quote figcaption {
+  margin-top: 1.5em;
+  font-family: var(--mono);
+  font-size: var(--t-caption);
+  color: var(--quiet);
+}
+
+/* ── Colophon ─────────────────────────────────────────────────────
+   Roles, not schools. A catalogue ends with a note on how it was made,
+   set small — the work was the subject and this is the apparatus. */
+.colophon {
+  padding: clamp(64px, 12vh, 140px) var(--m) clamp(80px, 16vh, 180px);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: clamp(32px, 5vw, 80px);
+}
+
+.colophon h2 {
+  grid-column: 1 / -1;
+  margin: 0 0 1em;
+  font-size: var(--t-caption);
+  font-family: var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--quiet);
+  font-weight: 400;
+}
+
+.role-entry h3 {
+  margin: 0;
+  font-size: var(--t-body);
+  font-weight: 600;
+}
+
+.role-entry p {
+  margin: 0.2em 0 0;
+  color: var(--quiet);
+  font-size: var(--t-caption);
+  font-family: var(--mono);
+}
+
+.contact {
+  grid-column: 1 / -1;
+  margin-top: clamp(32px, 6vh, 64px);
+  padding-top: clamp(24px, 4vh, 40px);
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 2em;
+  font-family: var(--mono);
+  font-size: var(--t-caption);
+}
+
+.contact a {
+  color: var(--mark);
+}
+
+a:focus-visible {
+  outline: 2px solid var(--mark);
+  outline-offset: 3px;
+}
+
+/* One column below the fold of a laptop. The alternation is meaningless
+   at this width, so it is dropped rather than preserved for its own
+   sake. */
+@media (max-width: 860px) {
+  .plate,
+  .plate-flipped {
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(20px, 5vw, 32px);
+  }
+
+  .plate-words,
+  .plate-flipped .plate-words {
+    order: 1;
+    padding: 0 var(--m);
+  }
+
+  .plate-figure,
+  .plate-flipped .plate-figure {
+    order: 2;
+  }
+}

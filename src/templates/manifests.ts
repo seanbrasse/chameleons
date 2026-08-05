@@ -1,5 +1,6 @@
 import type { TemplateManifest } from './types';
 
+import { manifest as plates } from './plates/manifest';
 import { manifest as timeline } from './timeline/manifest';
 
 /**
@@ -16,7 +17,7 @@ import { manifest as timeline } from './timeline/manifest';
  * something is actually going to be rendered.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- heterogeneous by design: each manifest carries its own option type.
-export const MANIFESTS: Array<TemplateManifest<any>> = [timeline];
+export const MANIFESTS: Array<TemplateManifest<any>> = [timeline, plates];
 
 /** The template a new site starts on. */
 export const DEFAULT_TEMPLATE_ID = timeline.id;
