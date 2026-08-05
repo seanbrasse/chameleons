@@ -221,6 +221,14 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
   page that all six forms post `scope=profile` and none carries a stray
   `siteId`.
 
+### Fixed
+
+- **Autofill accepts a real-sized résumé.** A Server Action's body defaults to a
+  1MB cap, under which a plain PDF fits but a CV with a headshot does not — it
+  would have failed at the framework layer with an opaque error, before the
+  friendly 4MB check ever ran. `next.config.ts` now raises the limit to Vercel's
+  own 4.5MB request-body ceiling.
+
 ### Fixed (Sean's feedback)
 
 - **`app.chameleons.dev` now redirects to `chameleons.dev`.** A `vercel.json`
