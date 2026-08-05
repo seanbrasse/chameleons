@@ -123,3 +123,18 @@ export function resolveTenant(host: string, pathname: string, config: TenantConf
 
   return resolveByHost(normalizeHost(host), path, normalizeRoot(config.rootDomain));
 }
+
+/**
+ * Where a request is rewritten to: a new pathname on the same origin, with the
+ * query string carried over.
+ *
+ * Carrying it is the entire point. `new URL(pathname, requestUrl)` keeps the
+ * origin and **drops the search**, so every page behind the proxy saw empty
+ * `searchParams` — silent, total, and invisible until a screen first needed a
+ * parameter. Pure so it can be tested; the proxy is not.
+ */
+export function rewriteTarget(requestUrl: string, pathname: string): string {
+  const target = new URL(pathname, requestUrl);
+  target.search = new URL(requestUrl).search;
+  return target.toString();
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { builderPath, builderRoute, resolveTenant, siteUrl, type TenantConfig } from './tenant';
+import { builderPath, builderRoute, resolveTenant, siteUrl, type TenantConfig, rewriteTarget } from './tenant';
 
 const HOST: TenantConfig = { mode: 'host', rootDomain: 'chameleons.dev' };
 const PATH: TenantConfig = { mode: 'path', rootDomain: 'chameleons.dev' };
@@ -200,5 +200,26 @@ describe('builderRoute', () => {
         pathname,
       });
     }
+  });
+});
+
+describe('rewriteTarget', () => {
+  it('carries the query string onto the rewritten path', () => {
+    expect(
+      rewriteTarget('https://app.chameleons.dev/sites/abc?template=plates&embed=1', '/app/sites/abc'),
+    ).toBe('https://app.chameleons.dev/app/sites/abc?template=plates&embed=1');
+  });
+
+  it('leaves a request with no query alone', () => {
+    expect(rewriteTarget('https://app.chameleons.dev/sites/abc', '/app/sites/abc')).toBe(
+      'https://app.chameleons.dev/app/sites/abc',
+    );
+  });
+
+  /** The published render path is rewritten too, and pays the same cost. */
+  it('carries the query onto a tenant rewrite', () => {
+    expect(rewriteTarget('https://sean.chameleons.dev/?from=feed', '/s/sean')).toBe(
+      'https://sean.chameleons.dev/s/sean?from=feed',
+    );
   });
 });

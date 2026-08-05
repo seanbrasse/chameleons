@@ -221,6 +221,41 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
   page that all six forms post `scope=profile` and none carries a stray
   `siteId`.
 
+### Builder as a wizard
+
+- **The builder is three pages now, not one.** Design, content and publish are
+  their own routes with a step rail and a next button, and a bare site URL
+  redirects to the first. The page they replaced put all three in one column
+  with anchor links, so the flow was something you inferred from scrolling — and
+  it put a publish button on the same screen as the first empty field, which is
+  the ordering plan §14 is explicit about getting the other way round.
+- Steps are links, not a gated funnel. A portfolio is not a checkout; the order
+  is advice about what to do first, and someone who wants their address before
+  their content is not making a mistake worth blocking.
+- **Designs are cards you look at, not descriptions you read.** The picker now
+  renders each template against *this portfolio's own content*, with a full-size
+  preview a click away. `?template=` on the preview route renders a candidate
+  design without saving anything, so trying one costs nothing and changing your
+  mind costs nothing — `buildSnapshot` without persisting is exactly a preview
+  (§5), so this and publishing render the same object.
+- The embedded previews are `inert`, for the reason the gallery's are: hiding a
+  frame from the tab order leaves its links focusable and unreachable, which is
+  `frame-focusable-content`. `?embed=1` asks for it, so the same URL opened on
+  its own is still a real page you can scroll.
+
+### Fixed
+
+- **The proxy dropped the query string on every rewrite.** `new URL(pathname,
+  request.url)` keeps the origin and silently discards the search, so *every*
+  page behind the proxy — builder and published tenant alike — saw empty
+  `searchParams`. Total, silent, and invisible until a screen first needed a
+  parameter, which is what building the design step surfaced.
+- The rewrite target is now a pure `rewriteTarget()` in `domain/tenant.ts` with
+  unit tests, because the proxy itself cannot be tested. The first version of
+  that test asserted `window.location.search` in the browser and passed with the
+  bug reintroduced — a server-side rewrite never touches the address bar. Only
+  the pure test actually fails without the fix.
+
 ### Templates
 
 - **Template #2: Plates.** A catalogue of work — each project's image frame

@@ -91,11 +91,18 @@ function targetOf(form: FormData): Target | null {
   return siteId ? { kind: 'site', siteId } : null;
 }
 
-/** The profile is its own page, so a site edit and a profile edit expire different routes. */
+/**
+ * The profile is its own page, so a site edit and a profile edit expire
+ * different routes. `'layout'` on the site path because the builder is three
+ * step pages under it now — expiring only the bare path would leave the step a
+ * user is actually looking at showing what they just changed away from.
+ */
 function revalidateFor(target: Target): void {
-  revalidatePath(
-    target.kind === 'profile' ? builderRoute('/profile') : builderRoute(`/sites/${target.siteId}`),
-  );
+  if (target.kind === 'profile') {
+    revalidatePath(builderRoute('/profile'));
+    return;
+  }
+  revalidatePath(builderRoute(`/sites/${target.siteId}`), 'layout');
 }
 
 function toState(result: SaveResult): EditorState {
@@ -178,7 +185,7 @@ export async function claimAddressAction(
   const result = await claimAddress(siteId, raw);
   if (!result.ok) return { problem: REFUSALS[result.reason] ?? REFUSALS.unavailable };
 
-  revalidatePath(builderRoute(`/sites/${siteId}`));
+  revalidatePath(builderRoute(`/sites/${siteId}`), 'layout');
   revalidatePath(builderRoute('/'));
   return { saved: true };
 }
@@ -189,7 +196,7 @@ export async function unpublish(_state: EditorState, form: FormData): Promise<Ed
 
   if (!(await unpublishSite(siteId))) return { problem: REFUSALS['not-found'] };
 
-  revalidatePath(builderRoute(`/sites/${siteId}`));
+  revalidatePath(builderRoute(`/sites/${siteId}`), 'layout');
   revalidatePath(builderRoute('/'));
   return { saved: true };
 }
@@ -204,7 +211,7 @@ export async function rollback(_state: EditorState, form: FormData): Promise<Edi
   const result = await rollbackSite(siteId, version);
   if (!result.ok) return { problem: REFUSALS[result.reason] ?? REFUSALS.unavailable };
 
-  revalidatePath(builderRoute(`/sites/${siteId}`));
+  revalidatePath(builderRoute(`/sites/${siteId}`), 'layout');
   revalidatePath(builderRoute('/'));
   return { published: result.version };
 }
@@ -271,7 +278,7 @@ export async function chooseTemplateAction(
 
   if (!(await chooseTemplate(siteId, templateId))) return { problem: REFUSALS['not-found'] };
 
-  revalidatePath(builderRoute(`/sites/${siteId}`));
+  revalidatePath(builderRoute(`/sites/${siteId}`), 'layout');
   return { saved: true };
 }
 
@@ -437,6 +444,6 @@ export async function customize(_state: EditorState, form: FormData): Promise<Ed
     return { problem: REFUSALS.unavailable };
   }
 
-  revalidatePath(builderRoute(`/sites/${siteId}`));
+  revalidatePath(builderRoute(`/sites/${siteId}`), 'layout');
   return { saved: true };
 }
