@@ -271,6 +271,17 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ### Autofill, where you actually edit
 
+- **A résumé now produces projects, not just jobs and schools.** Most
+  professional work has no GitHub repo to import — the projects are the bullets
+  written *inside* each job, and the parser was only taking an explicit
+  "Projects" section, so the timeline carousel came back empty for exactly the
+  people it is meant to show. The drafting prompt now tells the model to surface
+  each concrete, named piece of work from the experience entries, and each
+  drafted project carries the `employer` it was done at so the timeline groups it
+  under the right job (`experienceId`). Same-titled work at two employers stays
+  distinct. This stays inside §23.5 — pulling a described initiative out of a job
+  entry is transcription, not invention; a project the résumé does not describe
+  is still never manufactured, and outcomes are still the person's to write.
 - **Drop a résumé or paste a write-up on the content step and the fields fill
   themselves.** The original portfolio's best convenience was inline — paste a
   doc and it mapped onto the form — and that box now sits on the content editor,

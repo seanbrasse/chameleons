@@ -22,7 +22,9 @@ export type Draft = {
   skills: string[];
   experiences: Array<Omit<Experience, 'id' | 'impactBullets'> & { impactBullets: string[] }>;
   education: Array<Omit<Education, 'id' | 'links'>>;
-  projects: Array<Pick<Project, 'title' | 'summary' | 'date'> & { tech: string[] }>;
+  projects: Array<
+    Pick<Project, 'title' | 'summary' | 'date'> & { tech: string[]; employer: string }
+  >;
 };
 
 /**
@@ -47,6 +49,34 @@ export const DRAFTING_RULE = [
   '- Never invent an employer, a date, a degree, or a metric.',
 ].join('\n');
 
+/**
+ * The instruction Sean's feedback added: a résumé's projects are almost never
+ * in a "Projects" section. They are the concrete things a person built, shipped
+ * or led, written as bullets *inside* each job — most professional work has no
+ * GitHub repo to import, so if we only take an explicit list the carousel comes
+ * back empty on exactly the people the timeline template is meant to show.
+ *
+ * This stays inside §23.5: pulling a described initiative out of a job entry is
+ * transcription, not invention — the words are already in the source, only their
+ * home changes. What must not happen is manufacturing a project the résumé does
+ * not describe, or writing an outcome it does not state.
+ */
+export const PROJECTS = [
+  'Projects — read carefully, this is where most résumés are under-read:',
+  '- A résumé rarely has a "Projects" heading. Its projects are the concrete',
+  '  things the person built, shipped, migrated, designed or led, usually written',
+  '  as bullet points under each job. Surface those as projects.',
+  '- One project per distinct, nameable piece of work. A whole job is not a',
+  '  project; "the billing migration" or "the design system" is.',
+  '- Set `employer` to the company the project was done at, copied from the job',
+  '  it sits under. Leave it empty only for genuinely independent or personal',
+  '  work.',
+  '- `title` is what the work was; `summary` is what the source says about it,',
+  '  or empty. `tech` only where the source names tools.',
+  '- Do not invent a project the résumé does not describe, and do not split one',
+  '  effort into several to pad the list.',
+].join('\n');
+
 const VOICE = [
   'Voice, where the source does give you words to work with:',
   '- Plain, concrete English. Short sentences.',
@@ -60,6 +90,8 @@ export const SYSTEM = [
   'a structured profile. You are a transcriber, not a copywriter.',
   '',
   DRAFTING_RULE,
+  '',
+  PROJECTS,
   '',
   VOICE,
 ].join('\n');
@@ -123,16 +155,26 @@ export const TOOL_SCHEMA: {
 
     projects: {
       type: 'array',
+      description:
+        'The concrete things the person built, shipped or led — usually written as ' +
+        'bullets inside each job, not under a "Projects" heading. One per distinct ' +
+        'piece of work.',
       items: {
         type: 'object',
         additionalProperties: false,
         properties: {
-          title: { type: 'string' },
+          title: { type: 'string', description: 'What the work was, e.g. "Billing migration".' },
+          employer: {
+            type: 'string',
+            description:
+              'The company this was done at, copied from the job it sits under. Empty only ' +
+              'for independent or personal work.',
+          },
           summary: { type: 'string', description: 'Only if the source describes it.' },
           date: MONTH,
           tech: { type: 'array', items: { type: 'string' } },
         },
-        required: ['title', 'summary', 'date', 'tech'],
+        required: ['title', 'employer', 'summary', 'date', 'tech'],
       },
     },
   },
@@ -190,6 +232,7 @@ export function readDraft(raw: unknown): Draft {
       .filter((row) => text(row.title) !== '')
       .map((row) => ({
         title: text(row.title),
+        employer: text(row.employer),
         summary: text(row.summary),
         date: month(row.date),
         tech: list(row.tech),
@@ -251,6 +294,19 @@ function upsertRows<T extends { id: string }>(
  * written one, so autofill never overwrites what someone typed.
  */
 export function applyDraft(issue: Issue, draft: Draft): Issue {
+  // A project names its employer as text; the timeline groups projects under the
+  // experience they were done at, which is an id. Resolve one to the other by
+  // company name across both what is already stored and what this draft adds, so
+  // a project lands under the right job whether that job was typed or drafted.
+  const norm = (value: string) => value.trim().toLowerCase();
+  const experienceIdByCompany = new Map<string, string>();
+  for (const role of issue.experiences) experienceIdByCompany.set(norm(role.company), role.id);
+  for (const role of draft.experiences) {
+    experienceIdByCompany.set(norm(role.company), draftId('exp', role.company));
+  }
+  const employerId = (employer: string): string | undefined =>
+    employer ? experienceIdByCompany.get(norm(employer)) : undefined;
+
   return {
     ...issue,
     settings: {
@@ -280,28 +336,36 @@ export function applyDraft(issue: Issue, draft: Draft): Issue {
 
     projects: upsertRows(
       issue.projects,
-      draft.projects.map((project) => ({
-        id: draftId('proj', project.title),
-        title: project.title,
-        summary: project.summary,
-        date: project.date,
-        tech: project.tech,
-        // Left empty on purpose: no document states what a project was *for*,
-        // and `validateIssue` asking the human for it is the right outcome
-        // (§23.5).
-        impact: '',
-        images: [] as Issue['projects'][number]['images'],
-        links: [] as Issue['projects'][number]['links'],
-        starred: false,
-        // Neither is stated by a résumé, so both take the neutral default
-        // rather than a guess. 'personal' would be a claim about where it was
-        // done.
-        context: 'professional' as const,
-        status: 'shipped' as const,
-        duration: '',
-      })),
+      draft.projects.map((project) => {
+        const experienceId = employerId(project.employer);
+        return {
+          // The employer is folded into the id so two jobs with a same-named
+          // effort ("Migration") stay distinct, while a re-import of the same
+          // résumé still lands on the same id and updates rather than doubles.
+          id: draftId('proj', [project.employer, project.title].filter(Boolean).join(' ')),
+          title: project.title,
+          // Only a stated employer makes this professional; without one the
+          // neutral 'personal' is the honest default rather than a guess about
+          // where the work was done.
+          context: (experienceId ? 'professional' : 'personal') as Project['context'],
+          ...(experienceId ? { experienceId } : {}),
+          summary: project.summary,
+          date: project.date,
+          tech: project.tech,
+          // Left empty on purpose: no document states what a project was *for*,
+          // and `validateIssue` asking the human for it is the right outcome
+          // (§23.5).
+          impact: '',
+          images: [] as Issue['projects'][number]['images'],
+          links: [] as Issue['projects'][number]['links'],
+          starred: false,
+          status: 'shipped' as const,
+          duration: '',
+        };
+      }),
       // The one that matters: images, impact and links are the person's work,
-      // never a document's, so a re-import must not blank them.
+      // never a document's, so a re-import must not blank them. The employer
+      // link is re-derived each time, so it follows a corrected résumé.
       (previous, next) => ({
         ...next,
         impact: previous.impact || next.impact,

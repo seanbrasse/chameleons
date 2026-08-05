@@ -212,7 +212,7 @@ that had been pulled.
    this environment has no `ANTHROPIC_API_KEY`. Put one résumé through it once a
    key is set; the box is on the editor waiting.
 
-   Two properties to keep, both tested:
+   Three properties to keep, all tested:
 
    - It **transcribes and never infers** (§23.5): dates, titles, employers,
      schools and technologies are copied; impact, seniority and outcomes come
@@ -224,6 +224,14 @@ that had been pulled.
      place, hand-typed rows survive, and a project's images, impact and links
      are preserved across a re-import. Replacing the arrays — the first cut —
      would have made the feature eat the work it was meant to save.
+   - **Projects come from the job entries, not just a "Projects" heading.** Most
+     professional work has no repo to import, so the prompt (`PROJECTS` in
+     `draft.ts`) tells the model to surface the concrete work described inside
+     each experience, and each project carries the `employer` it was done at so
+     the timeline groups it under the right job (`experienceId`). Without this
+     the carousel is empty for backend/infra people — the audience template #2
+     exists for. It is still transcription: a project the résumé does not
+     describe is never manufactured.
 
 
 5. **Content flows profile → site, never back.** A new site seeds from source

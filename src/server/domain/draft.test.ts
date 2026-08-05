@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { starterIssue } from '@/content/starter';
 
-import { DRAFTING_RULE, SYSTEM, TOOL_SCHEMA, applyDraft, gapsIn, readDraft } from './draft';
+import { DRAFTING_RULE, PROJECTS, SYSTEM, TOOL_SCHEMA, applyDraft, gapsIn, readDraft } from './draft';
 
 describe('the drafting rule', () => {
   /**
@@ -27,6 +27,18 @@ describe('the drafting rule', () => {
       'role',
       'skills',
     ]);
+  });
+
+  /**
+   * Sean's feedback: most professional work is not a GitHub repo, so a résumé's
+   * projects are the bullets inside its jobs. If the model only takes an explicit
+   * "Projects" section, the carousel comes back empty for exactly the people the
+   * timeline template is meant to show.
+   */
+  it('tells the model that a résumé’s projects live inside its job entries', () => {
+    expect(SYSTEM).toContain(PROJECTS);
+    expect(PROJECTS).toMatch(/inside each job|bullet/i);
+    expect(PROJECTS).toMatch(/do not invent/i);
   });
 });
 
@@ -89,6 +101,18 @@ describe('readDraft', () => {
     expect(draft.experiences[0]?.endDate).toBeNull();
     expect(draft.education[0]?.credential).toBe('B.S. Computer Science');
   });
+
+  it('reads the employer a project was done at', () => {
+    const draft = readDraft({
+      projects: [
+        { title: 'Billing migration', employer: 'PayPal', summary: 'Moved billing to services' },
+        { title: 'A weekend app', summary: '' },
+      ],
+    });
+
+    expect(draft.projects[0]).toMatchObject({ title: 'Billing migration', employer: 'PayPal' });
+    expect(draft.projects[1]?.employer).toBe('');
+  });
 });
 
 describe('gapsIn', () => {
@@ -127,6 +151,52 @@ describe('applyDraft', () => {
 
     expect(issue.projects[0]?.title).toBe('Cadence');
     expect(issue.projects[0]?.impact).toBe('');
+  });
+
+  /**
+   * The point of Sean's request: a work project pulled from a job entry lands
+   * under that job, so the timeline groups it under the right employer instead
+   * of floating loose.
+   */
+  it('links a drafted project to the experience it was done at', () => {
+    const issue = applyDraft(
+      base,
+      readDraft({
+        experiences: [{ company: 'Intuit Mailchimp', role: 'Engineer' }],
+        projects: [{ title: 'Knowledge engine', employer: 'intuit mailchimp' }],
+      }),
+    );
+
+    const employer = issue.experiences.find((role) => role.company === 'Intuit Mailchimp');
+    expect(issue.projects[0]?.experienceId).toBe(employer?.id);
+    expect(issue.projects[0]?.context).toBe('professional');
+  });
+
+  it('leaves an employer-less project personal and unlinked', () => {
+    const issue = applyDraft(base, readDraft({ projects: [{ title: 'A weekend app' }] }));
+
+    expect(issue.projects[0]?.experienceId).toBeUndefined();
+    expect(issue.projects[0]?.context).toBe('personal');
+  });
+
+  /** Same title at two employers must not collapse into one row. */
+  it('keeps same-named projects at different employers distinct', () => {
+    const issue = applyDraft(
+      base,
+      readDraft({
+        experiences: [
+          { company: 'PayPal', role: 'Engineer' },
+          { company: 'Avarint', role: 'Engineer' },
+        ],
+        projects: [
+          { title: 'Migration', employer: 'PayPal' },
+          { title: 'Migration', employer: 'Avarint' },
+        ],
+      }),
+    );
+
+    expect(issue.projects).toHaveLength(2);
+    expect(new Set(issue.projects.map((project) => project.id)).size).toBe(2);
   });
 
   /** Re-reading a corrected résumé should update rows, not double them. */
