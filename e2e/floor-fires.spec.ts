@@ -31,14 +31,45 @@ async function open(page: Page) {
   await settle(page);
 }
 
+/**
+ * Inject a defect and measure, retrying until the injection actually took.
+ *
+ * `settle()` waits for networkidle and an `h1`, which is not the same as
+ * hydration being finished — the timeline is a client component, and React 19
+ * reconciles `<head>` stylesheets. A `<style>` added by Playwright in the window
+ * before hydration completes can be dropped again, and the measurement then
+ * reads the design's own sizes. It passed locally three times in a row and
+ * failed in CI, which is the signature of exactly that race.
+ *
+ * Re-adding the tag each attempt is harmless and makes the outcome depend on
+ * the measurement rather than on when hydration happened to land. The probe's
+ * meaning is unchanged: it still has to observe the floor reporting the defect.
+ */
+async function withDefect<T>(
+  page: Page,
+  css: string,
+  measure: () => Promise<T>,
+  holds: (value: T) => boolean,
+) {
+  await expect
+    .poll(
+      async () => {
+        await page.addStyleTag({ content: css });
+        return holds(await measure());
+      },
+      { message: `the injected defect never took effect: ${css}` },
+    )
+    .toBe(true);
+}
+
 test('a contrast failure is reported', async ({ page }) => {
   await open(page);
-  await page.addStyleTag({
-    content: 'p { color: #bbb !important; background: #ccc !important; }',
-  });
 
-  expect(await accessibilityViolations(page)).toContainEqual(
-    expect.stringContaining('color-contrast'),
+  await withDefect(
+    page,
+    'p { color: #bbb !important; background: #ccc !important; }',
+    () => accessibilityViolations(page),
+    (violations) => violations.some((entry) => entry.startsWith('color-contrast')),
   );
 });
 
@@ -73,14 +104,16 @@ test('a skipped heading level is reported', async ({ page }) => {
 
 test('body text below the legibility floor is reported', async ({ page }) => {
   await open(page);
-  await page.addStyleTag({
-    content: `p { font-size: ${LEGIBILITY_FLOOR.minBodyPx - 2}px !important; font-weight: 100 !important; }`,
-  });
 
-  const paragraphs = await bodyText(page);
-  expect(paragraphs.length).toBeGreaterThan(0);
-  expect(paragraphs.every((p) => p.px < LEGIBILITY_FLOOR.minBodyPx)).toBe(true);
-  expect(
-    paragraphs.every((p) => p.weight < LEGIBILITY_FLOOR.minBodyWeight),
-  ).toBe(true);
+  expect((await bodyText(page)).length).toBeGreaterThan(0);
+
+  await withDefect(
+    page,
+    `p { font-size: ${LEGIBILITY_FLOOR.minBodyPx - 2}px !important; font-weight: 100 !important; }`,
+    () => bodyText(page),
+    (paragraphs) =>
+      paragraphs.length > 0 &&
+      paragraphs.every((p) => p.px < LEGIBILITY_FLOOR.minBodyPx) &&
+      paragraphs.every((p) => p.weight < LEGIBILITY_FLOOR.minBodyWeight),
+  );
 });
