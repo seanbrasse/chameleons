@@ -9,6 +9,31 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ## [Unreleased]
 
+### Template #3 — Dossier
+
+- **A third design, for engineers whose work has no pictures.** Promoted from
+  `design/dossier/comp.html` (plan §20.4, comp → promote). Where `timeline` is a
+  carousel that assumes each project has something to show, `dossier` is a
+  document: a wide serif column with dates, employers and tech set as Tufte
+  sidenotes in the margin, metrics blown up to display size, and **no images
+  anywhere** — the constraint the design is built around.
+- Nearly every axis inverts `timeline`, which is the point (plan §15 risk 2):
+  vertical scroll not carousel, serif body not system sans, printer's-red accent
+  used only for the metric numerals and section rules, spacing tight within an
+  entry and enormous between sections. If `Issue` and `floor.ts` carry both, they
+  are the right shared floor — and they did, unchanged.
+- Sections map straight onto `Issue`: Numbers (`metrics`), Work (`projects`, each
+  tied to the employer it names via `experienceId`), History (`experiences`),
+  Before that (`education`). No testimonials — a pull quote is not a plate.
+- Registering the manifest is all it took to add its floor coverage: `dossier`
+  now passes `e2e/floor.spec.ts` — WCAG AA in **both** light and dark, one h1,
+  no skipped headings, DOM-not-canvas, body ≥14px — against the real demo
+  content. Its own token file carries both palettes (the lint rule keeps colour
+  literals out of the CSS), and its own `ThemeScript`/`ThemeToggle`, since a lint
+  rule forbids one template importing another.
+- The comp stays in the repo as the design record, and `templates/dossier/`
+  carries a version-keyed CHANGELOG for the upgrade path (§22.2).
+
 ### Fixed — Google sign-in bounced back to `/enter`
 
 - **Signing in with Google (or GitHub) could return the user to `/enter` having
