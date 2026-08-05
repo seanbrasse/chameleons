@@ -1301,6 +1301,31 @@ body {
 }
 
 
+
+/* ── Autofill: the shortcut past the forms ───────────────────────────────
+   Marked with the accent edge so it reads as "you may not have to fill any of
+   this in" rather than as one more section. A `details` so it is an offer, not
+   a step someone who has finished must scroll past. */
+.admin-autofill {
+  border-left: 3px solid var(--accent-a);
+}
+
+.admin-autofill > summary {
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  list-style: none;
+}
+
+.admin-autofill > summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-autofill > summary .admin-note {
+  margin: 0;
+}
+
 /* ── The step rail ───────────────────────────────────────────────────────
    The builder is a sequence of three screens, so the rail names the sequence
    rather than indexing one long page. Links, not a gated funnel: a portfolio

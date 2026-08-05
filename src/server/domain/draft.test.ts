@@ -146,4 +146,63 @@ describe('applyDraft', () => {
     expect(issue.settings.displayName).toBe('Sean Brasse');
     expect(issue.settings.role).toBe('Frontend engineer');
   });
+
+  /**
+   * The safety property that lets autofill run on a started editor: a row the
+   * person added and the document does not mention must survive.
+   */
+  it('never drops a hand-typed row absent from the draft', () => {
+    const started = applyDraft(
+      base,
+      readDraft({ experiences: [{ company: 'A side gig', role: 'Founder' }] }),
+    );
+
+    const after = applyDraft(started, readDraft({ experiences: [{ company: 'PayPal', role: 'Engineer' }] }));
+
+    expect(after.experiences.map((role) => role.company)).toEqual(['A side gig', 'PayPal']);
+  });
+
+  /** Re-importing the same résumé is a no-op on count, and updates in place. */
+  it('upserts by id rather than duplicating on a second import', () => {
+    const once = applyDraft(base, readDraft({ experiences: [{ company: 'PayPal', role: 'Engineer' }] }));
+    const twice = applyDraft(once, readDraft({ experiences: [{ company: 'PayPal', role: 'Senior Engineer' }] }));
+
+    expect(twice.experiences).toHaveLength(1);
+    expect(twice.experiences[0]?.role).toBe('Senior Engineer');
+  });
+
+  /**
+   * Images, impact and links are the person's work, never a document's. A
+   * re-import that re-mentions a project must not blank them.
+   */
+  it('preserves a project’s images and impact across a re-import', () => {
+    const withWork: typeof base = {
+      ...base,
+      projects: [
+        {
+          id: 'proj-cadence',
+          title: 'Cadence',
+          summary: 'old',
+          date: '2026-01',
+          tech: [],
+          impact: 'Shipped to 400 users',
+          images: [{ src: 'https://example.com/a.png', alt: 'a', kind: 'image' }] as never,
+          links: [{ label: 'Repo', url: 'https://example.com', type: 'repo' }] as never,
+          starred: true,
+          context: 'personal',
+          status: 'shipped',
+          duration: '',
+        },
+      ],
+    };
+
+    const after = applyDraft(withWork, readDraft({ projects: [{ title: 'Cadence', summary: 'new' }] }));
+
+    expect(after.projects).toHaveLength(1);
+    expect(after.projects[0]?.summary).toBe('new');
+    expect(after.projects[0]?.impact).toBe('Shipped to 400 users');
+    expect(after.projects[0]?.images).toHaveLength(1);
+    expect(after.projects[0]?.links).toHaveLength(1);
+    expect(after.projects[0]?.starred).toBe(true);
+  });
 });

@@ -2,11 +2,14 @@ import 'server-only';
 
 import Anthropic from '@anthropic-ai/sdk';
 
+import type { Issue } from '@/content/types';
 import { starterIssue } from '@/content/starter';
 import { currentUser } from '@/server/auth/session';
 import { SYSTEM, TOOL_NAME, TOOL_SCHEMA, applyDraft, gapsIn, readDraft } from '@/server/domain/draft';
 import { parseIssue } from '@/server/domain/parse-issue';
+import type { Target } from '@/server/services/editSite';
 import { readSourceMaterial, writeSourceMaterial } from '@/server/repos/sourceMaterial';
+import { readWorkingState, writeDraftIssue } from '@/server/repos/sites';
 
 /** Longer than a résumé, since this also takes a pasted write-up. */
 const TEXT_CAP = 24_000;
@@ -16,34 +19,63 @@ const FILE_CAP = 4 * 1024 * 1024;
 
 const MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-5';
 
+export type DraftInput = {
+  text?: string;
+  file?: { name: string; type: string; bytes: ArrayBuffer };
+};
+
 export type DraftResult =
   | { ok: true; gaps: string[]; counts: { roles: number; schools: number; projects: number } }
   | { ok: false; reason: string };
 
-function configured(): boolean {
+/** Whether the builder should offer the document box at all. */
+export function documentsEnabled(): boolean {
   return (process.env.ANTHROPIC_API_KEY ?? '') !== '';
 }
 
 /**
- * Read a document or some pasted text into the person's own content.
- *
- * Writes to `source_material`, not to a site: this is who someone is rather
- * than what one portfolio says, so every portfolio they ever make seeds from it
- * (§23.4). Content flows profile → portfolio, one way.
- *
- * **Parse and discard** (§23.6). The bytes are read, the facts are kept, and
- * the file is never stored — so this needs none of the upload pipeline: no
- * EXIF, no quota, no MIME allowlist, because nothing here is ever served to a
- * stranger. Hosting a résumé for download is a different feature.
+ * Read the current content for a target, or a fresh starter if there is none.
+ * A profile with nothing stored yet is the ordinary first visit, not an error.
  */
-export async function draftProfileFrom(input: {
-  text?: string;
-  file?: { name: string; type: string; bytes: ArrayBuffer };
-}): Promise<DraftResult> {
+async function readCurrent(target: Target, ownerId: string, email: string): Promise<Issue | null> {
+  if (target.kind === 'profile') {
+    const stored = await readSourceMaterial(ownerId);
+    return stored ? parseIssue(stored.issue, stored.issueSchemaVersion) : starterIssue('', email);
+  }
+
+  const working = await readWorkingState(target.siteId, ownerId);
+  return working ? parseIssue(working.issue, working.issueSchemaVersion) : null;
+}
+
+/** Write merged content back where it came from. Both writes are owner-scoped. */
+async function writeBack(target: Target, ownerId: string, issue: Issue): Promise<boolean> {
+  return target.kind === 'profile'
+    ? writeSourceMaterial(ownerId, issue)
+    : writeDraftIssue(target.siteId, ownerId, issue);
+}
+
+/**
+ * Read a document or pasted text into content, additively.
+ *
+ * The same call serves the profile (§23.4 — who someone is, seeded into every
+ * portfolio) and one site's draft (this portfolio only): both hold an `Issue`,
+ * and `draftInto` differs only in which one it reads and writes, exactly as
+ * `saveIssue` does. That is why autofill can sit on the content step and the
+ * intake screen without two pipelines.
+ *
+ * It **merges** rather than overwrites (`applyDraft`), so running it on an
+ * editor a person has already started updates matching rows in place and leaves
+ * everything else — including hand-typed rows and every project's images and
+ * impact — untouched. Convenience that eats your work is not convenience.
+ *
+ * **Parse and discard** (§23.6): the bytes are read here and never stored, so
+ * none of the upload pipeline applies. Nothing here is served to a stranger.
+ */
+export async function draftInto(target: Target, input: DraftInput): Promise<DraftResult> {
   const owner = await currentUser();
   if (!owner) return { ok: false, reason: 'Your session has expired. Sign in again.' };
 
-  if (!configured()) {
+  if (!documentsEnabled()) {
     return {
       ok: false,
       reason:
@@ -58,6 +90,11 @@ export async function draftProfileFrom(input: {
   if (file && file.bytes.byteLength > FILE_CAP) {
     return { ok: false, reason: 'That file is over 4MB. Try a smaller export, or paste the text.' };
   }
+
+  // Read the target first, so a site that is not the caller's fails before the
+  // model is ever called rather than after paying for it.
+  const current = await readCurrent(target, owner.id, owner.email);
+  if (!current) return { ok: false, reason: 'That portfolio is not yours to edit.' };
 
   const content: Anthropic.MessageParam['content'] = [];
 
@@ -115,14 +152,9 @@ export async function draftProfileFrom(input: {
   }
 
   const draft = readDraft(call.input);
-
-  const stored = await readSourceMaterial(owner.id);
-  const current = stored
-    ? parseIssue(stored.issue, stored.issueSchemaVersion)
-    : starterIssue('', owner.email);
-
   const next = applyDraft(current, draft);
-  if (!(await writeSourceMaterial(owner.id, next))) {
+
+  if (!(await writeBack(target, owner.id, next))) {
     return { ok: false, reason: 'Could not save what was read. Try again.' };
   }
 
@@ -135,9 +167,4 @@ export async function draftProfileFrom(input: {
       projects: draft.projects.length,
     },
   };
-}
-
-/** Whether the builder should offer the document box at all. */
-export function documentsEnabled(): boolean {
-  return configured();
 }

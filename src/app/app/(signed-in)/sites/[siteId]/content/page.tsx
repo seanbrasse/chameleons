@@ -1,8 +1,10 @@
 import { notFound } from 'next/navigation';
 
 import { loadEditor } from '@/server/services/editSite';
+import { documentsEnabled } from '@/server/services/draftContent';
 import { getManifest } from '@/templates/manifests';
 
+import { Autofill } from '../Autofill';
 import { EducationRow } from '../EducationRow';
 import { ExperienceRow } from '../ExperienceRow';
 import { ImportGitHub } from '../ImportGitHub';
@@ -148,6 +150,22 @@ export default async function ContentStep({ params }: { params: Promise<{ siteId
           <h1>{issue.settings.displayName || 'Your portfolio'}</h1>
           <p>Saved as you go. {templateName} is showing what you write here.</p>
         </div>
+
+        {/* Autofill first, because the point is to avoid the forms below where a
+            document already has the answer. Collapsed, because it is an offer,
+            not a step — someone who has already filled everything in should not
+            have to scroll past it. */}
+        <details className="admin-fieldset admin-autofill">
+          <summary>
+            <span className="admin-choice-name">Fill this in from a résumé or write-up</span>
+            <span className="admin-note">optional</span>
+          </summary>
+          <p className="admin-note">
+            Drop a document or paste your experience, and the fields fill themselves. It updates
+            what is here rather than replacing it, so it is safe to run at any point.
+          </p>
+          <Autofill scope={scope} enabled={documentsEnabled()} />
+        </details>
 
         {asked.map((entry) => (
           <Section key={entry.id} title={entry.title} id={entry.id}>

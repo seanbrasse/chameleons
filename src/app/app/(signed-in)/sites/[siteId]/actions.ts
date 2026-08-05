@@ -30,6 +30,7 @@ import {
   type Target,
 } from '@/server/services/editSite';
 import { projectFrom, type RepoSummary } from '@/server/domain/github';
+import { draftInto } from '@/server/services/draftContent';
 import { fetchRepos } from '@/server/services/importGitHub';
 import { publishSite } from '@/server/services/publishSite';
 import { rollbackSite } from '@/server/services/rollbackSite';
@@ -103,6 +104,47 @@ function revalidateFor(target: Target): void {
     return;
   }
   revalidatePath(builderRoute(`/sites/${target.siteId}`), 'layout');
+}
+
+export type AutofillState = {
+  problem?: string;
+  read?: { roles: number; schools: number; projects: number; gaps: string[] };
+};
+
+/**
+ * Read a document or pasted text into the scoped content, additively.
+ *
+ * Scope-aware like every other content action: the same box works on a site's
+ * draft and on the profile, because `draftInto` merges an `Issue` either way.
+ * The bytes arrive in the action and leave in the same request — parse and
+ * discard (§23.6), so none of the upload pipeline applies.
+ */
+export async function autofill(_state: AutofillState, form: FormData): Promise<AutofillState> {
+  const target = targetOf(form);
+  if (!target) return { problem: REFUSALS['not-found'] };
+
+  const upload = form.get('file');
+  const text = form.get('text');
+  const file =
+    upload instanceof File && upload.size > 0
+      ? { name: upload.name, type: upload.type, bytes: await upload.arrayBuffer() }
+      : undefined;
+
+  const result = await draftInto(target, {
+    text: typeof text === 'string' ? text : undefined,
+    file,
+  });
+
+  if (!result.ok) return { problem: result.reason };
+
+  revalidateFor(target);
+  // A profile autofill also changes what the gallery and the intake screen show.
+  if (target.kind === 'profile') {
+    revalidatePath(builderRoute('/new'));
+    revalidatePath(builderRoute('/start'));
+  }
+
+  return { read: { ...result.counts, gaps: result.gaps } };
 }
 
 function toState(result: SaveResult): EditorState {
