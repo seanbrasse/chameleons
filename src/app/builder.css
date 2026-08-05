@@ -1302,28 +1302,73 @@ body {
 
 
 
-/* ── Autofill: the shortcut past the forms ───────────────────────────────
-   Marked with the accent edge so it reads as "you may not have to fill any of
-   this in" rather than as one more section. A `details` so it is an offer, not
-   a step someone who has finished must scroll past. */
+/* ── Autofill: the fastest way through the forms ─────────────────────────
+   A panel, not a disclosure. A résumé already holds most of these answers, so
+   the offer to skip the typing is the first thing on the step, set on a filled
+   surface so it reads as the shortcut it is. */
 .admin-autofill {
+  background: var(--surface);
+  border: 1px solid var(--rule);
   border-left: 3px solid var(--accent-a);
+  border-radius: var(--radius);
+  padding: var(--s-4);
 }
 
-.admin-autofill > summary {
+.admin-autofill .admin-form {
+  margin-top: var(--s-3);
+}
+
+/* The drop target. Dashed, generous, and obviously a place to put a file —
+   which is the thing the previous collapsed box failed to look like. */
+.admin-dropzone {
+  border: 2px dashed var(--rule-strong);
+  border-radius: var(--radius);
+  padding: var(--s-5) var(--s-4);
+  text-align: center;
   cursor: pointer;
-  display: flex;
-  align-items: baseline;
-  gap: var(--s-2);
-  list-style: none;
+  background: var(--matte);
+  transition:
+    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
 }
 
-.admin-autofill > summary::-webkit-details-marker {
-  display: none;
+.admin-dropzone:hover {
+  border-color: var(--accent-a);
 }
 
-.admin-autofill > summary .admin-note {
-  margin: 0;
+.admin-dropzone.is-dragging {
+  border-color: var(--accent-a);
+  border-style: solid;
+  background: var(--surface-sunk);
+}
+
+/* Off means no API key. Still shown — it says what the feature is — but plainly
+   not a live target, so the click and drag handlers are wired off in the
+   component to match. */
+.admin-dropzone.is-off {
+  cursor: default;
+  opacity: 0.6;
+  border-color: var(--rule);
+}
+
+.admin-dropzone.is-off:hover {
+  border-color: var(--rule);
+}
+
+.admin-dropzone-lead {
+  margin: 0 0 var(--s-1);
+  font-size: var(--t-body);
+  font-weight: 600;
+}
+
+.admin-dropzone .admin-note {
+  margin: 0 auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-dropzone {
+    transition: none;
+  }
 }
 
 /* ── The step rail ───────────────────────────────────────────────────────

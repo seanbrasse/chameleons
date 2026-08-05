@@ -151,21 +151,20 @@ export default async function ContentStep({ params }: { params: Promise<{ siteId
           <p>Saved as you go. {templateName} is showing what you write here.</p>
         </div>
 
-        {/* Autofill first, because the point is to avoid the forms below where a
-            document already has the answer. Collapsed, because it is an offer,
-            not a step — someone who has already filled everything in should not
-            have to scroll past it. */}
-        <details className="admin-fieldset admin-autofill">
-          <summary>
-            <span className="admin-choice-name">Fill this in from a résumé or write-up</span>
+        {/* Autofill first and in full, because it is the fastest way through
+            everything below: a résumé already has most of these answers, and
+            burying that behind a disclosure hides the point of the builder. */}
+        <section className="admin-section admin-autofill" id="autofill">
+          <div className="admin-section-head">
+            <h3>Start from a résumé or write-up</h3>
             <span className="admin-note">optional</span>
-          </summary>
+          </div>
           <p className="admin-note">
-            Drop a document or paste your experience, and the fields fill themselves. It updates
-            what is here rather than replacing it, so it is safe to run at any point.
+            Drop a document or paste your experience and the fields fill themselves. It updates what
+            is here rather than replacing it, so it is safe to run at any point.
           </p>
           <Autofill scope={scope} enabled={documentsEnabled()} />
-        </details>
+        </section>
 
         {asked.map((entry) => (
           <Section key={entry.id} title={entry.title} id={entry.id}>

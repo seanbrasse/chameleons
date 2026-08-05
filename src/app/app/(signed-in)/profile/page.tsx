@@ -79,17 +79,17 @@ export default async function Profile() {
         </div>
 
         <Phase n="—" title="Everything about you" note="Saved as you go">
-          <details className="admin-fieldset admin-autofill">
-            <summary>
-              <span className="admin-choice-name">Fill this in from a résumé or write-up</span>
+          <section className="admin-section admin-autofill" id="autofill">
+            <div className="admin-section-head">
+              <h3>Start from a résumé or write-up</h3>
               <span className="admin-note">optional</span>
-            </summary>
+            </div>
             <p className="admin-note">
-              Drop a document or paste your experience, and the fields fill themselves. It updates
+              Drop a document or paste your experience and the fields fill themselves. It updates
               what is here rather than replacing it.
             </p>
             <Autofill scope={scope} enabled={documentsEnabled()} />
-          </details>
+          </section>
 
           <Section title="About" id="about">
             <SettingsForm scope={scope} settings={issue.settings} />
