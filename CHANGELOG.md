@@ -221,6 +221,34 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
   page that all six forms post `scope=profile` and none carries a stray
   `siteId`.
 
+### Content before the design
+
+- **A new account is asked about its work before it picks a design.** `/start`
+  takes a résumé or write-up, a GitHub username, or just your name — all of it
+  into `source_material`, so the gallery then previews *your* work in each
+  design rather than a stranger's.
+- This reverses §23.2's gallery-first ordering, on Sean's call. That section had
+  already judged import-first "strictly better — you see your work in each
+  design", choosing gallery-first only because a gallery is a nicer first
+  impression than a file input. The cost was visible one screen later: with
+  nothing imported, every card previewed demo content.
+- **Reading a document is one call against one tool schema**, forced, covering
+  every field at once. The schema *is* the mapping — its property names are the
+  `Issue` field names — so there is no per-field API and nothing to keep in step
+  as fields are added.
+- **It transcribes and never infers** (§23.5). Dates, titles, employers, schools
+  and technologies are copied; impact, seniority and outcomes are left empty and
+  *reported as gaps*, because a parser that writes "improved performance by 40%"
+  has put a claim the user never made under their name in front of a recruiter.
+  Project `impact` is always empty, exactly as the GitHub import leaves it.
+- **Parse and discard** (§23.6): the bytes are read in the action and never
+  stored, so none of the upload pipeline applies — no EXIF, no quota, no MIME
+  allowlist, because nothing here is served to a stranger. The Messages API
+  takes a PDF directly, so no text-extraction library was needed.
+- Everything is skippable, and the document box degrades to a plain explanation
+  when the deployment has no `ANTHROPIC_API_KEY` — GitHub import and typing work
+  regardless.
+
 ### One site, from landing page to publish
 
 - **The builder moved onto the apex.** `chameleons.dev` is now a real landing

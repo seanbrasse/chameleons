@@ -35,7 +35,15 @@ const SITE_ROOT = '/s';
  * 404 instead of a builder page nobody wrote. Marketing keeps everything not
  * named here, which is the right default for the surface strangers land on.
  */
-const BUILDER_ROOTS = ['/enter', '/auth', '/sites', '/new', '/profile', '/preview'] as const;
+const BUILDER_ROOTS = [
+  '/enter',
+  '/auth',
+  '/sites',
+  '/new',
+  '/start',
+  '/profile',
+  '/preview',
+] as const;
 
 function isBuilderPath(pathname: string): boolean {
   return BUILDER_ROOTS.some((root) => pathname === root || pathname.startsWith(`${root}/`));
