@@ -221,6 +221,25 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
   page that all six forms post `scope=profile` and none carries a stray
   `siteId`.
 
+### One site, from landing page to publish
+
+- **The builder moved onto the apex.** `chameleons.dev` is now a real landing
+  page *and* the builder: you arrive, sign in, and build without being handed to
+  a second hostname on your first click. You only leave for a hostname of your
+  own, once you publish.
+- Safe because the auth cookie is **host-only** — nothing sets a `Domain`
+  attribute, so a cookie for `chameleons.dev` is returned to exactly that host
+  and never to `sean.chameleons.dev`. That isolation is what §1 wanted; the
+  `app.` subdomain was one way to get it rather than the only one.
+- The dashboard moved from `/` to `/sites`, because on the apex `/` belongs to
+  marketing. `app.chameleons.dev` still answers, so existing links keep working.
+- **Canonicalising `app.` onto the apex is a Vercel domain redirect, not code.**
+  Middleware relativises any `Location` that resolves to the deployment's own
+  origin, so a cross-host redirect written in `proxy.ts` becomes a bare path —
+  which the browser resolves against `app.` and follows to itself, forever.
+- A real landing page: a claim, a way in, and the designs arguing for themselves
+  with their own hard constraints rather than adjectives.
+
 ### Builder as a wizard
 
 - **The builder is three pages now, not one.** Design, content and publish are

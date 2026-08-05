@@ -46,7 +46,7 @@ export default async function NewPortfolio() {
             description: manifest.description,
             constraint: manifest.constraint,
           }))}
-          backHref={sites.length > 0 ? builderHref('/') : null}
+          backHref={sites.length > 0 ? builderHref('/sites') : null}
           hasContent={hasContent}
         />
       </main>

@@ -2,7 +2,9 @@ import { expect, test } from '@playwright/test';
 
 test('the root serves marketing', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Chameleons');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+    'Your work, in a design that suits it.',
+  );
 });
 
 test('/s/<subdomain> serves that tenant', async ({ page }) => {
