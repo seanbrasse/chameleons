@@ -1,0 +1,372 @@
+/*
+ * Template #3 — Dossier.
+ *
+ * Promoted from `design/dossier/comp.html`, which stays in the repo as the
+ * design record: it is what a change to this file is diffed against when the
+ * template drifts (plan §20.4).
+ *
+ * Its one rule is: no images, anywhere. Type is the only hierarchy, so the scale
+ * is wide and the spacing deliberately uneven, and the margin column — dates,
+ * employers and tech set as Tufte sidenotes — is the design rather than an
+ * ornament on it. No card, no rounded rectangle, no icon, no gradient, no
+ * drop shadow, no pill: if it resembles a SaaS landing page it has failed.
+ *
+ * Colours come from the tokens stylesheet (`--paper`, `--ink`, `--accent` …),
+ * injected per request and overridden under `[data-theme="dark"]`. Only the
+ * non-colour scale lives here, where a lint rule permits it.
+ */
+
+:root {
+  --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Charter, Georgia, serif;
+  --mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* The scale, 12 → clamp(44 … 64). Roughly 7×, against the ~4× floor §20.3
+     warns below: with no images the type is the only hierarchy there is. */
+  --t-note: 0.75rem;
+  --t-label: 0.8125rem;
+  --t-body: 1.0625rem;
+  --t-lead: 1.375rem;
+  --t-entry: 1.5rem;
+  --t-name: 3.25rem;
+  /* Clamped, not fixed: "~$50M" is five glyphs where "~50%" is four, and a size
+     that fits the shortest overruns the longest. */
+  --t-numeral: clamp(2.75rem, 5.5vw, 4rem);
+
+  /* Deliberately uneven — tight inside an entry, enormous between sections. The
+     ratio is the hierarchy (§20.1 cause 3); an even 16/24/32 reads as generic. */
+  --gap-line: 0.35rem;
+  --gap-entry: 2.75rem;
+  --gap-section: 7rem;
+
+  --measure: 34em;
+  --margin-col: 11rem;
+}
+
+.dossier * {
+  box-sizing: border-box;
+}
+
+.dossier {
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: var(--t-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The margin column is the design, borrowed from Tufte's sidenotes. The
+   two-column grid is declared on every level that needs it rather than inherited
+   through nested `subgrid`: subgrid only reaches a parent that is itself a grid,
+   and making a section a grid purely so its children see through it is the kind
+   of cleverness that fails silently — a sidenote rendered on top of its own
+   heading. Repeating one custom property is cheaper than debugging that. */
+.dossier .sheet,
+.dossier .section,
+.dossier .section-head,
+.dossier .entry {
+  display: grid;
+  grid-template-columns: var(--margin-col) minmax(0, var(--measure));
+  column-gap: 3rem;
+}
+
+.dossier .sheet {
+  /* The asymmetry is inside the block — margin column beside text — rather than
+     the block being off-centre. Wide enough for both columns and no wider, so
+     there is no dead rail on the right. */
+  margin: 0 auto;
+  padding: 6rem 2rem 10rem;
+  max-width: 52rem;
+}
+
+.dossier .side {
+  grid-column: 1;
+  font-family: var(--mono);
+  font-size: var(--t-note);
+  line-height: 1.5;
+  color: var(--ink-faint);
+  text-align: right;
+  padding-top: 0.5rem;
+}
+
+.dossier .main {
+  grid-column: 2;
+}
+
+.dossier .full {
+  grid-column: 1 / -1;
+}
+
+/* ── Masthead ─────────────────────────────────────────────────────── */
+
+.dossier .name {
+  font-size: var(--t-name);
+  line-height: 1.02;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.dossier .lead {
+  font-size: var(--t-lead);
+  line-height: 1.4;
+  color: var(--ink-quiet);
+  margin: 1.25rem 0 0;
+  max-width: 28em;
+}
+
+.dossier .masthead-meta {
+  margin: 2rem 0 0;
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  color: var(--ink-quiet);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.dossier .masthead-meta a {
+  color: inherit;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 0.25em;
+}
+
+.dossier .masthead-meta a:hover {
+  color: var(--accent);
+  text-decoration-color: currentColor;
+}
+
+/* ── Section headings — fixed, terse, one voice (the man-page lesson) ── */
+
+.dossier .section {
+  margin-top: var(--gap-section);
+}
+
+.dossier .section-head {
+  grid-column: 1 / -1;
+  border-top: 2px solid var(--accent);
+  padding-top: 0.6rem;
+  margin-bottom: 2.5rem;
+}
+
+.dossier .section-title {
+  grid-column: 1;
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  margin: 0;
+  text-align: right;
+}
+
+.dossier .section-note {
+  grid-column: 2;
+  font-family: var(--mono);
+  font-size: var(--t-note);
+  color: var(--ink-faint);
+  margin: 0.2rem 0 0;
+}
+
+/* ── Numbers — the FT reference. A number set enormous is the argument ── */
+
+.dossier .numbers {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 2.5rem 2rem;
+  margin: 0;
+}
+
+.dossier .numbers p {
+  margin: 0;
+}
+
+.dossier .numeral {
+  font-size: var(--t-numeral);
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  display: block;
+}
+
+.dossier .numeral-label {
+  display: block;
+  font-family: var(--mono);
+  font-size: var(--t-note);
+  line-height: 1.4;
+  color: var(--ink-quiet);
+  margin-top: 0.85rem;
+  max-width: 11em;
+}
+
+/* ── Entries ──────────────────────────────────────────────────────── */
+
+.dossier .entry {
+  grid-column: 1 / -1;
+}
+
+.dossier .entry + .entry {
+  margin-top: var(--gap-entry);
+}
+
+.dossier .entry-title {
+  font-size: var(--t-entry);
+  font-weight: 400;
+  line-height: 1.2;
+  margin: 0 0 var(--gap-line);
+  letter-spacing: -0.01em;
+}
+
+.dossier .entry-role {
+  margin: 0 0 0.85rem;
+  color: var(--ink-quiet);
+  font-size: var(--t-body);
+}
+
+.dossier .entry-body {
+  margin: 0;
+}
+
+.dossier .entry-body + .entry-body {
+  margin-top: 0.7rem;
+}
+
+/* The impact line: a rule in the margin, not a badge or a coloured chip. The
+   emphasis is position and a hairline, never a container. */
+.dossier .impact {
+  margin: 0.85rem 0 0;
+  padding-left: 1rem;
+  border-left: 2px solid var(--accent);
+  color: var(--ink);
+}
+
+.dossier .side-stack {
+  display: block;
+  margin-top: 0.5rem;
+  color: var(--ink-quiet);
+}
+
+.dossier .side-date {
+  display: block;
+  color: var(--ink-faint);
+}
+
+.dossier .side-where {
+  display: block;
+  margin-top: 0.15rem;
+}
+
+.dossier .link-out {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+/* ── Colophon ─────────────────────────────────────────────────────── */
+
+.dossier .colophon {
+  grid-column: 1 / -1;
+  margin-top: var(--gap-section);
+  border-top: 1px solid var(--rule);
+  padding-top: 1.25rem;
+  font-family: var(--mono);
+  font-size: var(--t-note);
+  color: var(--ink-faint);
+}
+
+/* ── Theme toggle — plain text, top-right. Not a pill or a switch ────── */
+
+.dossier .theme-control {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+}
+
+.dossier .theme-toggle {
+  font-family: var(--mono);
+  font-size: var(--t-note);
+  color: var(--ink-quiet);
+  background: transparent;
+  border: 0;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+}
+
+.dossier .theme-toggle:hover {
+  color: var(--accent);
+}
+
+/* ── Focus and the skip link, which are floor, not styling ──────────── */
+
+.dossier a:focus-visible,
+.dossier .theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 1px;
+}
+
+.dossier .skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+}
+
+.dossier .skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  z-index: 3;
+  padding: 0.5rem 0.75rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: var(--t-note);
+}
+
+/* Below the margin column's width there is no margin column: the notes move
+   above their subject and read in DOM order — which is the order a screen
+   reader has always used. */
+@media (max-width: 46rem) {
+  :root {
+    --t-name: 2.25rem;
+    --t-numeral: 3.5rem;
+    --gap-section: 4.5rem;
+  }
+
+  .dossier .sheet {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 3rem 1.5rem 6rem;
+  }
+
+  .dossier .side,
+  .dossier .main,
+  .dossier .full,
+  .dossier .entry,
+  .dossier .section-head,
+  .dossier .numbers,
+  .dossier .colophon {
+    grid-column: 1;
+  }
+
+  .dossier .entry,
+  .dossier .section-head {
+    display: block;
+  }
+
+  .dossier .side {
+    text-align: left;
+    padding-top: 0;
+    margin-bottom: 0.6rem;
+  }
+
+  .dossier .section-title {
+    text-align: left;
+  }
+}

@@ -87,15 +87,22 @@ frame from the tab order alone leaves its links focusable and unreachable, which
 is what axe calls `frame-focusable-content`, and `inert` does not cross into a
 nested browsing context.
 
-**There are two designs now**, which is what makes the picker a picker.
+**There are three designs now**, which is what makes the picker a picker.
 `timeline` does not scroll and shows work at thumbnail scale; `plates` is a
 scrolling catalogue whose one rule is that **no text is ever set over an image**
 — which is also the only way the contrast floor stays checkable, since a
-photograph uploaded after the design ships has unknown tones. They read
-different field sets (`plates` shows no education, `timeline` no testimonials),
-so the two exercise each other's "not on this design" behaviour.
+photograph uploaded after the design ships has unknown tones. `dossier` is the
+opposite of both: a document with **no images anywhere**, for engineers whose
+best work has no screenshot — dates, employers and tech set as Tufte sidenotes,
+metrics blown up to display size. They read different field sets (`plates` shows
+no education, `timeline` no testimonials, `dossier` no testimonials and leans on
+`metrics`), so they exercise each other's "not on this design" behaviour.
 
-The dossier comp (PR #26) is still open as a possible #3.
+Promoting `dossier` from its comp (§20.4) validated the floor as the *only*
+shared contract a third time: registering the manifest was all it took to add
+its coverage, and `Issue` and `floor.ts` carried it unchanged. Each template
+owns its palette (both themes, in its token file), its CSS, and — since a lint
+rule forbids one template importing another — its own `ThemeScript`/`ThemeToggle`.
 
 ---
 
