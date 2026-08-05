@@ -5,7 +5,7 @@
       "source": "/:path*",
       "has": [{ "type": "host", "value": "app.chameleons.dev" }],
       "destination": "https://chameleons.dev/:path*",
-      "permanent": true
+      "permanent": false
     }
   ]
 }
