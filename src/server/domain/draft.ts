@@ -208,11 +208,49 @@ export function gapsIn(draft: Draft): string[] {
   return gaps;
 }
 
-/** Fold a draft into an `Issue`, keeping ids stable so a re-read updates rather than duplicates. */
-export function applyDraft(issue: Issue, draft: Draft): Issue {
-  const id = (kind: string, key: string) =>
-    `${kind}-${key.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
+const draftId = (kind: string, key: string) =>
+  `${kind}-${key.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
 
+/**
+ * Merge drafted rows into what is already there, upserting by id.
+ *
+ * Additive on purpose. Autofill runs on an editor a person may have already
+ * started, and destroying a hand-typed row because it was absent from the
+ * document would be the opposite of convenient — you would learn not to reach
+ * for it. So a drafted row with the same derived id updates in place, a new one
+ * is appended, and anything the person added that the document does not mention
+ * is left untouched. Re-running the same résumé therefore changes nothing.
+ *
+ * "Update in place" is a shallow field merge weighted to the draft, then the
+ * caller's `keep` runs so a row can preserve the fields a résumé never carries —
+ * a project's images, its impact — across the update.
+ */
+function upsertRows<T extends { id: string }>(
+  existing: T[],
+  drafted: T[],
+  keep: (previous: T, next: T) => T,
+): T[] {
+  const byId = new Map(existing.map((row) => [row.id, row]));
+  const order = existing.map((row) => row.id);
+
+  for (const row of drafted) {
+    const previous = byId.get(row.id);
+    byId.set(row.id, previous ? keep(previous, { ...previous, ...row }) : row);
+    if (!previous) order.push(row.id);
+  }
+
+  return order.map((id) => byId.get(id)!);
+}
+
+/**
+ * Fold a draft into an `Issue`, additively.
+ *
+ * Ids are derived from the row's own identifying text, so the same company or
+ * project always lands on the same id and a second read updates rather than
+ * duplicates. Settings take a drafted value only where the person has not
+ * written one, so autofill never overwrites what someone typed.
+ */
+export function applyDraft(issue: Issue, draft: Draft): Issue {
   return {
     ...issue,
     settings: {
@@ -222,29 +260,56 @@ export function applyDraft(issue: Issue, draft: Draft): Issue {
       location: draft.location || issue.settings.location,
       skills: draft.skills.length > 0 ? draft.skills : issue.settings.skills,
     },
-    experiences: draft.experiences.map((role) => ({ ...role, id: id('exp', role.company) })),
-    education: draft.education.map((school) => ({
-      ...school,
-      id: id('edu', school.school),
-      links: [],
-    })),
-    projects: draft.projects.map((project) => ({
-      id: id('proj', project.title),
-      title: project.title,
-      summary: project.summary,
-      date: project.date,
-      tech: project.tech,
-      // Left empty on purpose: no document states what a project was *for*, and
-      // `validateIssue` asking the human for it is the correct outcome (§23.5).
-      impact: '',
-      images: [],
-      links: [],
-      starred: false,
-      // Neither is stated by a résumé, so both take the neutral default rather
-      // than a guess. 'personal' would be a claim about where the work was done.
-      context: 'professional' as const,
-      status: 'shipped' as const,
-      duration: '',
-    })),
+
+    experiences: upsertRows(
+      issue.experiences,
+      draft.experiences.map((role) => ({ ...role, id: draftId('exp', role.company) })),
+      // A résumé does not carry a logo or attached media; keep whatever was there.
+      (previous, next) => ({ ...next, logo: previous.logo, media: previous.media }),
+    ),
+
+    education: upsertRows(
+      issue.education,
+      draft.education.map((school) => ({
+        ...school,
+        id: draftId('edu', school.school),
+        links: [] as Issue['education'][number]['links'],
+      })),
+      (previous, next) => ({ ...next, links: previous.links, logo: previous.logo }),
+    ),
+
+    projects: upsertRows(
+      issue.projects,
+      draft.projects.map((project) => ({
+        id: draftId('proj', project.title),
+        title: project.title,
+        summary: project.summary,
+        date: project.date,
+        tech: project.tech,
+        // Left empty on purpose: no document states what a project was *for*,
+        // and `validateIssue` asking the human for it is the right outcome
+        // (§23.5).
+        impact: '',
+        images: [] as Issue['projects'][number]['images'],
+        links: [] as Issue['projects'][number]['links'],
+        starred: false,
+        // Neither is stated by a résumé, so both take the neutral default
+        // rather than a guess. 'personal' would be a claim about where it was
+        // done.
+        context: 'professional' as const,
+        status: 'shipped' as const,
+        duration: '',
+      })),
+      // The one that matters: images, impact and links are the person's work,
+      // never a document's, so a re-import must not blank them.
+      (previous, next) => ({
+        ...next,
+        impact: previous.impact || next.impact,
+        images: previous.images,
+        links: previous.links,
+        starred: previous.starred,
+        story: previous.story,
+      }),
+    ),
   };
 }

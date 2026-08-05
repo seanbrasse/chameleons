@@ -3,7 +3,9 @@ import { currentUser } from '@/server/auth/session';
 import { parseIssue } from '@/server/domain/parse-issue';
 import { readSourceMaterial } from '@/server/repos/sourceMaterial';
 import { starterIssue } from '@/content/starter';
+import { documentsEnabled } from '@/server/services/draftContent';
 
+import { Autofill } from '../sites/[siteId]/Autofill';
 import { EducationRow } from '../sites/[siteId]/EducationRow';
 import { ExperienceRow } from '../sites/[siteId]/ExperienceRow';
 import { ImportGitHub } from '../sites/[siteId]/ImportGitHub';
@@ -77,6 +79,18 @@ export default async function Profile() {
         </div>
 
         <Phase n="—" title="Everything about you" note="Saved as you go">
+          <details className="admin-fieldset admin-autofill">
+            <summary>
+              <span className="admin-choice-name">Fill this in from a résumé or write-up</span>
+              <span className="admin-note">optional</span>
+            </summary>
+            <p className="admin-note">
+              Drop a document or paste your experience, and the fields fill themselves. It updates
+              what is here rather than replacing it.
+            </p>
+            <Autofill scope={scope} enabled={documentsEnabled()} />
+          </details>
+
           <Section title="About" id="about">
             <SettingsForm scope={scope} settings={issue.settings} />
           </Section>

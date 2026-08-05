@@ -3,13 +3,13 @@ import { currentUser } from '@/server/auth/session';
 import { parseIssue } from '@/server/domain/parse-issue';
 import { readSourceMaterial } from '@/server/repos/sourceMaterial';
 import { starterIssue } from '@/content/starter';
-import { documentsEnabled } from '@/server/services/draftProfile';
+import { documentsEnabled } from '@/server/services/draftContent';
 
+import { Autofill } from '../sites/[siteId]/Autofill';
 import { ImportGitHub } from '../sites/[siteId]/ImportGitHub';
 import { Section } from '../sites/[siteId]/Section';
 import { SettingsForm } from '../sites/[siteId]/SettingsForm';
 import { PROFILE_SCOPE } from '../sites/[siteId]/scope';
-import { Intake } from './Intake';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,7 +61,7 @@ export default async function Start() {
         </div>
 
         <Section title="From a document" id="document">
-          <Intake enabled={documentsEnabled()} />
+          <Autofill scope={PROFILE_SCOPE} enabled={documentsEnabled()} />
         </Section>
 
         <Section title="From GitHub" id="github">

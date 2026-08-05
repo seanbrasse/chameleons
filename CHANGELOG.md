@@ -221,6 +221,27 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
   page that all six forms post `scope=profile` and none carries a stray
   `siteId`.
 
+### Autofill, where you actually edit
+
+- **Drop a résumé or paste a write-up on the content step and the fields fill
+  themselves.** The original portfolio's best convenience was inline — paste a
+  doc and it mapped onto the form — and that box now sits on the content editor,
+  the profile, and the signup intake, wherever content is edited. One shared
+  component, scope-aware like every other content control.
+- **It merges, it does not overwrite.** `applyDraft` now upserts rows by a
+  derived id: a matching role or project updates in place, a new one is
+  appended, and anything hand-typed that the document does not mention is left
+  alone. A project's images, impact and links survive a re-import, because those
+  are the person's work and never a document's. Autofill that ate your edits
+  would be the opposite of convenient.
+- The reader is one target-aware service (`draftInto`), so a site draft and the
+  profile share it exactly as `saveIssue` does — no second pipeline.
+- Still transcribes and never infers (§23.5): what a document does not state
+  comes back empty and is reported as a gap, and the box says "existing entries
+  were updated, not replaced" so nobody fears running it twice.
+- Degrades to a plain message when the deployment has no `ANTHROPIC_API_KEY`;
+  GitHub import and typing are unaffected.
+
 ### Content before the design
 
 - **A new account is asked about its work before it picks a design.** `/start`
