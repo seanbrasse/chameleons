@@ -8,9 +8,12 @@ export default async function Builder() {
   const sites = await ownedSites();
 
   // An empty account has nothing to choose between, so a dashboard listing
-  // nothing is a dead end wearing the clothes of a choice (plan §23.1). A
-  // returning user is never sent here — they land on their list and decide.
-  if (sites.length === 0 && hasServiceRole()) redirect(builderHref('/new'));
+  // nothing is a dead end wearing the clothes of a choice (plan §23.1). It goes
+  // to intake rather than straight to the gallery: with nothing imported, every
+  // card there previews demo content, so the picker would show a stranger's
+  // portfolio in two designs rather than yours in either. A returning user is
+  // never sent to either — they land on their list and decide.
+  if (sites.length === 0 && hasServiceRole()) redirect(builderHref('/start'));
 
   return (
     // No rail: the dashboard is one list and has nothing to index. The shell's
