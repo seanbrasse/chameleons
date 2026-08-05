@@ -30,9 +30,28 @@ import, the floor enforced in CI per template, the rule that a template version
 bump must carry a changelog entry, the builder redesign, and the two entry paths
 of plan §23.
 
+**One site, from landing page to publish.** `chameleons.dev` is the marketing
+page *and* the builder: you arrive, sign in, and build in one place, and only
+leave for a hostname of your own once you publish. That is safe because the auth
+cookie is **host-only** — nothing sets a `Domain` attribute, so a cookie for the
+apex never reaches `sean.chameleons.dev`. The `app.` subdomain was one way to get
+that isolation, not the only one, and it still answers so old links work. The
+dashboard is `/sites`, because `/` belongs to marketing now.
+
+**The flow, as it stands:**
+
+```
+land → sign in → tell us about your work → choose a design → content → publish
+                 (résumé · GitHub · basics)   (previews of YOUR work)
+```
+
+**Content is collected before the design is chosen.** This reverses §23.2, which
+had itself judged import-first "strictly better" and chosen gallery-first only
+for first impressions. The cost of the old order was visible one screen later:
+with nothing imported, every gallery card previewed *demo* content.
+
 **Two entry paths, and content that outlives one portfolio.** An empty account
-goes straight to the gallery, because a dashboard listing nothing is a dead end
-wearing the clothes of a choice; a returning account lands on its sites and
+goes to intake and then the gallery; a returning account lands on its sites and
 chooses. Underneath that, `source_material` holds imported content keyed by
 *owner* rather than by site, so a second portfolio is not retyping a career. It
 stores an `Issue` rather than a parallel "facts" schema — `Issue` already is the
@@ -44,7 +63,7 @@ because a sibling was edited.
 |---|---|
 | desktop | 0.01% differing pixels vs the original |
 | mobile | 0.03% |
-| tests | 160 unit, 21 e2e |
+| tests | 180 unit, 27 e2e |
 | lint | 2 warnings, both pre-existing `<img>` in `Work.tsx` |
 | CI | ~75s end to end |
 
@@ -68,10 +87,15 @@ frame from the tab order alone leaves its links focusable and unreachable, which
 is what axe calls `frame-focusable-content`, and `inert` does not cross into a
 nested browsing context.
 
-**The blocking constraint on all of this: there is still only one template.**
-Everything above assumes a choice between designs and currently offers one card.
-Template #2 is a comp awaiting a veto (§2.4), and it is now the gating item for
-the product's premise rather than a nice-to-have.
+**There are two designs now**, which is what makes the picker a picker.
+`timeline` does not scroll and shows work at thumbnail scale; `plates` is a
+scrolling catalogue whose one rule is that **no text is ever set over an image**
+— which is also the only way the contrast floor stays checkable, since a
+photograph uploaded after the design ships has unknown tones. They read
+different field sets (`plates` shows no education, `timeline` no testimonials),
+so the two exercise each other's "not on this design" behaviour.
+
+The dossier comp (PR #26) is still open as a possible #3.
 
 ---
 
@@ -130,6 +154,12 @@ that had been pulled.
 
 ### 2.2 What Phase 2 still needs
 
+0. **Nobody has published anything.** Every `*.chameleons.dev` 404s, correctly:
+   the wildcard, the cert and the tenant resolver all work — verified live, the
+   subdomain matches `/s/[subdomain]` — and there is simply no published version
+   to serve. Signup → content → claim an address → publish → load the subdomain
+   has never been walked by a person, and it is still the highest-value thing to
+   do next.
 1. **The upload pipeline, and only under supervision.** The *rules* are built
    and tested (`domain/upload.ts`): sniffing by magic bytes, the SVG ban,
    10 MB images / 50 MB video, a 250 MB per-site quota. Nothing calls them yet.
@@ -142,12 +172,28 @@ that had been pulled.
    quarantine bucket plus a server-side finalize step: nothing is publicly
    readable until it has been through it.
 
-   The open question, which needs a human: image stripping via `sharp` is the
-   boring correct answer, but **video metadata stripping has no equivalent** —
-   removing a QuickTime/MP4 location atom means hand-rolled binary container
-   surgery, or deferring video to the Phase 5 queue where ffmpeg can live.
-   A partial implementation of plan §8 is a security surface rather than a
-   feature, and half of it shipped is worse than none.
+   **Two corrections to what this section used to say**, both worth having
+   before the decision is made:
+
+   - It claimed video never worked in the original portfolio, reasoning from
+     `0001`'s bucket allowlist. That was wrong: bucket config lives in the
+     database and can be edited in the dashboard, so migrations are not
+     authoritative for it — and `0014_image_has_audio.sql` is direct evidence
+     video was in real use. Nobody adds a "does this clip have audio" flag for a
+     feature that never ran.
+   - It called video metadata stripping intractable without ffmpeg. Overstated.
+     MP4/MOV are plain box structures — 4-byte size, 4-byte type — and GPS lives
+     in `moov/udta` (the `©xyz` atom). Walking top-level boxes and dropping
+     `udta` decodes no frames and is on the order of a hundred testable lines.
+
+   So the real gap is narrower than it looked: the original stripped **no**
+   metadata, for images or video, which is fine for one trusted uploader and not
+   for strangers publishing under their own names. `sharp` covers images.
+
+   **Deliberately not built unsupervised.** A metadata stripper is a security
+   property that cannot be honestly verified without real camera files, and
+   writing confident-but-unverified media parsing is the exact failure mode §6
+   of this document is about.
 2. **An end-to-end run by a human.** Every part of the loop is tested and the
    pieces have been screenshotted, but nobody has yet sat down and gone signup →
    publish → load the live subdomain in one sitting. That is the acceptance test
@@ -157,18 +203,19 @@ that had been pulled.
    `/users/<login>/repos` call has never run: this sandbox's proxy blocks it,
    because sessions are scoped to configured repositories. Worth watching once
    on a preview deploy.
-4. **Résumé import, which is less blocked than it looks.** Parsing is *parse and
-   discard* (§23.6): read the PDF, write the facts into `source_material`, drop
-   the bytes. No EXIF, no quota, no MIME allowlist — none of §8, because nothing
-   is served to a stranger. *Hosting* a résumé for download is a separate feature
-   and does need the upload pipeline; the two should not be built together just
-   because both involve a PDF.
+4. **The document reader has never met the real API.** `/start` takes a résumé
+   or a pasted write-up, sends it as one forced tool call, and writes what it
+   says into `source_material`. Every failure path returns a specific message —
+   401, 429, malformed reply, oversized file — but the happy path has not run,
+   because this environment has no `ANTHROPIC_API_KEY`. Put one résumé through
+   it once a key is set.
 
-   Two costs to know before starting, neither of them §8: the repo has **no AI
-   dependency at all** — `prefill.ts` was never ported and `@anthropic-ai/sdk`
-   is not installed — and it needs an API key the CI environment does not have.
-   The PDF itself is not a problem: the Messages API takes a document block, so
-   no text-extraction library is needed.
+   It **transcribes and never infers** (§23.5): dates, titles, employers,
+   schools and technologies are copied; impact, seniority and outcomes come back
+   empty and are *reported as gaps*. That is the rule to defend if anyone is
+   ever tempted to make the output look fuller.
+
+
 5. **Content flows profile → site, never back.** A new site seeds from source
    material and import writes both, but editing a portfolio directly does not
    update the profile. That is deliberate — §23.4 keeps each site's `Issue`
@@ -344,6 +391,32 @@ hanging-indent block comments.
 
 Recorded because each was a confident wrong answer from a check that looked
 sufficient.
+
+**The tool that is convenient to reach for may be doing the work the bug depends
+on.** `app.` redirected to itself forever because the proxy emitted a *relative*
+`Location`. `curl -w '%{redirect_url}'` reported a clean `308 → 307 → 200`,
+because **curl resolves relative locations itself**. Only a browser trace showed
+nineteen identical hops. The same shape appeared twice more the same night: a
+Playwright assertion on `window.location.search` passed with the query-string bug
+reintroduced, because a *server-side* rewrite never touches the address bar; and
+a floor probe measured the type-scale *range* and never the minimum, so a 13px
+paragraph sailed past it. When a check is cheap, ask what it is silently doing
+for you.
+
+**`request.url` in middleware carries the server's own origin, not the incoming
+`Host`.** Reassigning its host is a no-op, and Next then serialises a
+same-origin `Location` as a bare path. This is why canonicalising `app.` onto
+the apex is a Vercel domain redirect rather than four lines in `proxy.ts`.
+
+**The proxy dropped the query string on every rewrite**, for the whole life of
+the project. `new URL(pathname, request.url)` keeps the origin and discards the
+search, so every page behind it saw empty `searchParams` — invisible until a
+screen first needed a parameter. The rewrite target is now a pure
+`rewriteTarget()` with tests that fail when the fix is removed.
+
+**Verify a check by breaking the thing it checks.** Every guard in this repo that
+matters was confirmed by reintroducing the bug and watching it go red. Two of
+them passed on a bug they were written for before that step was taken.
 
 **Section headings are not extraction boundaries.** The original 3,795-line
 stylesheet has a public-site media query *after* the `Admin` heading, whose own
