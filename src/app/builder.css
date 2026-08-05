@@ -283,6 +283,12 @@ body {
   max-width: var(--measure);
 }
 
+/* The one form whose content is looked at rather than read: a measure that
+   suits a paragraph squashes a grid of previews. */
+.admin-form-wide {
+  max-width: none;
+}
+
 .admin-link-row {
   grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 110px);
 }
@@ -1202,6 +1208,20 @@ body {
   .admin-rail {
     display: none;
   }
+
+  /* The steps stay: they are how you move through the builder, not an index
+     of a page you could scroll instead. */
+  .admin-steps {
+    position: static;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: var(--s-1);
+    margin-bottom: var(--s-4);
+  }
+
+  .admin-steps .admin-note {
+    display: none;
+  }
 }
 
 /* A list of editable rows. Plain server-rendered markup: the blank "add"
@@ -1278,6 +1298,106 @@ body {
 
 .admin-kept > summary {
   font-size: var(--t-body);
+}
+
+
+/* ── The step rail ───────────────────────────────────────────────────────
+   The builder is a sequence of three screens, so the rail names the sequence
+   rather than indexing one long page. Links, not a gated funnel: a portfolio
+   is not a checkout, and someone who wants their address before their content
+   is not making a mistake worth blocking. */
+.admin-steps {
+  position: sticky;
+  top: var(--s-4);
+  display: grid;
+  gap: var(--s-2);
+  align-content: start;
+}
+
+.admin-step {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border-left: 2px solid var(--rule);
+  text-decoration: none;
+  color: var(--ink-muted);
+}
+
+.admin-step .admin-note {
+  grid-column: 2;
+  margin: 0;
+  font-size: var(--t-micro);
+}
+
+.admin-step-n {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: 0.08em;
+}
+
+.admin-step-title {
+  font-size: var(--t-small);
+  font-weight: 600;
+}
+
+.admin-step:hover {
+  border-left-color: var(--rule-strong);
+  color: var(--ink);
+}
+
+/* The current step, marked by weight and the rule rather than a fill: this is
+   a position indicator, not a button. */
+.admin-step.is-here {
+  border-left-color: var(--accent-a);
+  color: var(--ink);
+}
+
+/* ── Moving between steps ────────────────────────────────────────────────
+   At the foot of a step, because that is where someone is when they have
+   finished one. Making them scroll back to a nav is what a wizard is for. */
+.admin-stepnav {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-top: var(--s-6);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--rule);
+}
+
+/* ── A design, as something you look at ──────────────────────────────────
+   The whole card is the control, so clicking a design picks it. The preview
+   inside is the same scaled frame the gallery uses. */
+.admin-choice-label {
+  display: grid;
+  gap: var(--s-2);
+  cursor: pointer;
+}
+
+.admin-choice-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.admin-choice-head .admin-note {
+  margin: 0;
+  font-size: var(--t-micro);
+}
+
+.admin-choice-name {
+  font-size: var(--t-lead);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.admin-choice.is-chosen {
+  border-color: var(--accent-a);
+}
+
+.admin-choice-label:focus-within .admin-preview {
+  outline: 2px solid var(--accent-a);
+  outline-offset: 3px;
 }
 
 /* ── The template gallery ────────────────────────────────────────────────

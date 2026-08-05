@@ -25,3 +25,4 @@ test('an unclaimed subdomain is a 404', async ({ page }) => {
   const response = await page.goto('/s/nobody');
   expect(response?.status()).toBe(404);
 });
+
