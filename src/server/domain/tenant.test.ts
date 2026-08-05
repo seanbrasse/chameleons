@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { builderPath, builderRoute, resolveTenant, siteUrl, type TenantConfig } from './tenant';
+import { builderPath, builderRoute, resolveTenant, siteUrl, type TenantConfig, rewriteTarget } from './tenant';
 
 const HOST: TenantConfig = { mode: 'host', rootDomain: 'chameleons.dev' };
 const PATH: TenantConfig = { mode: 'path', rootDomain: 'chameleons.dev' };
@@ -11,9 +11,10 @@ describe('host mode', () => {
     expect(resolveTenant('www.chameleons.dev', '/', HOST)).toEqual({ kind: 'marketing' });
   });
 
-  it('resolves the app subdomain to the builder, keeping the path', () => {
+  /** The builder lives on the apex now; `app.` is an alias that redirects. */
+  it('resolves the app subdomain to the builder it used to be, keeping the path', () => {
     expect(resolveTenant('app.chameleons.dev', '/projects/1', HOST)).toEqual({
-      kind: 'builder',
+      kind: 'legacy-builder',
       pathname: '/projects/1',
     });
   });
@@ -128,8 +129,10 @@ describe('builderPath', () => {
   });
 
   it('round-trips through the resolver in both modes', () => {
-    for (const pathname of ['/', '/enter', '/auth/callback', '/sites/new']) {
-      expect(resolveTenant('app.chameleons.dev', builderPath(pathname, HOST), HOST)).toEqual({
+    // No '/' here: on the apex that is the landing page, which is why the
+    // dashboard moved to '/sites'.
+    for (const pathname of ['/enter', '/auth/callback', '/sites', '/sites/new']) {
+      expect(resolveTenant('chameleons.dev', builderPath(pathname, HOST), HOST)).toEqual({
         kind: 'builder',
         pathname,
       });
@@ -200,5 +203,73 @@ describe('builderRoute', () => {
         pathname,
       });
     }
+  });
+});
+
+describe('rewriteTarget', () => {
+  it('carries the query string onto the rewritten path', () => {
+    expect(
+      rewriteTarget('https://app.chameleons.dev/sites/abc?template=plates&embed=1', '/app/sites/abc'),
+    ).toBe('https://app.chameleons.dev/app/sites/abc?template=plates&embed=1');
+  });
+
+  it('leaves a request with no query alone', () => {
+    expect(rewriteTarget('https://app.chameleons.dev/sites/abc', '/app/sites/abc')).toBe(
+      'https://app.chameleons.dev/app/sites/abc',
+    );
+  });
+
+  /** The published render path is rewritten too, and pays the same cost. */
+  it('carries the query onto a tenant rewrite', () => {
+    expect(rewriteTarget('https://sean.chameleons.dev/?from=feed', '/s/sean')).toBe(
+      'https://sean.chameleons.dev/s/sean?from=feed',
+    );
+  });
+});
+
+describe('the builder on the apex', () => {
+  it('serves marketing at the root', () => {
+    expect(resolveTenant('chameleons.dev', '/', HOST)).toEqual({ kind: 'marketing' });
+  });
+
+  it('serves the builder from the apex', () => {
+    expect(resolveTenant('chameleons.dev', '/sites/abc/design', HOST)).toEqual({
+      kind: 'builder',
+      pathname: '/sites/abc/design',
+    });
+    expect(resolveTenant('chameleons.dev', '/enter', HOST)).toEqual({
+      kind: 'builder',
+      pathname: '/enter',
+    });
+  });
+
+  /** A path nobody wrote is a marketing 404, not a builder page. */
+  it('leaves an unknown apex path to marketing', () => {
+    expect(resolveTenant('chameleons.dev', '/pricing', HOST)).toEqual({ kind: 'marketing' });
+  });
+
+  /** `/newsroom` starts with `/new` but is not the create flow. */
+  it('matches builder roots on a segment boundary', () => {
+    expect(resolveTenant('chameleons.dev', '/newsroom', HOST)).toEqual({ kind: 'marketing' });
+    expect(resolveTenant('chameleons.dev', '/new', HOST)).toEqual({
+      kind: 'builder',
+      pathname: '/new',
+    });
+  });
+
+  it('redirects the old builder host rather than serving it', () => {
+    expect(resolveTenant('app.chameleons.dev', '/sites/abc', HOST)).toEqual({
+      kind: 'legacy-builder',
+      pathname: '/sites/abc',
+    });
+  });
+
+  /** A tenant is still a tenant, and its paths are its own. */
+  it('leaves published subdomains alone', () => {
+    expect(resolveTenant('sean.chameleons.dev', '/new', HOST)).toEqual({
+      kind: 'site',
+      subdomain: 'sean',
+      pathname: '/new',
+    });
   });
 });

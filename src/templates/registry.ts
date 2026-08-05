@@ -1,12 +1,19 @@
 import type { AnyTemplate } from './types';
 
+import plates from './plates';
 import timeline from './timeline';
 
+export { DEFAULT_TEMPLATE_ID, listManifests } from './manifests';
+
+/**
+ * The templates themselves. Importing this pulls every registered design's
+ * component and therefore its stylesheet, so import `manifests.ts` instead when
+ * all you need is to name a template.
+ */
 const TEMPLATES: Record<string, AnyTemplate> = {
   [timeline.manifest.id]: timeline,
+  [plates.manifest.id]: plates,
 };
-
-export const DEFAULT_TEMPLATE_ID = timeline.manifest.id;
 
 export function getTemplate(id: string): AnyTemplate | null {
   return TEMPLATES[id] ?? null;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useId } from 'react';
+import { useActionState } from 'react';
 
 import { CAPS, type Experience, type Testimonial } from '@/content/types';
 
@@ -11,17 +11,17 @@ import {
   type EditorState,
 } from './actions';
 import { Feedback } from './Feedback';
+import { ScopeFields, type EditScope } from './scope';
+import { useBlankRow } from './useBlankRow';
 
 export function TestimonialRow({
-  siteId,
+  scope,
   testimonial,
   employers,
-  onCreated,
 }: {
-  siteId: string;
+  scope: EditScope;
   testimonial: Testimonial | null;
   employers: Experience[];
-  onCreated?: () => void;
 }) {
   const [saveState, saveAction, saving] = useActionState<EditorState, FormData>(
     saveTestimonialRow,
@@ -36,18 +36,17 @@ export function TestimonialRow({
     {},
   );
 
-  const generatedId = useId();
-  const isNew = testimonial === null;
-  const id = testimonial?.id ?? generatedId;
-
-  useEffect(() => {
-    if (isNew && saveState.saved) onCreated?.();
-  }, [isNew, saveState, onCreated]);
+  const { id, isNew, generation } = useBlankRow(testimonial?.id, saveState);
 
   return (
-    <div className="admin-fieldset">
-      <form action={saveAction} className="admin-form">
-        <input type="hidden" name="siteId" value={siteId} />
+    // A row is closed until you want it. With three roles and four projects
+    // every form open at once made the editor 11,000px of identical fields.
+    // `details` rather than state: it works server-rendered, it is keyboard
+    // and screen-reader native, and a row nobody opened costs nothing.
+    <details className="admin-fieldset">
+      <summary>{testimonial ? `${testimonial.authorName}${testimonial.approved ? '' : ' · pending'}` : 'Add a quote'}</summary>
+      <form key={generation} action={saveAction} className="admin-form">
+        <ScopeFields scope={scope} />
         <input type="hidden" name="testimonialId" value={id} />
 
         <label className="field">
@@ -99,10 +98,10 @@ export function TestimonialRow({
 
       {/* Approval is its own form. Editing someone else's words and deciding to
           show them are different acts, and one should never do the other. */}
-      {!isNew ? (
+      {testimonial !== null ? (
         <>
           <form action={approveAction} className="admin-buttons">
-            <input type="hidden" name="siteId" value={siteId} />
+            <ScopeFields scope={scope} />
             <input type="hidden" name="testimonialId" value={id} />
             {testimonial.approved ? null : <input type="hidden" name="approved" value="on" />}
             <button
@@ -119,7 +118,7 @@ export function TestimonialRow({
           </form>
 
           <form action={removeAction} className="admin-buttons">
-            <input type="hidden" name="siteId" value={siteId} />
+            <ScopeFields scope={scope} />
             <input type="hidden" name="testimonialId" value={id} />
             <button type="submit" className="admin-button admin-danger" disabled={removing}>
               {removing ? 'Removing…' : 'Remove'}
@@ -133,6 +132,6 @@ export function TestimonialRow({
       <Feedback {...saveState} />
       <Feedback {...approveState} />
       <Feedback {...removeState} />
-    </div>
+    </details>
   );
 }

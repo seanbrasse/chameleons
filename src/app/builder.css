@@ -9,11 +9,38 @@
   --font-body:
     ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
     sans-serif;
-  --measure: 62ch;
+  /* One measure, and everything obeys it — cards, rows and inputs alike. */
+  --measure: 60ch;
   --gutter: clamp(20px, 5vw, 56px);
   --radius: 10px;
   --dur: 180ms;
   --ease: cubic-bezier(0.2, 0, 0, 1);
+  --rail: 232px;
+
+  /* Type: six sizes, ~1.32 apart, 12 -> 44.
+
+     Six, not the twelve this sheet used to carry. 8/9/10/11 and 13/14/15 were
+     drift rather than decisions, and body 16 against a section heading of 19
+     is a 1.19x step — no step at all. Every size below is a choice, and the
+     range is 3.7x, which is what lets the page say which parts matter. */
+  --t-micro: 12px;
+  --t-small: 14px;
+  --t-body: 16px;
+  --t-lead: 21px;
+  --t-section: 28px;
+  --t-page: 44px;
+
+  /* Space: seven steps, deliberately uneven, ~1.6x apart rather than a flat
+     grid. Plan §20.1 cause 3 — the ratio *is* the hierarchy, and an even
+     rhythm is what makes a page read as generic. This replaces sixteen values
+     in which 8/9, 12/14 and 16/18 were noise pairs. */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 14px;
+  --s-4: 24px;
+  --s-5: 40px;
+  --s-6: 64px;
+  --s-7: 96px;
 
   --paper: #f4f1ea;
   --ink: #141414;
@@ -26,6 +53,12 @@
   --rule-strong: #c6c0b4;
   --accent-a: #c24a1e;
   --on-accent: #faf8f3;
+
+  /* The accent as *text*, which is a different job from the accent as a fill.
+     #c24a1e on paper is 4.34:1 — fine filled or large, under AA at body size
+     and below. The original never met this because it only ever used the
+     accent large or filled. A role, so the brand value stays put. */
+  --accent-ink: #b0421a;
 }
 
 [data-theme='dark'] {
@@ -42,6 +75,8 @@
   --rule-strong: #333333;
   --accent-a: #e4693b;
   --on-accent: #0d0d0d;
+  /* On near-black the accent is already 6.5:1, so text and fill agree. */
+  --accent-ink: #e4693b;
 }
 
 /* The page frame. In the original this came from the public stylesheet's
@@ -53,95 +88,205 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-body);
-  font-size: 16px;
-  line-height: 1.6;
+  font-size: var(--t-body);
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
-}
-
-.admin {
-  min-height: 100%;
-  max-width: clamp(860px, 82vw, 1400px);
-  margin: 0 auto;
-  padding: 0 var(--gutter) 96px;
 }
 
 .admin-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 18px 0;
+  gap: var(--s-4);
+  padding: var(--s-3) var(--s-5);
   border-bottom: 1px solid var(--rule);
-  margin-bottom: 32px;
 }
 
-.admin-nav {
+/* The shell. A rail beside the work, which is the structural half of the
+   redesign: the editor was eight equal headings in one column, so nothing said
+   where you were, how much was left, or that publishing ends a sequence rather
+   than being one more form. */
+.admin {
+  min-height: 100%;
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  gap: var(--s-6);
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: var(--s-6) var(--gutter) var(--s-7);
+  align-items: start;
+}
+
+.admin-rail {
+  position: sticky;
+  top: var(--s-4);
+  display: grid;
+  gap: var(--s-4);
+}
+
+.admin-rail-group {
+  display: grid;
+  gap: var(--s-1);
+}
+
+.admin-rail-label {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin: 0 0 var(--s-2);
+}
+
+.admin-rail a {
   display: flex;
-  gap: 20px;
-  font-size: 14px;
+  align-items: baseline;
+  gap: var(--s-2);
+  padding: 5px var(--s-2);
+  margin-left: -8px;
+  border-radius: 6px;
+  font-size: var(--t-small);
+  color: var(--ink-muted);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+}
+
+.admin-rail a:hover {
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.admin-rail-count {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.admin-main {
+  min-width: 0;
 }
 
 .admin-main h1 {
-  font-size: clamp(26px, 3.4vw, 36px);
-  margin-bottom: 8px;
+  font-size: var(--t-page);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  margin: 0;
+}
+
+.admin-head {
+  margin-bottom: var(--s-6);
+}
+
+.admin-head p {
+  margin: var(--s-2) 0 0;
+  color: var(--ink-muted);
+  font-size: var(--t-lead);
+  max-width: var(--measure);
 }
 
 .admin-crumb {
-  font-size: 13px;
-  margin-bottom: 12px;
+  font-size: var(--t-micro);
+  margin-bottom: var(--s-3);
+}
+
+/* A phase, not a peer. Three of these — design, content, publish — against the
+   eight identical h2s that used to give Publish the same weight as Delete. */
+.admin-phase + .admin-phase {
+  margin-top: var(--s-7);
+}
+
+.admin-phase-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  padding-bottom: var(--s-3);
+  border-bottom: 2px solid var(--ink);
+  margin-bottom: var(--s-5);
+}
+
+.admin-phase-head h2 {
+  font-size: var(--t-section);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.admin-phase-n {
+  font-size: var(--t-micro);
+  color: var(--accent-ink);
+  letter-spacing: 0.1em;
+}
+
+.admin-phase-note {
+  margin-left: auto;
+  font-size: var(--t-micro);
+  color: var(--ink-muted);
 }
 
 .admin-section {
-  margin-top: 44px;
-  padding-top: 28px;
-  border-top: 1px solid var(--rule);
+  margin-top: var(--s-5);
 }
 
 .admin-section-head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: var(--s-3);
   flex-wrap: wrap;
 }
 
-.admin-section h2 {
-  font-size: 19px;
+.admin-section h2,
+.admin-section h3 {
+  font-size: var(--t-lead);
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--s-3);
 }
 
 .admin-subhead {
-  font-size: 15px;
-  margin-top: 22px;
+  font-size: var(--t-lead);
+  margin-top: var(--s-4);
+  margin-bottom: var(--s-3);
 }
 
 .admin-note {
-  font-size: 13px;
+  font-size: var(--t-micro);
   color: var(--ink-muted);
-  margin-top: 6px;
+  margin-top: var(--s-1);
   max-width: var(--measure);
 }
 
 .admin-form {
   display: grid;
-  gap: 16px;
-  margin-top: 18px;
+  gap: var(--s-3);
+  margin-top: var(--s-3);
+  max-width: var(--measure);
 }
 
 .admin-grid {
   display: grid;
   /* `auto-fill`, not `auto-fit`: `auto-fit` collapses the empty tracks and
      stretches a two-field row into two half-page inputs on a wide editor. */
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--s-3);
 }
 
+/* One measure for the card and the inputs inside it. They disagreed before —
+   cards ran the full column while fields capped at 62ch — so every card had a
+   ragged right edge with its own input floating inside. */
 .admin-fieldset {
+  background: var(--matte);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
-  padding: 14px 16px 16px;
+  padding: var(--s-4);
   display: grid;
-  gap: 12px;
+  gap: var(--s-3);
   margin: 0;
+  max-width: var(--measure);
+}
+
+/* The one form whose content is looked at rather than read: a measure that
+   suits a paragraph squashes a grid of previews. */
+.admin-form-wide {
+  max-width: none;
 }
 
 .admin-link-row {
@@ -413,8 +558,9 @@ body {
 .admin-buttons {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--s-2);
   flex-wrap: wrap;
+  margin-top: var(--s-1);
 }
 
 /* `:user-invalid`, not `:invalid`. The latter matches an empty `required` field
@@ -427,18 +573,25 @@ body {
   border-color: var(--accent-a);
 }
 
+/* Quiet is the default, and that is the change. Every Save used to be a filled
+   accent pill, so eight of them competed with Publish and nothing on the page
+   said which action ends the job. Filled is now reserved for exactly that. */
 .admin-button {
   font: inherit;
-  font-size: 14px;
+  font-size: var(--t-small);
   font-weight: 600;
-  color: var(--on-accent);
-  background: var(--accent-a);
-  border: 1px solid var(--accent-a);
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--rule-strong);
   border-radius: 999px;
-  padding: 9px 18px;
+  padding: 8px 16px;
   cursor: pointer;
   text-decoration: none;
   display: inline-block;
+}
+
+.admin-button:hover:not(:disabled) {
+  border-color: var(--ink);
 }
 
 .admin-button:disabled {
@@ -446,6 +599,15 @@ body {
   cursor: default;
 }
 
+/* The one action that ends a phase. There should be at most one on screen. */
+.admin-primary {
+  color: var(--on-accent);
+  background: var(--accent-a);
+  border-color: var(--accent-a);
+}
+
+/* Kept as a class so existing markup does not change meaning; it is now the
+   same as the default, which is what quiet always meant. */
 .admin-quiet {
   color: var(--ink);
   background: transparent;
@@ -453,8 +615,12 @@ body {
 }
 
 .admin-danger {
-  color: var(--ink);
+  color: var(--accent-ink);
   background: transparent;
+  border-color: color-mix(in srgb, var(--accent-a) 45%, transparent);
+}
+
+.admin-danger:hover:not(:disabled) {
   border-color: var(--accent-a);
 }
 
@@ -496,11 +662,12 @@ body {
 
 .admin-list {
   list-style: none;
-  margin: 16px 0 0;
+  margin: var(--s-3) 0 0;
   padding: 0;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 8px;
+  gap: var(--s-2);
+  max-width: var(--measure);
 }
 
 .admin-row {
@@ -550,6 +717,26 @@ body {
   color: var(--ink-muted);
   text-align: center;
   line-height: 1.1;
+}
+
+/*
+  A control at the end of a row, where `.admin-flag` is a label at the end of
+  one. Same trailing slot, same auto margin — kept separate because a button
+  dressed as a pill would be a lie about what it does.
+*/
+.admin-row-action {
+  margin-left: auto;
+  flex: none;
+}
+
+/*
+  One column, for a list that is a chronology rather than a set. `.admin-list`
+  auto-fills to as many columns as fit, which is right for projects and wrong
+  for version history: newest-first zigzags across and back down, and it gets
+  worse the more versions there are.
+*/
+.admin-list-linear {
+  grid-template-columns: 1fr;
 }
 
 .admin-flag {
@@ -982,4 +1169,301 @@ body {
   justify-content: space-between;
   font-size: 2.33cqw;
   letter-spacing: 0.167cqw;
+}
+
+/* ── Top bar ─────────────────────────────────────────────────────────────
+   Full-bleed above the shell rather than inside it, so the rule runs the whole
+   width and the shell's grid starts clean underneath. */
+.admin-wordmark {
+  font-size: var(--t-small);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.admin-who {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.admin-who .admin-note {
+  margin-top: 0;
+}
+
+/* Below the rail's width there is no rail. The links are anchors into the same
+   page, so losing them costs navigation, not content — and the work column
+   takes the full width instead of sitting in a narrow track. */
+@media (max-width: 900px) {
+  :root {
+    --t-page: 32px;
+    --t-section: 23px;
+  }
+
+  .admin {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-5);
+    padding: var(--s-5) var(--gutter) var(--s-6);
+  }
+
+  .admin-rail {
+    display: none;
+  }
+
+  /* The steps stay: they are how you move through the builder, not an index
+     of a page you could scroll instead. */
+  .admin-steps {
+    position: static;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: var(--s-1);
+    margin-bottom: var(--s-4);
+  }
+
+  .admin-steps .admin-note {
+    display: none;
+  }
+}
+
+/* A list of editable rows. Plain server-rendered markup: the blank "add"
+   row owns its own reset, so nothing needs a client wrapper here and no
+   function crosses the server/client boundary. */
+.admin-rows {
+  display: grid;
+  gap: var(--s-3);
+  margin-top: var(--s-3);
+}
+
+/* ── A collapsed row ─────────────────────────────────────────────────────
+   `details`, not client state: server-rendered, keyboard and screen-reader
+   native, and a row nobody opens costs nothing. Every form open at once made
+   the editor eleven thousand pixels of identical fields. */
+.admin-fieldset > summary {
+  cursor: pointer;
+  font-size: var(--t-small);
+  font-weight: 600;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.admin-fieldset > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* The marker is drawn rather than inherited so it can rotate and so it sits on
+   the text baseline; the default triangle does neither. */
+.admin-fieldset > summary::before {
+  content: '';
+  flex: none;
+  width: 0;
+  height: 0;
+  border: 4px solid transparent;
+  border-left-color: var(--ink-muted);
+  transition: transform var(--dur) var(--ease);
+}
+
+.admin-fieldset[open] > summary::before {
+  transform: rotate(90deg) translateX(-1px);
+}
+
+.admin-fieldset[open] > summary {
+  margin-bottom: var(--s-2);
+  padding-bottom: var(--s-2);
+  border-bottom: 1px solid var(--rule);
+}
+
+.admin-fieldset > summary:focus-visible {
+  outline: 2px solid var(--accent-a);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-fieldset > summary::before {
+    transition: none;
+  }
+}
+
+/* ── Content this design has no place for ────────────────────────────────
+   Collapsed rather than deleted, because the field set is a view over the
+   `Issue` and not a schema: switching designs preserves all of it. Reuses the
+   row collapse above so a kept section reads as the same kind of object as
+   every other collapsed thing in the editor. */
+.admin-kept {
+  border-top: 1px solid var(--rule);
+  padding-top: var(--s-3);
+  margin-top: var(--s-3);
+}
+
+.admin-kept > summary {
+  font-size: var(--t-body);
+}
+
+
+/* ── The step rail ───────────────────────────────────────────────────────
+   The builder is a sequence of three screens, so the rail names the sequence
+   rather than indexing one long page. Links, not a gated funnel: a portfolio
+   is not a checkout, and someone who wants their address before their content
+   is not making a mistake worth blocking. */
+.admin-steps {
+  position: sticky;
+  top: var(--s-4);
+  display: grid;
+  gap: var(--s-2);
+  align-content: start;
+}
+
+.admin-step {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border-left: 2px solid var(--rule);
+  text-decoration: none;
+  color: var(--ink-muted);
+}
+
+.admin-step .admin-note {
+  grid-column: 2;
+  margin: 0;
+  font-size: var(--t-micro);
+}
+
+.admin-step-n {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: 0.08em;
+}
+
+.admin-step-title {
+  font-size: var(--t-small);
+  font-weight: 600;
+}
+
+.admin-step:hover {
+  border-left-color: var(--rule-strong);
+  color: var(--ink);
+}
+
+/* The current step, marked by weight and the rule rather than a fill: this is
+   a position indicator, not a button. */
+.admin-step.is-here {
+  border-left-color: var(--accent-a);
+  color: var(--ink);
+}
+
+/* ── Moving between steps ────────────────────────────────────────────────
+   At the foot of a step, because that is where someone is when they have
+   finished one. Making them scroll back to a nav is what a wizard is for. */
+.admin-stepnav {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-top: var(--s-6);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--rule);
+}
+
+/* ── A design, as something you look at ──────────────────────────────────
+   The whole card is the control, so clicking a design picks it. The preview
+   inside is the same scaled frame the gallery uses. */
+.admin-choice-label {
+  display: grid;
+  gap: var(--s-2);
+  cursor: pointer;
+}
+
+.admin-choice-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.admin-choice-head .admin-note {
+  margin: 0;
+  font-size: var(--t-micro);
+}
+
+.admin-choice-name {
+  font-size: var(--t-lead);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.admin-choice.is-chosen {
+  border-color: var(--accent-a);
+}
+
+.admin-choice-label:focus-within .admin-preview {
+  outline: 2px solid var(--accent-a);
+  outline-offset: 3px;
+}
+
+/* ── The template gallery ────────────────────────────────────────────────
+   The create step for a new account. Cards rather than the editor's rows: this
+   is a choice between designs, not a list of things to edit, and the two should
+   not look the same. */
+.admin-gallery {
+  display: grid;
+  /* Wide enough that a 1280px design scaled into it is still legible. Much
+     below this the preview stops being a picture of the design and becomes a
+     smudge, which is worse than no preview at all. */
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: var(--s-3);
+  margin-bottom: var(--s-4);
+}
+
+/* A template previewed at its real size and scaled down, rather than re-laid-out
+   small: a design built not to scroll at 1280px is a different design at 380px,
+   and the picker has to show the one being chosen.
+
+   `cqw` is why this needs no measuring in JavaScript — the scale factor is the
+   card's own width over the viewport the frame renders at. */
+.admin-preview {
+  container-type: inline-size;
+  aspect-ratio: 1280 / 800;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--surface-sunk);
+}
+
+.admin-preview iframe {
+  display: block;
+  width: 1280px;
+  height: 800px;
+  border: 0;
+  /* Divided by a length, not a number: `calc()` yields a ratio only when both
+     operands carry units, and `scale(<length>)` is invalid, so the whole
+     declaration is dropped silently if the `px` is left off. */
+  transform: scale(calc(100cqw / 1280px));
+  transform-origin: top left;
+  /* The card is one big control. A click belongs to the form that chooses this
+     design, never to the page inside the frame. */
+  pointer-events: none;
+}
+
+.admin-gallery-item {
+  display: grid;
+  align-content: start;
+  gap: var(--s-2);
+  background: var(--matte);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--s-4);
+}
+
+.admin-gallery-item h2 {
+  font-size: var(--t-lead);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.admin-gallery-item .admin-note {
+  margin-top: 0;
+}
+
+.admin-gallery-item:hover {
+  border-color: var(--rule-strong);
 }

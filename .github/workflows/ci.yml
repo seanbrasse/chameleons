@@ -17,6 +17,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The template-changelog rule below diffs against the base branch and
+          # needs a merge base to diff from. The default depth of 1 has none.
+          fetch-depth: 0
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -27,6 +32,14 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+
+      # Plan §22.4, and the only automated changelog rule there is: bumping a
+      # template's version without saying what changed strands every site
+      # pinned to the old one. Pull requests only — on a push to main the base
+      # is already merged and the range would be empty.
+      - name: Template changelogs
+        if: github.event_name == 'pull_request'
+        run: node scripts/check-template-changelogs.mjs origin/${{ github.base_ref }}...HEAD
 
       # Keyed on the lockfile because that is what pins the Playwright version,
       # and the browser build is chosen by that version.

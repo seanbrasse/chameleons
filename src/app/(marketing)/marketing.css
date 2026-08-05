@@ -1,0 +1,148 @@
+/*
+ * The landing page.
+ *
+ * Its own sheet rather than the builder's: this is the one surface a stranger
+ * sees, and it should not inherit a stylesheet written for forms. Deliberately
+ * small — a wordmark, a claim, a way in, and the designs themselves doing the
+ * arguing.
+ */
+.home {
+  --page: #f4f1ea;
+  --ink: #141414;
+  --ink-quiet: #5f5a52;
+  --rule: #e0dbd1;
+  --accent: #b0421a;
+  --card: #ffffff;
+
+  --measure: 34ch;
+  --gutter: clamp(24px, 6vw, 96px);
+
+  min-height: 100%;
+  background: var(--page);
+  color: var(--ink);
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  line-height: 1.55;
+}
+
+.home-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px var(--gutter);
+  border-bottom: 1px solid var(--rule);
+}
+
+.home-mark {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.home-hero {
+  padding: clamp(56px, 12vh, 140px) var(--gutter) clamp(40px, 8vh, 88px);
+}
+
+/* 13 -> 76px. A narrow range is the reliable tell of a generic page
+   (plan §20.1 cause 2), and this is the page most at risk of reading as one. */
+.home-hero h1 {
+  font-size: clamp(40px, 7vw, 76px);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  margin: 0;
+  max-width: 16ch;
+}
+
+.home-lede {
+  font-size: clamp(18px, 2vw, 23px);
+  color: var(--ink-quiet);
+  max-width: 46ch;
+  margin: 20px 0 0;
+}
+
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 36px;
+}
+
+.home-button {
+  display: inline-block;
+  padding: 11px 20px;
+  border-radius: 999px;
+  border: 1px solid var(--ink);
+  text-decoration: none;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.home-button-primary {
+  background: var(--ink);
+  color: var(--page);
+}
+
+.home-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.home-note {
+  font-size: 13px;
+  color: var(--ink-quiet);
+  margin: 16px 0 0;
+}
+
+/* The designs argue for themselves. Real names and real constraints, because
+   the constraint is what actually distinguishes one from another (§20.5). */
+.home-designs {
+  padding: clamp(40px, 8vh, 88px) var(--gutter) clamp(64px, 14vh, 160px);
+  border-top: 1px solid var(--rule);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: clamp(24px, 4vw, 56px);
+}
+
+.home-designs h2 {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+  font-weight: 400;
+  margin: 0;
+}
+
+.home-design {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 24px;
+}
+
+.home-design h3 {
+  margin: 0 0 8px;
+  font-size: 23px;
+  letter-spacing: -0.01em;
+}
+
+.home-design p {
+  margin: 0 0 12px;
+  color: var(--ink-quiet);
+  font-size: 15px;
+}
+
+.home-design .rule {
+  font-size: 13px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.home-foot {
+  padding: 24px var(--gutter) 56px;
+  border-top: 1px solid var(--rule);
+  font-size: 13px;
+  color: var(--ink-quiet);
+}

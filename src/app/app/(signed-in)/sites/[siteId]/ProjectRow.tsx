@@ -1,11 +1,13 @@
 'use client';
 
-import { useActionState, useEffect, useId } from 'react';
+import { useActionState } from 'react';
 
 import { CAPS, type Experience, type Project } from '@/content/types';
 
 import { removeProjectRow, saveProjectRow, type EditorState } from './actions';
 import { Feedback } from './Feedback';
+import { ScopeFields, type EditScope } from './scope';
+import { useBlankRow } from './useBlankRow';
 
 /**
  * `employers` feeds the professional-project link that `validateIssue` requires.
@@ -13,15 +15,13 @@ import { Feedback } from './Feedback';
  * publish-time refusal and a field you cannot get wrong.
  */
 export function ProjectRow({
-  siteId,
+  scope,
   project,
   employers,
-  onCreated,
 }: {
-  siteId: string;
+  scope: EditScope;
   project: Project | null;
   employers: Experience[];
-  onCreated?: () => void;
 }) {
   const [saveState, saveAction, saving] = useActionState<EditorState, FormData>(
     saveProjectRow,
@@ -32,18 +32,17 @@ export function ProjectRow({
     {},
   );
 
-  const generatedId = useId();
-  const isNew = project === null;
-  const id = project?.id ?? generatedId;
-
-  useEffect(() => {
-    if (isNew && saveState.saved) onCreated?.();
-  }, [isNew, saveState, onCreated]);
+  const { id, isNew, generation } = useBlankRow(project?.id, saveState);
 
   return (
-    <div className="admin-fieldset">
-      <form action={saveAction} className="admin-form">
-        <input type="hidden" name="siteId" value={siteId} />
+    // A row is closed until you want it. With three roles and four projects
+    // every form open at once made the editor 11,000px of identical fields.
+    // `details` rather than state: it works server-rendered, it is keyboard
+    // and screen-reader native, and a row nobody opened costs nothing.
+    <details className="admin-fieldset">
+      <summary>{project ? project.title : 'Add a project'}</summary>
+      <form key={generation} action={saveAction} className="admin-form">
+        <ScopeFields scope={scope} />
         <input type="hidden" name="projectId" value={id} />
 
         <div className="admin-grid">
@@ -139,7 +138,7 @@ export function ProjectRow({
 
       {!isNew ? (
         <form action={removeAction} className="admin-buttons">
-          <input type="hidden" name="siteId" value={siteId} />
+          <ScopeFields scope={scope} />
           <input type="hidden" name="projectId" value={id} />
           <button type="submit" className="admin-button admin-danger" disabled={removing}>
             {removing ? 'Removing…' : 'Remove'}
@@ -149,6 +148,6 @@ export function ProjectRow({
 
       <Feedback {...saveState} />
       <Feedback {...removeState} />
-    </div>
+    </details>
   );
 }

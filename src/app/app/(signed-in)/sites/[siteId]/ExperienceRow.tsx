@@ -1,11 +1,13 @@
 'use client';
 
-import { useActionState, useEffect, useId } from 'react';
+import { useActionState } from 'react';
 
 import { CAPS, type Experience } from '@/content/types';
 
 import { removeExperienceRow, saveExperienceRow, type EditorState } from './actions';
 import { Feedback } from './Feedback';
+import { ScopeFields, type EditScope } from './scope';
+import { useBlankRow } from './useBlankRow';
 
 /**
  * `experience` is `null` for the blank row that creates a new one. `id` still
@@ -15,13 +17,11 @@ import { Feedback } from './Feedback';
  * field. `upsertExperience` takes any string, so React's own id format works.
  */
 export function ExperienceRow({
-  siteId,
+  scope,
   experience,
-  onCreated,
 }: {
-  siteId: string;
+  scope: EditScope;
   experience: Experience | null;
-  onCreated?: () => void;
 }) {
   const [saveState, saveAction, saving] = useActionState<EditorState, FormData>(
     saveExperienceRow,
@@ -32,22 +32,17 @@ export function ExperienceRow({
     {},
   );
 
-  const generatedId = useId();
-  const isNew = experience === null;
-  const id = experience?.id ?? generatedId;
-
-  // `saveState` is a fresh object each time the action settles, so this fires
-  // exactly once per successful save rather than on every render. Waiting for
-  // the actual result, rather than firing the moment the form submits, is the
-  // difference between "reset once it's saved" and "reset before we know".
-  useEffect(() => {
-    if (isNew && saveState.saved) onCreated?.();
-  }, [isNew, saveState, onCreated]);
+  const { id, isNew, generation } = useBlankRow(experience?.id, saveState);
 
   return (
-    <div className="admin-fieldset">
-      <form action={saveAction} className="admin-form">
-        <input type="hidden" name="siteId" value={siteId} />
+    // A row is closed until you want it. With three roles and four projects
+    // every form open at once made the editor 11,000px of identical fields.
+    // `details` rather than state: it works server-rendered, it is keyboard
+    // and screen-reader native, and a row nobody opened costs nothing.
+    <details className="admin-fieldset">
+      <summary>{experience ? `${experience.company} · ${experience.role}` : 'Add a role'}</summary>
+      <form key={generation} action={saveAction} className="admin-form">
+        <ScopeFields scope={scope} />
         <input type="hidden" name="experienceId" value={id} />
 
         <div className="admin-grid">
@@ -111,7 +106,7 @@ export function ExperienceRow({
 
       {!isNew ? (
         <form action={removeAction} className="admin-buttons">
-          <input type="hidden" name="siteId" value={siteId} />
+          <ScopeFields scope={scope} />
           <input type="hidden" name="experienceId" value={id} />
           <button type="submit" className="admin-button admin-danger" disabled={removing}>
             {removing ? 'Removing…' : 'Remove'}
@@ -121,6 +116,6 @@ export function ExperienceRow({
 
       <Feedback {...saveState} />
       <Feedback {...removeState} />
-    </div>
+    </details>
   );
 }

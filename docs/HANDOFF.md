@@ -4,7 +4,9 @@ For whoever picks this up next, human or agent. What exists, what does not, and
 the things that have already cost time.
 
 Read `AGENTS.md` first for the conventions — they are binding and this document
-assumes them.
+assumes them. `CAPACITY.md` sits alongside this one and answers "will this
+scale" so nobody has to guess: the short version is that storage binds at
+around 50–100 users and nothing else binds at any plausible size.
 
 ---
 
@@ -23,13 +25,47 @@ The whole loop now runs from a browser: sign in → create a portfolio → pick 
 template → fill it in → preview it → claim an address and publish. `publishSite`
 has a caller, and six services write `site_drafts.issue`.
 
+Since then it has also gained version history with rollback, GitHub project
+import, the floor enforced in CI per template, the rule that a template version
+bump must carry a changelog entry, the builder redesign, and the two entry paths
+of plan §23.
+
+**One site, from landing page to publish.** `chameleons.dev` is the marketing
+page *and* the builder: you arrive, sign in, and build in one place, and only
+leave for a hostname of your own once you publish. That is safe because the auth
+cookie is **host-only** — nothing sets a `Domain` attribute, so a cookie for the
+apex never reaches `sean.chameleons.dev`. The `app.` subdomain was one way to get
+that isolation, not the only one, and it still answers so old links work. The
+dashboard is `/sites`, because `/` belongs to marketing now.
+
+**The flow, as it stands:**
+
+```
+land → sign in → tell us about your work → choose a design → content → publish
+                 (résumé · GitHub · basics)   (previews of YOUR work)
+```
+
+**Content is collected before the design is chosen.** This reverses §23.2, which
+had itself judged import-first "strictly better" and chosen gallery-first only
+for first impressions. The cost of the old order was visible one screen later:
+with nothing imported, every gallery card previewed *demo* content.
+
+**Two entry paths, and content that outlives one portfolio.** An empty account
+goes to intake and then the gallery; a returning account lands on its sites and
+chooses. Underneath that, `source_material` holds imported content keyed by
+*owner* rather than by site, so a second portfolio is not retyping a career. It
+stores an `Issue` rather than a parallel "facts" schema — `Issue` already is the
+template-agnostic contract every template reads — while each site keeps its own
+`Issue` to edit, because publishing freezes one and a live site must never change
+because a sibling was edited.
+
 | Verified | |
 |---|---|
 | desktop | 0.01% differing pixels vs the original |
 | mobile | 0.03% |
-| tests | 106 unit, 9 e2e |
+| tests | 180 unit, 27 e2e |
 | lint | 2 warnings, both pre-existing `<img>` in `Work.tsx` |
-| CI | ~50s end to end |
+| CI | ~75s end to end |
 
 Both figures are from one run of the same harness against both applications;
 comparing a number from one harness against a number from another is how the
@@ -42,6 +78,25 @@ Users sign up, pick a template, edit their portfolio, and publish it to
 (`seanbrasse/portfolio-builder`) becomes template #1 and is otherwise finished —
 **do not push to it.**
 
+**The gallery shows designs rather than describing them:** each card is the real
+template rendered against the viewer's own content, in an iframe at 1280×800
+scaled by the card's width (`transform: scale(calc(100cqw / 1280px))` — divided
+by a *length*, because `scale(<length>)` is invalid and the declaration is
+dropped in silence otherwise). The previewed document is `inert`; hiding the
+frame from the tab order alone leaves its links focusable and unreachable, which
+is what axe calls `frame-focusable-content`, and `inert` does not cross into a
+nested browsing context.
+
+**There are two designs now**, which is what makes the picker a picker.
+`timeline` does not scroll and shows work at thumbnail scale; `plates` is a
+scrolling catalogue whose one rule is that **no text is ever set over an image**
+— which is also the only way the contrast floor stays checkable, since a
+photograph uploaded after the design ships has unknown tones. They read
+different field sets (`plates` shows no education, `timeline` no testimonials),
+so the two exercise each other's "not on this design" behaviour.
+
+The dossier comp (PR #26) is still open as a possible #3.
+
 ---
 
 ## 2. Outstanding work
@@ -53,8 +108,9 @@ a new one is roughly an hour of following it.
 
 ```
 domain/edit-<thing>.ts     pure. readXForm(get) -> XEdit, upsertX, removeX
-services/editSite.ts       saveIssue(siteId, transform) — one guarded write
-app/…/sites/[siteId]/      XRow.tsx driven by RowList, one Server Action each
+services/editSite.ts       saveIssue(target, transform) — one guarded write
+app/…/sites/[siteId]/      XRow.tsx, one Server Action each
+app/…/profile/             the same rows, scoped to the person
 ```
 
 `saveIssue` is the whole authorization story for editing: it resolves the owner
@@ -64,9 +120,31 @@ means a mismatched owner affects zero rows. A new section adds a transform and
 inherits all of that — **do not add a second write path.**
 
 Sections exist for settings, experience, projects, education, testimonials and
-metrics. `RowList` handles the add-a-row pattern; `useId()` names new rows,
-because `crypto.randomUUID()` differs between server and client render and
-breaks hydration.
+metrics. `useId()` names new rows, because `crypto.randomUUID()` differs between
+server and client render and breaks hydration.
+
+**A `Target` decides what an edit lands on:** a site with an id, or the person's
+source material with none. Both hold an `Issue`, so every `domain/edit-*.ts`
+transform already works on either and one set of rows serves the editor and the
+profile. `siteId` is untrusted as ever; the profile target carries no id at all,
+so there is nothing in that request to forge. **Do not build a parallel profile
+stack** — that is twelve services with nothing keeping them in step.
+
+**The chosen design decides which sections the builder asks for**, from
+`manifest.uses`. What a template cannot render moves into a collapsed "Not on
+this design" group rather than staying inline with a note, because a note beside
+an inviting form still collects content the live site discards.
+
+> **The field set is a view, not a schema.** `Issue` carries every part whatever
+> the template names, switching designs preserves all of it, and publishing
+> snapshots the whole thing. Hidden content is kept and simply not asked for.
+> Making this "delete what the template does not use" would mean trying a second
+> design costs the user their work, and template-agnostic content stops being
+> true.
+
+The profile is the exception and asks for **everything**, unconditionally. It
+belongs to no design, and material owned by the person is meant to outlive
+whichever portfolio was open when it was typed.
 
 **Approval is deliberately not part of editing.** `TestimonialEdit` excludes
 `approved`, and `setTestimonialApproved` is its own action, because changing the
@@ -76,17 +154,83 @@ that had been pulled.
 
 ### 2.2 What Phase 2 still needs
 
-1. **Signed upload URLs, and only under supervision.** The original uploads
-   browser → Storage directly. With no browser privileges that path is gone: the
-   server authorizes and names the key, the browser still moves the bytes. This
-   is the one remaining Phase 2 item and it was **deliberately left unbuilt by
-   the overnight loop** — a partial implementation of plan §8 (EXIF stripping,
-   MIME sniffing, the SVG ban, per-site quotas) is a security surface rather
-   than a feature, and half of it shipped is worse than none.
+0. **Nobody has published anything.** Every `*.chameleons.dev` 404s, correctly:
+   the wildcard, the cert and the tenant resolver all work — verified live, the
+   subdomain matches `/s/[subdomain]` — and there is simply no published version
+   to serve. Signup → content → claim an address → publish → load the subdomain
+   has never been walked by a person, and it is still the highest-value thing to
+   do next.
+1. **The upload pipeline, and only under supervision.** The *rules* are built
+   and tested (`domain/upload.ts`): sniffing by magic bytes, the SVG ban,
+   10 MB images / 50 MB video, a 250 MB per-site quota. Nothing calls them yet.
+
+   What is missing is the bytes moving, and it is missing because of a real
+   tension rather than time. **Signed upload URLs send bytes browser → Storage,
+   bypassing the server — but EXIF stripping and MIME sniffing require the
+   server to see them**, and Vercel's ~4.5 MB request body limit rules out
+   POSTing a 50 MB video to a route handler. The resolution is a private
+   quarantine bucket plus a server-side finalize step: nothing is publicly
+   readable until it has been through it.
+
+   **Two corrections to what this section used to say**, both worth having
+   before the decision is made:
+
+   - It claimed video never worked in the original portfolio, reasoning from
+     `0001`'s bucket allowlist. That was wrong: bucket config lives in the
+     database and can be edited in the dashboard, so migrations are not
+     authoritative for it — and `0014_image_has_audio.sql` is direct evidence
+     video was in real use. Nobody adds a "does this clip have audio" flag for a
+     feature that never ran.
+   - It called video metadata stripping intractable without ffmpeg. Overstated.
+     MP4/MOV are plain box structures — 4-byte size, 4-byte type — and GPS lives
+     in `moov/udta` (the `©xyz` atom). Walking top-level boxes and dropping
+     `udta` decodes no frames and is on the order of a hundred testable lines.
+
+   So the real gap is narrower than it looked: the original stripped **no**
+   metadata, for images or video, which is fine for one trusted uploader and not
+   for strangers publishing under their own names. `sharp` covers images.
+
+   **Deliberately not built unsupervised.** A metadata stripper is a security
+   property that cannot be honestly verified without real camera files, and
+   writing confident-but-unverified media parsing is the exact failure mode §6
+   of this document is about.
 2. **An end-to-end run by a human.** Every part of the loop is tested and the
    pieces have been screenshotted, but nobody has yet sat down and gone signup →
    publish → load the live subdomain in one sitting. That is the acceptance test
    and it is the highest-value thing to do next.
+3. **The first real GitHub import.** The mapping is verified against a real API
+   payload and the error paths are unit-tested, but the live
+   `/users/<login>/repos` call has never run: this sandbox's proxy blocks it,
+   because sessions are scoped to configured repositories. Worth watching once
+   on a preview deploy.
+4. **The document reader has never met the real API.** `/start` takes a résumé
+   or a pasted write-up, sends it as one forced tool call, and writes what it
+   says into `source_material`. Every failure path returns a specific message —
+   401, 429, malformed reply, oversized file — but the happy path has not run,
+   because this environment has no `ANTHROPIC_API_KEY`. Put one résumé through
+   it once a key is set.
+
+   It **transcribes and never infers** (§23.5): dates, titles, employers,
+   schools and technologies are copied; impact, seniority and outcomes come back
+   empty and are *reported as gaps*. That is the rule to defend if anyone is
+   ever tempted to make the output look fuller.
+
+
+5. **Content flows profile → site, never back.** A new site seeds from source
+   material and import writes both, but editing a portfolio directly does not
+   update the profile. That is deliberate — §23.4 keeps each site's `Issue`
+   independent so publishing can freeze it — with a consequence worth deciding
+   rather than discovering: someone who only ever edits portfolios never fills
+   in their profile, and their second portfolio starts empty anyway. Whether the
+   editor should offer "save this back to your content" is a product call.
+
+   The rule it lands under is §23.5, and it is the one worth getting right:
+   **state what the source says, never infer what it claims.** Dates, titles,
+   employers, schools, repo names and links are transcription. Impact, seniority
+   and outcomes are the user's to write. The GitHub import already applies this
+   by leaving `impact` empty on purpose — a parser that invents "improved
+   performance by 40%" produces a portfolio worse than an empty one, because it
+   is a claim the user did not make, under their name, to a recruiter.
 
 ### 2.3 Smaller, well-specified
 
@@ -248,6 +392,32 @@ hanging-indent block comments.
 Recorded because each was a confident wrong answer from a check that looked
 sufficient.
 
+**The tool that is convenient to reach for may be doing the work the bug depends
+on.** `app.` redirected to itself forever because the proxy emitted a *relative*
+`Location`. `curl -w '%{redirect_url}'` reported a clean `308 → 307 → 200`,
+because **curl resolves relative locations itself**. Only a browser trace showed
+nineteen identical hops. The same shape appeared twice more the same night: a
+Playwright assertion on `window.location.search` passed with the query-string bug
+reintroduced, because a *server-side* rewrite never touches the address bar; and
+a floor probe measured the type-scale *range* and never the minimum, so a 13px
+paragraph sailed past it. When a check is cheap, ask what it is silently doing
+for you.
+
+**`request.url` in middleware carries the server's own origin, not the incoming
+`Host`.** Reassigning its host is a no-op, and Next then serialises a
+same-origin `Location` as a bare path. This is why canonicalising `app.` onto
+the apex is a Vercel domain redirect rather than four lines in `proxy.ts`.
+
+**The proxy dropped the query string on every rewrite**, for the whole life of
+the project. `new URL(pathname, request.url)` keeps the origin and discards the
+search, so every page behind it saw empty `searchParams` — invisible until a
+screen first needed a parameter. The rewrite target is now a pure
+`rewriteTarget()` with tests that fail when the fix is removed.
+
+**Verify a check by breaking the thing it checks.** Every guard in this repo that
+matters was confirmed by reintroducing the bug and watching it go red. Two of
+them passed on a bug they were written for before that step was taken.
+
 **Section headings are not extraction boundaries.** The original 3,795-line
 stylesheet has a public-site media query *after* the `Admin` heading, whose own
 comment says it is "placed last so it wins over the wider mobile block above".
@@ -308,6 +478,24 @@ and it is already in the repo.
 Two rules the split stranded in the public half are now restored to
 `builder.css` (`.field`, `.link-arrow`); an audit of all 83 classes the original
 admin uses found no others.
+
+**A check that has only ever passed is indistinguishable from one that cannot
+fail.** Two of the six anti-slop lint rules silently matched nothing when
+written, while `npm run lint` reported success throughout. The floor spec
+(`e2e/floor.spec.ts`) was written the same way and could have been the same
+mistake, so `floor-fires.spec.ts` exists to inject each defect and assert the
+measurement reports it. The template-changelog rule got the same treatment —
+and **gave a false pass on the case that mattered**, because the test range
+still contained the commit that had added the changelog. The bug was in the
+test, not the rule, which is exactly how a rule nobody has seen fail gets
+believed. Run the failing case, in isolation, before trusting any new check.
+
+**Point the floor at a comp before promoting it.** `@axe-core/playwright`
+against `design/dossier/comp.html` — no React, no route, no registry entry —
+found the margin column failing WCAG AA in both themes across 21 nodes. It was
+the most characteristic element of that design and it was invisible in a
+screenshot. After promotion it would have been a token change rippling through
+a stylesheet, and it might well have shipped.
 
 **Screenshot the builder, not just the render path.** A static harness with
 `builder.css` and the real markup catches layout problems in seconds without

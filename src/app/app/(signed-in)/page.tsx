@@ -1,47 +1,15 @@
-import { hasServiceRole } from '@/lib/supabase/service';
-import { builderHref, siteHref } from '@/lib/tenant-config';
-import { ownedSites } from '@/server/services/sites';
+import { redirect } from 'next/navigation';
 
-import { NewPortfolio } from './NewPortfolio';
+import { builderHref } from '@/lib/tenant-config';
 
-export default async function Builder() {
-  const sites = await ownedSites();
-
-  return (
-    <>
-      <h1>Your portfolios</h1>
-
-      {sites.length === 0 ? (
-        <p className="admin-note">
-          Nothing yet. Start one, fill it in, and choose its address when you publish.
-        </p>
-      ) : (
-        <ul className="admin-list">
-          {sites.map((site) => (
-            <li key={site.id} className="admin-row">
-              <a href={builderHref(`/sites/${site.id}`)}>
-                {site.subdomain ?? site.displayName}
-              </a>
-              {site.publishedVersion !== null && site.subdomain ? (
-                <a className="admin-flag admin-flag-live" href={siteHref(site.subdomain)}>
-                  Live, version {site.publishedVersion}
-                </a>
-              ) : (
-                <span className="admin-flag admin-flag-pending">Draft</span>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {hasServiceRole() ? (
-        <NewPortfolio />
-      ) : (
-        <p className="admin-note" role="status">
-          Portfolios cannot be created because this deployment has no Supabase project
-          configured.
-        </p>
-      )}
-    </>
-  );
+/**
+ * The builder's root is not a page any more.
+ *
+ * On the apex `/` belongs to marketing — it is the landing page a stranger
+ * arrives on — so the list of your portfolios lives at `/sites`. This only ever
+ * resolves in path mode, where the builder still has a root of its own beneath
+ * `/app`, and it sends that to the same place.
+ */
+export default function BuilderRoot() {
+  redirect(builderHref('/sites'));
 }
