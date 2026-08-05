@@ -28,13 +28,18 @@ test('a subdomain serves that tenant', async ({ page }) => {
 
 /**
  * `app.` was the builder's only home and still answers, so existing links keep
- * working. Canonicalising it onto the apex is a Vercel domain redirect rather
- * than code — middleware relativises a `Location` that resolves to the
- * deployment's own origin, which on `app.` is a redirect to itself.
+ * working. In production a Vercel redirect canonicalises it onto the apex; under
+ * `next start` (no `vercel.json`) that edge redirect is absent, so the sign-in
+ * screen's own apex guard is what moves the browser over. Either way a login can
+ * only ever begin on the apex — which is the whole point: sign-in keeps its PKCE
+ * verifier in a host-only cookie, so a flow that started on `app.` and finished
+ * on the apex would lose it and bounce the user back to the door.
  */
-test('the old builder host still answers', async ({ page }) => {
+test('the old builder host moves you to the apex before sign-in', async ({ page }) => {
   await page.goto(at('app.', '/sites/abc'));
-  await expect(page).toHaveURL(at('app.', '/enter'));
+  // The signed-out gate sends to `/enter`, then the apex guard rewrites the
+  // origin — so the buttons render on the apex, not on `app.`.
+  await expect(page).toHaveURL(at('', '/enter'));
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sign in');
 });
 

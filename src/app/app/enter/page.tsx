@@ -1,9 +1,10 @@
 import { redirect } from 'next/navigation';
 
-import { builderHref } from '@/lib/tenant-config';
+import { apexOrigin, builderHref } from '@/lib/tenant-config';
 import { hasDatabase } from '@/lib/supabase/config';
 import { currentUser } from '@/server/auth/session';
 
+import { ApexGuard } from './ApexGuard';
 import { SignIn } from './SignIn';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,7 @@ export default async function Enter({
 
   return (
     <div className="admin">
+      <ApexGuard apexOrigin={apexOrigin()} />
       <main className="admin-main">
         <div className="admin-door">
           <h1>Sign in</h1>
@@ -27,6 +29,7 @@ export default async function Enter({
             <SignIn
               callbackPath={builderHref('/auth/callback')}
               enterPath={builderHref('/enter')}
+              apexOrigin={apexOrigin()}
               problem={problem}
             />
           ) : (

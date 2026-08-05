@@ -136,6 +136,31 @@ export function builderRoute(pathname: string): string {
 }
 
 /**
+ * The single origin the builder — and every OAuth round trip — must live on.
+ *
+ * Sign-in stores its PKCE `code_verifier` in a **host-only** cookie (no `Domain`
+ * attribute, by §1's isolation rule). So a flow that *begins* on `app.<root>`
+ * and is bounced to the apex mid-handshake arrives at the callback on a host
+ * that never received the verifier, and `exchangeCodeForSession` fails — the
+ * login silently returns the user to `/enter`. Returning the canonical origin
+ * lets the sign-in screen move the browser here *before* the flow starts, so the
+ * verifier and the callback always share a host.
+ *
+ * Null in path mode: a preview runs on one `*.vercel.app` origin with no apex to
+ * normalise to and no cross-host hop to defend against.
+ */
+export function builderOrigin(config: TenantConfig): string | null {
+  if (config.mode === 'path') return null;
+
+  const root = normalizeRoot(config.rootDomain);
+  const scheme = root === 'localhost' || root.endsWith('.localhost') ? 'http' : 'https';
+
+  // `config.rootDomain` keeps its port here (`localhost:3000`), unlike the
+  // normalised form used for host matching — this is an origin to navigate to.
+  return `${scheme}://${config.rootDomain}`;
+}
+
+/**
  * Where a published portfolio is read. In host mode that is a different origin
  * from the builder, so this has to be absolute; in path mode it is a path on
  * the same one. Plain HTTP only for localhost — every real root this runs under

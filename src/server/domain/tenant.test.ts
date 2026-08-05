@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { builderPath, builderRoute, resolveTenant, siteUrl, type TenantConfig, rewriteTarget } from './tenant';
+import {
+  builderOrigin,
+  builderPath,
+  builderRoute,
+  resolveTenant,
+  siteUrl,
+  type TenantConfig,
+  rewriteTarget,
+} from './tenant';
 
 const HOST: TenantConfig = { mode: 'host', rootDomain: 'chameleons.dev' };
 const PATH: TenantConfig = { mode: 'path', rootDomain: 'chameleons.dev' };
@@ -168,6 +176,28 @@ describe('siteUrl', () => {
       kind: 'site',
       subdomain: 'sean',
       pathname: '/',
+    });
+  });
+});
+
+describe('builderOrigin', () => {
+  it('is the apex the OAuth flow must run on in host mode', () => {
+    expect(builderOrigin(HOST)).toBe('https://chameleons.dev');
+  });
+
+  it('drops to http and keeps the port for localhost', () => {
+    expect(builderOrigin(DEV)).toBe('http://localhost:3000');
+  });
+
+  it('is null in path mode, where there is no apex to normalise to', () => {
+    expect(builderOrigin(PATH)).toBeNull();
+  });
+
+  it('is an origin the resolver reads as the apex builder, not a tenant', () => {
+    const url = new URL(builderOrigin(HOST) as string);
+    expect(resolveTenant(url.host, '/enter', HOST)).toEqual({
+      kind: 'builder',
+      pathname: '/enter',
     });
   });
 });

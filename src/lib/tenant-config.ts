@@ -1,4 +1,10 @@
-import { builderPath, siteUrl, type TenantConfig, type TenantMode } from '@/server/domain/tenant';
+import {
+  builderOrigin,
+  builderPath,
+  siteUrl,
+  type TenantConfig,
+  type TenantMode,
+} from '@/server/domain/tenant';
 
 /**
  * Read at runtime, not inlined: one build is deployed to production in `host`
@@ -25,4 +31,13 @@ export function builderHref(pathname: string): string {
 /** Where a published portfolio is read. Server-side only, same as above. */
 export function siteHref(subdomain: string): string {
   return siteUrl(subdomain, tenantConfig());
+}
+
+/**
+ * The origin every OAuth flow must start and finish on, or null in path mode.
+ * Server-side only; pass the result to the sign-in component so it can move a
+ * stray `app.` visitor to the apex before the login handshake begins.
+ */
+export function apexOrigin(): string | null {
+  return builderOrigin(tenantConfig());
 }

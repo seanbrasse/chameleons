@@ -9,6 +9,34 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ## [Unreleased]
 
+### Fixed — Google sign-in bounced back to `/enter`
+
+- **Signing in with Google (or GitHub) could return the user to `/enter` having
+  changed nothing.** The cause was a cross-host hop in the middle of the OAuth
+  handshake. Sign-in stores its PKCE `code_verifier` in a **host-only** cookie
+  (no `Domain`, by design — that isolation is what keeps a tenant subdomain from
+  reading a builder session). When a flow *began* on `app.chameleons.dev`, the
+  verifier was written there; the `vercel.json` redirect then bounced the
+  callback to the apex, where that cookie was never sent, so
+  `exchangeCodeForSession` failed and the callback sent the user back to the
+  door. The Supabase logs showing a *successful* login were coherent-host
+  attempts; the failures never reached the exchange.
+- **The fix guarantees the whole flow runs on one origin.** A new
+  `builderOrigin()` (pure, in `tenant.ts`) names the apex the OAuth round trip
+  must live on, and an `ApexGuard` on `/enter` moves the browser there *before*
+  any button can be clicked — so the verifier and the callback always share a
+  host. `SignIn` also anchors its `redirectTo` to the apex and re-checks at
+  click time. The guard renders even on a database-less deployment, so the door
+  is on the apex regardless.
+- **The `app.` → apex redirect is now temporary, not permanent.** A permanent
+  (308) redirect on a host that participates in auth is a foot-gun: browsers
+  cache it hard. It is now a 307 so it can never poison a cache.
+- Note on Supabase config, unchanged and still worth confirming: the project's
+  **Site URL** should be `https://chameleons.dev` and the **Redirect URLs**
+  allowlist should include `https://chameleons.dev/**` (and
+  `http://localhost:3000/**` for local dev), so Supabase honours the apex
+  `redirectTo` rather than falling back to a stale Site URL.
+
 ### Auth
 
 - Sign in at the builder with Google or GitHub. `profiles` rows come from

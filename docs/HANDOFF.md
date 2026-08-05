@@ -428,6 +428,22 @@ screen first needed a parameter. The rewrite target is now a pure
 matters was confirmed by reintroducing the bug and watching it go red. Two of
 them passed on a bug they were written for before that step was taken.
 
+**A host-only auth cookie and a cross-host redirect cannot coexist in one
+flow.** Google sign-in bounced back to `/enter` because the OAuth handshake
+crossed hosts. The PKCE `code_verifier` is kept in a host-only cookie (no
+`Domain` — the isolation that stops a tenant subdomain reading a builder
+session), so a flow that *started* on `app.chameleons.dev` wrote the verifier
+there, and the `vercel.json` redirect then delivered the callback to the apex
+where that cookie was never sent; the exchange failed silently. The two
+defences that looked sufficient each lied: the Supabase auth log showed a
+*successful* login (a different, coherent-host attempt), and every piece of the
+auth code was individually correct. The fix is architectural, not a patch to
+either end: `builderOrigin()` names the one origin the flow may run on, and
+`ApexGuard` on `/enter` moves the browser there before the flow can start, so
+the verifier and the callback always share a host. The lesson generalises —
+whenever a cookie is deliberately host-scoped, every redirect in a flow that
+reads it must stay on that host.
+
 **Section headings are not extraction boundaries.** The original 3,795-line
 stylesheet has a public-site media query *after* the `Admin` heading, whose own
 comment says it is "placed last so it wins over the wider mobile block above".
