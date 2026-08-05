@@ -221,6 +221,18 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
   page that all six forms post `scope=profile` and none carries a stray
   `siteId`.
 
+### Fixed (Sean's feedback)
+
+- **`app.chameleons.dev` now redirects to `chameleons.dev`.** A `vercel.json`
+  host redirect runs at the platform edge, before the middleware, so it does not
+  hit the relativised-`Location` loop that an in-code redirect did. The builder
+  lives on the apex; `app.` is gone as a place you land.
+- **The autofill box now looks like a place to drop a résumé.** It was a
+  collapsed disclosure that, with no API key, showed only a "not switched on"
+  line — indistinguishable from broken. It is now an always-open panel with a
+  real drag-and-drop target and a paste box, and when the key is missing it says
+  exactly what to set (`ANTHROPIC_API_KEY`) rather than reading as disabled.
+
 ### Autofill, where you actually edit
 
 - **Drop a résumé or paste a write-up on the content step and the fields fill
