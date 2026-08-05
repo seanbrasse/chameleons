@@ -5,7 +5,20 @@ const at = (host: string, path = '/') => `http://${host}localhost:${PORT}${path}
 
 test('the apex serves marketing', async ({ page }) => {
   await page.goto(at(''));
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Chameleons');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+    'Your work, in a design that suits it.',
+  );
+});
+
+/**
+ * The builder shares the apex with marketing now, so the same origin has to
+ * answer both. `/sites` is the dashboard, and a signed-out visitor is sent to
+ * the door rather than shown someone's portfolios.
+ */
+test('the apex also serves the builder', async ({ page }) => {
+  await page.goto(at('', '/sites'));
+  await expect(page).toHaveURL(at('', '/enter'));
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sign in');
 });
 
 test('a subdomain serves that tenant', async ({ page }) => {
@@ -13,8 +26,14 @@ test('a subdomain serves that tenant', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sean Brasse');
 });
 
-test('the builder sends a signed-out visitor to the door', async ({ page }) => {
-  await page.goto(at('app.'));
+/**
+ * `app.` was the builder's only home and still answers, so existing links keep
+ * working. Canonicalising it onto the apex is a Vercel domain redirect rather
+ * than code — middleware relativises a `Location` that resolves to the
+ * deployment's own origin, which on `app.` is a redirect to itself.
+ */
+test('the old builder host still answers', async ({ page }) => {
+  await page.goto(at('app.', '/sites/abc'));
   await expect(page).toHaveURL(at('app.', '/enter'));
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sign in');
 });

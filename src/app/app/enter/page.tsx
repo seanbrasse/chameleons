@@ -13,7 +13,7 @@ export default async function Enter({
 }: {
   searchParams: Promise<{ problem?: string }>;
 }) {
-  if (await currentUser()) redirect(builderHref('/'));
+  if (await currentUser()) redirect(builderHref('/sites'));
 
   const { problem } = await searchParams;
 

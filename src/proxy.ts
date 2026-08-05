@@ -25,9 +25,20 @@ export default async function proxy(request: NextRequest) {
       return NextResponse.rewrite(routeTo(request, `/s/${tenant.subdomain}${rest}`));
     }
 
+    // `app.` and the apex both reach the builder. Making `app.` *redirect* to
+    // the apex belongs in Vercel's domain settings, not here: middleware
+    // relativises any `Location` resolving to the deployment's own origin, so a
+    // cross-host redirect written here becomes a path and loops on `app.`.
     case 'builder':
+    case 'legacy-builder':
       return builder(request, tenant.pathname);
 
+    /*
+     * `app.<root>` was the builder's home and is now an alias. A permanent
+     * redirect rather than a rewrite, because two origins serving the builder
+     * would mean two host-only session cookies and a user signed in on one of
+     * them wondering why the other asks again.
+     */
     case 'unknown':
       return new NextResponse('Not found', { status: 404 });
   }

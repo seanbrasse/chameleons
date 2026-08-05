@@ -10,11 +10,36 @@ export type TenantConfig = {
 export type Tenant =
   | { kind: 'marketing' }
   | { kind: 'builder'; pathname: string }
+  /** `app.<root>`, the builder's former home. Redirected, not served. */
+  | { kind: 'legacy-builder'; pathname: string }
   | { kind: 'site'; subdomain: string; pathname: string }
   | { kind: 'unknown' };
 
 const BUILDER_LABEL = 'app';
 const SITE_ROOT = '/s';
+
+/**
+ * The builder's pages, which share the apex with marketing.
+ *
+ * The builder used to own `app.chameleons.dev`, and moving it onto the apex is
+ * a product decision: someone signs up on the landing page and stays on that
+ * site until they publish, rather than being handed to a second hostname on
+ * their first click.
+ *
+ * It is safe because the auth cookie is **host-only** — nothing sets a `Domain`
+ * attribute, so a cookie for `chameleons.dev` is returned to exactly that host
+ * and never to `sean.chameleons.dev`. That isolation is what §1 wanted; the
+ * `app.` subdomain was one way to get it rather than the only one.
+ *
+ * A list rather than a catch-all, so an unknown path on the apex is a marketing
+ * 404 instead of a builder page nobody wrote. Marketing keeps everything not
+ * named here, which is the right default for the surface strangers land on.
+ */
+const BUILDER_ROOTS = ['/enter', '/auth', '/sites', '/new', '/profile', '/preview'] as const;
+
+function isBuilderPath(pathname: string): boolean {
+  return BUILDER_ROOTS.some((root) => pathname === root || pathname.startsWith(`${root}/`));
+}
 
 function normalizeHost(host: string): string {
   return host.toLowerCase().trim().replace(/\.$/, '').split(':')[0] ?? '';
@@ -37,7 +62,11 @@ function under(pathname: string, prefix: string): string | null {
 }
 
 function resolveByHost(host: string, pathname: string, root: string): Tenant {
-  if (host === root) return { kind: 'marketing' };
+  // The apex serves both: the landing page a stranger arrives on, and the
+  // builder the same person uses once signed in.
+  if (host === root) {
+    return isBuilderPath(pathname) ? { kind: 'builder', pathname } : { kind: 'marketing' };
+  }
   if (!host.endsWith(`.${root}`)) return { kind: 'unknown' };
 
   const label = host.slice(0, -(root.length + 1));
@@ -47,7 +76,11 @@ function resolveByHost(host: string, pathname: string, root: string): Tenant {
   if (label.includes('.')) return { kind: 'unknown' };
 
   if (label === 'www') return { kind: 'marketing' };
-  if (label === BUILDER_LABEL) return { kind: 'builder', pathname };
+
+  // `app.` is where the builder used to live and still answers, so existing
+  // links keep working. Distinguished from the apex builder so the difference
+  // is visible rather than implied.
+  if (label === BUILDER_LABEL) return { kind: 'legacy-builder', pathname };
   if (!SUBDOMAIN_PATTERN.test(label)) return { kind: 'unknown' };
 
   return { kind: 'site', subdomain: label, pathname };

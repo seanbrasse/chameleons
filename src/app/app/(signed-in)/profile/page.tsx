@@ -141,7 +141,7 @@ export default async function Profile() {
         </Phase>
 
         <p className="admin-note">
-          <a href={builderHref('/')}>Back to your portfolios</a>
+          <a href={builderHref('/sites')}>Back to your portfolios</a>
         </p>
       </main>
     </>
