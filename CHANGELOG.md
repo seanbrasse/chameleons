@@ -221,6 +221,30 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
   page that all six forms post `scope=profile` and none carries a stray
   `siteId`.
 
+### Templates
+
+- **Template #2: Plates.** A catalogue of work — each project's image frame
+  bleeds to one edge with its words in the opposite margin, alternating down the
+  page. Built comp-first (`design/gallery/comp.html`, kept as the design record)
+  from Sean's Framer-gallery reference.
+- **Its rule: no text is ever set over an image.** Beyond the look, that is what
+  keeps the contrast floor checkable at all — a photograph uploaded after the
+  design ships has unknown tones, so text over it could not be audited for any
+  tenant. The rule also rules out the scrim, the gradient wash and the centred
+  hero caption, which are what make most image-led portfolios interchangeable.
+- It shows settings, projects, experiences and testimonials — **no education**,
+  a real difference from `timeline` rather than an oversight, so the two
+  templates exercise the "not on this design" machinery against each other.
+- Six tokens under its own names (`ground`, `figure`, `quiet`, `rule`, `mark`,
+  `frame`), not `timeline`'s twenty-seven. Templates share a floor, not a design
+  system.
+- The floor caught two real defects before merge, which is the point of it: a
+  fixed 64px plate title overflowed its column at 1024px because a real project
+  name contains a long unbreakable word, and a 13px caption was under the
+  legibility minimum on a paragraph. Fixed with a fluid scale and a 14px floor.
+- Alternation is a class, not `:nth-child(even)` — a pull quote between plates
+  is a sibling, so nth-child would flip the side of every plate after it.
+
 ### Builder (Phase 2, in progress)
 
 - **A design pass on the builder.** Type went from twelve sizes with no ratio
