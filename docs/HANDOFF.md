@@ -203,17 +203,27 @@ that had been pulled.
    `/users/<login>/repos` call has never run: this sandbox's proxy blocks it,
    because sessions are scoped to configured repositories. Worth watching once
    on a preview deploy.
-4. **The document reader has never met the real API.** `/start` takes a résumé
-   or a pasted write-up, sends it as one forced tool call, and writes what it
-   says into `source_material`. Every failure path returns a specific message —
-   401, 429, malformed reply, oversized file — but the happy path has not run,
-   because this environment has no `ANTHROPIC_API_KEY`. Put one résumé through
-   it once a key is set.
+4. **The document reader has never met the real API.** A shared `Autofill` box
+   sits on the content step, the profile and the intake screen: drop a résumé or
+   paste a write-up and the fields fill themselves. One target-aware service
+   (`draftInto`) serves a site draft and the profile alike, sending the source
+   as one forced tool call. Every failure path returns a specific message — 401,
+   429, malformed reply, oversized file — but the happy path has not run, because
+   this environment has no `ANTHROPIC_API_KEY`. Put one résumé through it once a
+   key is set; the box is on the editor waiting.
 
-   It **transcribes and never infers** (§23.5): dates, titles, employers,
-   schools and technologies are copied; impact, seniority and outcomes come back
-   empty and are *reported as gaps*. That is the rule to defend if anyone is
-   ever tempted to make the output look fuller.
+   Two properties to keep, both tested:
+
+   - It **transcribes and never infers** (§23.5): dates, titles, employers,
+     schools and technologies are copied; impact, seniority and outcomes come
+     back empty and are *reported as gaps*. Defend this if anyone is tempted to
+     make the output look fuller — a claim the person never made, under their
+     name, is worse than a blank.
+   - `applyDraft` **merges, it does not replace.** It upserts rows by a derived
+     id, so autofill is safe to run on a started editor: matching rows update in
+     place, hand-typed rows survive, and a project's images, impact and links
+     are preserved across a re-import. Replacing the arrays — the first cut —
+     would have made the feature eat the work it was meant to save.
 
 
 5. **Content flows profile → site, never back.** A new site seeds from source
