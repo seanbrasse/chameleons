@@ -9,6 +9,28 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ## [Unreleased]
 
+### Portfolio analytics (phase 1 — page views)
+
+- **Published portfolios now count their views, and the dashboard shows them.**
+  A total and a last-7-days figure sit beside each live site. Design and phasing
+  are in `docs/ANALYTICS.md`.
+- **Counting never touches the render path.** A published site stays a pure,
+  anonymous, cached snapshot read (§4) — a client beacon fires *after* load to a
+  separate `/api/hit` endpoint on the apex, so the cached HTML is identical
+  whether it fires or not. The beacon posts cross-origin (the proxy rewrites
+  every tenant-host path into the render route, so a site cannot post to itself),
+  as a `text/plain` `sendBeacon` to stay preflight-free.
+- **No per-visitor data by construction.** `page_views` (migration `0008`) is a
+  daily rollup — one row per site per active day, incremented by a guarded
+  `record_page_view()` function. No cookie, no IP, no identity; Do Not Track is
+  honoured and a reload is deduped per session. The endpoint takes only a
+  subdomain and resolves the `site_id` server-side, so a forged id cannot inflate
+  another site's count, and only live sites are counted.
+- Layered per §5: pure `domain/analytics.ts` (folds rows into totals/windows,
+  unit-tested), `repos/analytics.ts`, `services/analytics.ts`, the transport-only
+  route, and the `ViewBeacon` island. Phase 2 (click tracking, a per-site
+  sparkline, referrer split) and rate limiting are scoped in the doc.
+
 ### Template #3 — Dossier
 
 - **A third design, for engineers whose work has no pictures.** Promoted from

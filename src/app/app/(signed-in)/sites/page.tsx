@@ -1,11 +1,16 @@
 import { hasServiceRole } from '@/lib/supabase/service';
 import { builderHref, siteHref } from '@/lib/tenant-config';
+import { compactCount } from '@/server/domain/analytics';
+import { viewsForOwner } from '@/server/services/analytics';
 import { ownedSites } from '@/server/services/sites';
 
 import { redirect } from 'next/navigation';
 
 export default async function Builder() {
   const sites = await ownedSites();
+  // View figures per site, keyed by id. Empty for a signed-out or storage-less
+  // deployment, in which case the counts simply do not render.
+  const views = await viewsForOwner();
 
   // An empty account has nothing to choose between, so a dashboard listing
   // nothing is a dead end wearing the clothes of a choice (plan §23.1). It goes
@@ -46,6 +51,16 @@ export default async function Builder() {
               ) : (
                 <span className="admin-flag admin-flag-pending">Draft</span>
               )}
+              {/* Only live sites have an audience to count; a draft shows nothing
+                  rather than a zero that reads as broken. */}
+              {site.publishedVersion !== null && (views.get(site.id)?.total ?? 0) > 0 ? (
+                <span className="admin-note admin-views">
+                  {compactCount(views.get(site.id)!.total)} views
+                  {views.get(site.id)!.last7 > 0
+                    ? ` · ${compactCount(views.get(site.id)!.last7)} this week`
+                    : ''}
+                </span>
+              ) : null}
             </li>
           ))}
         </ul>
