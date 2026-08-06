@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>curriculum — comp</title>
+
+    <!--
+      Template #4, stage 2 of plan §20.4. One standalone file, no React, no build
+      step, no data layer: open it by double-clicking.
+
+      Content is realistic academic content at real length (a fictional but
+      plausible researcher), because lorem ipsum hides what a comp is for — a
+      citation list has to survive a nine-word title beside a twenty-word one,
+      and a venue string of wildly different widths.
+
+      Constraint: every work is one citation line, numbered, reverse-chron. No
+      cards, no thumbnails. See BRIEF.md.
+    -->
+
+    <style>
+      /* This template's vocabulary. Colours here only; the scale is non-colour
+         and would live in template.css after promotion. Oxford blue, not
+         dossier's printer red — the two document templates must not read as one
+         site in two inks. */
+      :root {
+        --paper: #fbfaf7;
+        --ink: #1a1a1c;
+        --ink-quiet: #55555c;
+        /* A shade darker than it wants to be: the faint tone carries dates and
+           affiliations, and a margin-grey that fails AA is the mistake the
+           dossier comp caught. 5.6:1 on paper here. */
+        --ink-faint: #63636b;
+        --rule: #e3e0d7;
+        /* Two jobs only: section numbers, venues and links. */
+        --accent: #17457a;
+
+        --serif: 'Charter', 'Bitstream Charter', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+        --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+
+        /* Scale ~6.5×: 12.5px caption to a 2.5rem name. Type carries the
+           hierarchy on a page with no images. */
+        --t-micro: 0.78rem;
+        --t-label: 0.82rem;
+        --t-body: 1.02rem;
+        --t-cite: 1.0rem;
+        --t-entry: 1.2rem;
+        --t-name: 2.5rem;
+
+        --gap-line: 0.3rem;
+        --gap-item: 1.4rem;
+        --gap-section: 4.5rem;
+
+        --identity-col: 17rem;
+        --measure: 40rem;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #16171b;
+          --ink: #eeece6;
+          --ink-quiet: #a6a4ac;
+          --ink-faint: #8b8992;
+          --rule: #2e2f36;
+          --accent: #7fa8db;
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--serif);
+        font-size: var(--t-body);
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .page {
+        max-width: 64rem;
+        margin: 0 auto;
+        padding: 4rem 2rem 8rem;
+        display: grid;
+        grid-template-columns: var(--identity-col) minmax(0, var(--measure));
+        column-gap: 4rem;
+        align-items: start;
+      }
+
+      /* ── Identity column: fixed while the record scrolls past it ───────── */
+
+      .identity {
+        position: sticky;
+        top: 4rem;
+        align-self: start;
+      }
+
+      .name {
+        font-size: var(--t-name);
+        line-height: 1.05;
+        font-weight: 600;
+        letter-spacing: -0.015em;
+        margin: 0;
+      }
+
+      .affiliation {
+        margin: 0.6rem 0 0;
+        color: var(--ink-quiet);
+        font-size: var(--t-cite);
+        line-height: 1.4;
+      }
+
+      .identity-block {
+        margin-top: 1.5rem;
+        font-size: var(--t-micro);
+        line-height: 1.6;
+      }
+
+      .identity-block h2 {
+        font-family: var(--sans);
+        font-size: var(--t-micro);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        color: var(--ink-faint);
+        margin: 0 0 0.4rem;
+      }
+
+      .contact,
+      .interests {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .contact a {
+        color: var(--accent);
+        text-underline-offset: 0.2em;
+        text-decoration-thickness: 1px;
+      }
+
+      .interests li {
+        color: var(--ink-quiet);
+      }
+
+      .section-nav {
+        margin-top: 1.5rem;
+        font-family: var(--sans);
+        font-size: var(--t-micro);
+        list-style: none;
+        padding: 0;
+        display: none;
+      }
+
+      .section-nav a {
+        color: var(--ink-quiet);
+        text-decoration: none;
+      }
+
+      .section-nav a:hover {
+        color: var(--accent);
+      }
+
+      /* ── The record ───────────────────────────────────────────────────── */
+
+      .record {
+        min-width: 0;
+      }
+
+      .section + .section {
+        margin-top: var(--gap-section);
+      }
+
+      .section-head {
+        display: flex;
+        align-items: baseline;
+        gap: 0.6rem;
+        border-bottom: 1px solid var(--rule);
+        padding-bottom: 0.5rem;
+        margin: 0 0 1.4rem;
+      }
+
+      .section-num {
+        font-family: var(--sans);
+        font-size: var(--t-label);
+        font-weight: 600;
+        color: var(--accent);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .section-title {
+        font-family: var(--sans);
+        font-size: var(--t-label);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        margin: 0;
+      }
+
+      .section-count {
+        margin-left: auto;
+        font-family: var(--sans);
+        font-size: var(--t-micro);
+        color: var(--ink-faint);
+      }
+
+      /* Publications: a numbered bibliography, the design's hero. */
+      .pubs {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: pub;
+      }
+
+      .pub {
+        position: relative;
+        padding-left: 2.2rem;
+        font-size: var(--t-cite);
+        line-height: 1.5;
+      }
+
+      .pub + .pub {
+        margin-top: var(--gap-item);
+      }
+
+      .pub::before {
+        counter-increment: pub;
+        content: '[' counter(pub) ']';
+        position: absolute;
+        left: 0;
+        top: 0;
+        font-family: var(--sans);
+        font-size: var(--t-micro);
+        color: var(--ink-faint);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .pub-title {
+        color: var(--ink);
+      }
+
+      .pub-authors {
+        color: var(--ink-quiet);
+      }
+
+      /* The self-name, bold — how a CV signals which author you are. */
+      .pub-authors .me {
+        color: var(--ink);
+        font-weight: 600;
+      }
+
+      .pub-venue {
+        color: var(--accent);
+        font-style: italic;
+      }
+
+      .pub-links {
+        font-family: var(--sans);
+        font-size: var(--t-micro);
+        margin-left: 0.3rem;
+      }
+
+      .pub-links a {
+        color: var(--accent);
+        text-decoration: none;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .pub-links a:hover {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      /* Appointments & education: institution is the heading, dates in a rail. */
+      .entry {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        column-gap: 1.5rem;
+        align-items: baseline;
+      }
+
+      .entry + .entry {
+        margin-top: var(--gap-item);
+      }
+
+      .entry-inst {
+        font-size: var(--t-entry);
+        font-weight: 600;
+        line-height: 1.2;
+        margin: 0;
+      }
+
+      .entry-role {
+        color: var(--ink-quiet);
+        margin: 0.1rem 0 0;
+        font-size: var(--t-cite);
+      }
+
+      .entry-note {
+        margin: 0.3rem 0 0;
+        color: var(--ink-quiet);
+        font-size: var(--t-cite);
+      }
+
+      .entry-date {
+        font-family: var(--sans);
+        font-size: var(--t-micro);
+        color: var(--ink-faint);
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+      }
+
+      /* Distinctions: a stat line of numerals, then a plain list. */
+      .stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2.5rem;
+        margin: 0 0 1.6rem;
+        padding: 0;
+        list-style: none;
+      }
+
+      .stat-value {
+        display: block;
+        font-size: 2rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .stat-label {
+        display: block;
+        margin-top: 0.35rem;
+        font-family: var(--sans);
+        font-size: var(--t-micro);
+        color: var(--ink-quiet);
+      }
+
+      .awards {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .award {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        column-gap: 1.5rem;
+        padding: 0.5rem 0;
+        border-top: 1px solid var(--rule);
+        font-size: var(--t-cite);
+      }
+
+      .award-year {
+        font-family: var(--sans);
+        font-size: var(--t-micro);
+        color: var(--ink-faint);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ── Focus + skip link, which are floor, not styling ───────────────── */
+
+      a:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+        border-radius: 1px;
+      }
+
+      .skip-link {
+        position: absolute;
+        left: -9999px;
+      }
+
+      .skip-link:focus {
+        left: 1rem;
+        top: 1rem;
+        background: var(--paper);
+        color: var(--ink);
+        padding: 0.5rem 0.75rem;
+        font-family: var(--sans);
+        font-size: var(--t-micro);
+        z-index: 2;
+      }
+
+      /* Below the two-column width, the identity column stops being a column: it
+         moves to the top, stops sticking, and everything reads in DOM order —
+         which is the order a screen reader used all along. */
+      @media (max-width: 52rem) {
+        :root {
+          --t-name: 2rem;
+          --gap-section: 3rem;
+        }
+
+        .page {
+          grid-template-columns: minmax(0, 1fr);
+          row-gap: 2.5rem;
+          padding: 2.5rem 1.25rem 5rem;
+        }
+
+        .identity {
+          position: static;
+        }
+
+        .entry,
+        .award {
+          grid-template-columns: minmax(0, 1fr);
+          row-gap: 0.2rem;
+        }
+
+        .entry-date,
+        .award-year {
+          text-align: left;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#record">Skip to the record</a>
+
+    <div class="page">
+      <!-- Identity: the h1 is the name, which is what the page is found by. -->
+      <header class="identity">
+        <h1 class="name">Maya Ellison</h1>
+        <p class="affiliation">
+          Assistant Professor of Computer Science<br />Northwestern University
+        </p>
+
+        <div class="identity-block">
+          <h2>Contact</h2>
+          <ul class="contact">
+            <li><a href="mailto:m.ellison@northwestern.edu">m.ellison@northwestern.edu</a></li>
+            <li><a href="#">Google Scholar</a></li>
+            <li><a href="#">ORCID 0000-0002-1825-0097</a></li>
+            <li><a href="#">Curriculum Vitae (PDF)</a></li>
+          </ul>
+        </div>
+
+        <div class="identity-block">
+          <h2>Research</h2>
+          <ul class="interests">
+            <li>Probabilistic machine learning</li>
+            <li>Uncertainty &amp; calibration</li>
+            <li>Fairness under distribution shift</li>
+          </ul>
+        </div>
+
+        <ul class="section-nav">
+          <li><a href="#publications">Publications</a></li>
+          <li><a href="#appointments">Appointments</a></li>
+          <li><a href="#education">Education</a></li>
+          <li><a href="#distinctions">Distinctions</a></li>
+        </ul>
+      </header>
+
+      <main class="record" id="record">
+        <!-- Publications: the hero. A numbered bibliography, reverse-chron. -->
+        <section class="section" id="publications" aria-labelledby="s-pub">
+          <div class="section-head">
+            <span class="section-num">1</span>
+            <h2 class="section-title" id="s-pub">Publications</h2>
+            <span class="section-count">selected, 6 of 24</span>
+          </div>
+
+          <ol class="pubs">
+            <li class="pub">
+              <span class="pub-authors"><span class="me">Ellison, M.</span>, Okafor, R., &amp; Vanti, L.</span>
+              <span class="pub-title">Calibrated uncertainty under continuous distribution shift.</span>
+              <span class="pub-venue">Advances in Neural Information Processing Systems (NeurIPS), 2025.</span>
+              <span class="pub-links"><a href="#">PDF</a> · <a href="#">arXiv</a> · <a href="#">Code</a></span>
+            </li>
+            <li class="pub">
+              <span class="pub-authors">Nunes, D., <span class="me">Ellison, M.</span>, &amp; Bremner, K.</span>
+              <span class="pub-title">A fairness certificate that survives reweighting.</span>
+              <span class="pub-venue">International Conference on Machine Learning (ICML), 2024.</span>
+              <span class="pub-links"><a href="#">PDF</a> · <a href="#">DOI</a></span>
+            </li>
+            <li class="pub">
+              <span class="pub-authors"><span class="me">Ellison, M.</span>, &amp; Sato, H.</span>
+              <span class="pub-title">Why temperature scaling fails, and a one-parameter fix that does not.</span>
+              <span class="pub-venue">Journal of Machine Learning Research (JMLR), 2024.</span>
+              <span class="pub-links"><a href="#">PDF</a> · <a href="#">DOI</a></span>
+            </li>
+            <li class="pub">
+              <span class="pub-authors">Okafor, R., <span class="me">Ellison, M.</span>, Vanti, L., &amp; Perez, A.</span>
+              <span class="pub-title">Distribution-free coverage for structured prediction.</span>
+              <span class="pub-venue">Conference on Computer Vision and Pattern Recognition (CVPR), 2023.</span>
+              <span class="pub-links"><a href="#">PDF</a> · <a href="#">arXiv</a></span>
+            </li>
+            <li class="pub">
+              <span class="pub-authors"><span class="me">Ellison, M.</span></span>
+              <span class="pub-title">On the geometry of miscalibration.</span>
+              <span class="pub-venue">Conference on Learning Theory (COLT), 2022.</span>
+              <span class="pub-links"><a href="#">PDF</a></span>
+            </li>
+            <li class="pub">
+              <span class="pub-authors">Bremner, K., &amp; <span class="me">Ellison, M.</span></span>
+              <span class="pub-title">Auditing deployed classifiers without labels.</span>
+              <span class="pub-venue">AAAI Conference on Artificial Intelligence, 2021.</span>
+              <span class="pub-links"><a href="#">PDF</a> · <a href="#">DOI</a></span>
+            </li>
+          </ol>
+        </section>
+
+        <!-- Appointments ← experiences -->
+        <section class="section" id="appointments" aria-labelledby="s-app">
+          <div class="section-head">
+            <span class="section-num">2</span>
+            <h2 class="section-title" id="s-app">Appointments</h2>
+          </div>
+
+          <div class="entry">
+            <div>
+              <h3 class="entry-inst">Northwestern University</h3>
+              <p class="entry-role">Assistant Professor, Computer Science</p>
+            </div>
+            <span class="entry-date">2023 — now</span>
+          </div>
+          <div class="entry">
+            <div>
+              <h3 class="entry-inst">Stanford University</h3>
+              <p class="entry-role">Postdoctoral Scholar, Statistics</p>
+              <p class="entry-note">Advisor: E. Hartman. Group: Probabilistic ML.</p>
+            </div>
+            <span class="entry-date">2021 — 2023</span>
+          </div>
+        </section>
+
+        <!-- Education ← education -->
+        <section class="section" id="education" aria-labelledby="s-edu">
+          <div class="section-head">
+            <span class="section-num">3</span>
+            <h2 class="section-title" id="s-edu">Education</h2>
+          </div>
+
+          <div class="entry">
+            <div>
+              <h3 class="entry-inst">Massachusetts Institute of Technology</h3>
+              <p class="entry-role">Ph.D. in Computer Science</p>
+              <p class="entry-note">Thesis: Calibration beyond the training distribution.</p>
+            </div>
+            <span class="entry-date">2021</span>
+          </div>
+          <div class="entry">
+            <div>
+              <h3 class="entry-inst">University of Chicago</h3>
+              <p class="entry-role">B.S. in Mathematics, with honors</p>
+            </div>
+            <span class="entry-date">2016</span>
+          </div>
+        </section>
+
+        <!-- Distinctions ← metrics + testimonials -->
+        <section class="section" id="distinctions" aria-labelledby="s-dis">
+          <div class="section-head">
+            <span class="section-num">4</span>
+            <h2 class="section-title" id="s-dis">Distinctions</h2>
+          </div>
+
+          <ul class="stats">
+            <li>
+              <span class="stat-value">2,140</span>
+              <span class="stat-label">Citations</span>
+            </li>
+            <li>
+              <span class="stat-value">18</span>
+              <span class="stat-label">h-index</span>
+            </li>
+            <li>
+              <span class="stat-value">3</span>
+              <span class="stat-label">Best-paper awards</span>
+            </li>
+          </ul>
+
+          <ul class="awards">
+            <li class="award">
+              <span>NSF CAREER Award</span>
+              <span class="award-year">2025</span>
+            </li>
+            <li class="award">
+              <span>Best Paper, ICML</span>
+              <span class="award-year">2024</span>
+            </li>
+            <li class="award">
+              <span>Google PhD Fellowship in Machine Learning</span>
+              <span class="award-year">2019</span>
+            </li>
+          </ul>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
