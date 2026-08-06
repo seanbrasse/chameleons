@@ -1,0 +1,288 @@
+/*
+ * Template #5 — Byline.
+ *
+ * Promoted from `design/byline/comp.html`, which stays in the repo as the design
+ * record diffed against when this drifts (plan §20.4).
+ *
+ * A magazine feature for a career: the bio leads as a display deck under a quiet
+ * byline, then every piece of work is one outcome sentence before the paragraph
+ * that earns it. One wide editorial column, a real measure, hairline rules. The
+ * lede — not the name — is the largest thing on the page, because the writing is
+ * the hero.
+ *
+ * Colours come from the tokens stylesheet (`--paper`, `--ink`, `--accent`…),
+ * injected per request and overridden under `[data-theme="dark"]`. Only the
+ * non-colour scale lives here, where the lint rule permits it. Plum, not
+ * `curriculum`'s oxford blue or `dossier`'s red — the document templates must
+ * not read as one site.
+ */
+
+:root {
+  --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Charter, Georgia, serif;
+  --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+
+  /* Scale ~7×: a 12.8px kicker to a display lede. The lede, not the name, is the
+     largest thing on the page — the writing is the hero. */
+  --t-kicker: 0.8rem;
+  --t-meta: 0.9rem;
+  --t-body: 1.15rem;
+  --t-outcome: 1.5rem;
+  --t-title: 1.9rem;
+  --t-lede: clamp(1.9rem, 4.2vw, 3rem);
+
+  --measure: 40rem;
+}
+
+.byline * {
+  box-sizing: border-box;
+}
+
+.byline {
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: var(--t-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.byline .page {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 5rem 1.5rem 8rem;
+}
+
+.byline .kicker {
+  font-family: var(--sans);
+  font-size: var(--t-kicker);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  margin: 0;
+}
+
+/* ── The deck: byline quiet, argument large ─────────────────────────── */
+
+.byline .name {
+  /* A byline, not a headline — small, so the deck below can be big. Still the
+     h1: it is what the page is found by, and the floor asserts one. */
+  font-size: var(--t-meta);
+  font-weight: 600;
+  font-family: var(--sans);
+  color: var(--ink);
+  letter-spacing: 0;
+  margin: 0.5rem 0 0;
+}
+
+.byline .name-by {
+  color: var(--ink-quiet);
+  font-weight: 400;
+}
+
+.byline .lede {
+  font-size: var(--t-lede);
+  line-height: 1.2;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  margin: 1.5rem 0 0;
+  text-wrap: balance;
+}
+
+.byline .intro-meta {
+  font-family: var(--sans);
+  font-size: var(--t-meta);
+  color: var(--ink-faint);
+  margin: 1.5rem 0 0;
+}
+
+/* ── Sections ───────────────────────────────────────────────────────── */
+
+.byline .section {
+  margin-top: 4.5rem;
+}
+
+.byline .section-kicker {
+  font-family: var(--sans);
+  font-size: var(--t-kicker);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  border-top: 2px solid var(--accent);
+  padding-top: 0.6rem;
+  margin: 0 0 2rem;
+}
+
+/* ── Work: outcome, then title, then the paragraph that earns it ─────── */
+
+.byline .piece {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.byline .work {
+  padding-bottom: 2.5rem;
+  margin-bottom: 2.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.byline .work:last-child {
+  border-bottom: 0;
+  margin-bottom: 0;
+}
+
+.byline .work-title {
+  font-size: var(--t-title);
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+/* The outcome line: set as a lede under the title, ink not accent — it is the
+   sentence you read first, so it has to be prose, not a badge. */
+.byline .outcome {
+  font-size: var(--t-outcome);
+  line-height: 1.35;
+  color: var(--ink);
+  margin: 0.5rem 0 0;
+  text-wrap: pretty;
+}
+
+.byline .work-body {
+  color: var(--ink-quiet);
+  margin: 0.9rem 0 0;
+}
+
+.byline .work-foot {
+  font-family: var(--sans);
+  font-size: var(--t-meta);
+  margin: 1rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.5rem;
+  align-items: baseline;
+}
+
+.byline .work-when {
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.byline .work-links a {
+  color: var(--accent);
+  text-underline-offset: 0.2em;
+}
+
+/* ── Experience: a compact ruled list, dates incidental ─────────────── */
+
+.byline .roles {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.byline .role {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.7rem 0;
+  border-top: 1px solid var(--rule);
+  font-family: var(--sans);
+  font-size: var(--t-meta);
+}
+
+.byline .role-what {
+  color: var(--ink);
+}
+
+.byline .role-where {
+  color: var(--ink-quiet);
+}
+
+.byline .role-when {
+  color: var(--ink-faint);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Contact ────────────────────────────────────────────────────────── */
+
+.byline .contact {
+  margin-top: 4.5rem;
+  border-top: 1px solid var(--rule);
+  padding-top: 1.5rem;
+  font-family: var(--sans);
+  font-size: var(--t-meta);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.75rem;
+}
+
+.byline .contact a {
+  color: var(--accent);
+  text-underline-offset: 0.2em;
+}
+
+/* ── Theme toggle — plain text, top-right ───────────────────────────── */
+
+.byline .theme-control {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+}
+
+.byline .theme-toggle {
+  font-family: var(--sans);
+  font-size: var(--t-kicker);
+  color: var(--ink-quiet);
+  background: transparent;
+  border: 0;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+}
+
+.byline .theme-toggle:hover {
+  color: var(--accent);
+}
+
+/* ── Focus + skip link, which are floor, not styling ────────────────── */
+
+.byline a:focus-visible,
+.byline .theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 1px;
+}
+
+.byline .skip-link {
+  position: absolute;
+  left: -9999px;
+}
+
+.byline .skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  background: var(--paper);
+  color: var(--ink);
+  padding: 0.5rem 0.75rem;
+  font-family: var(--sans);
+  font-size: var(--t-kicker);
+  z-index: 3;
+}
+
+@media (max-width: 40rem) {
+  .byline .page {
+    padding: 3rem 1.25rem 5rem;
+  }
+
+  .byline .role {
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+}

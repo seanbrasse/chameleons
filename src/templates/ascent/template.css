@@ -1,0 +1,331 @@
+/*
+ * Template #6 — Ascent.
+ *
+ * Promoted from `design/ascent/comp.html`, which stays in the repo as the design
+ * record diffed against when this drifts (plan §20.4).
+ *
+ * A first portfolio built to sell trajectory: it opens with what you want next
+ * and what you are learning, projects lead with what you learned, and skills and
+ * education get real estate a senior template would never spend on them — so the
+ * page reads as ready with three items, not thin. Warm geometric-ish sans, not a
+ * serif document; this is the forward-looking, encouraging template.
+ *
+ * Colours come from the tokens stylesheet (`--paper`, `--ink`, `--accent`…),
+ * injected per request and overridden under `[data-theme="dark"]`. Only the
+ * non-colour scale lives here, where the lint rule permits it. Emerald, unused
+ * by any other template.
+ */
+
+:root {
+  --sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Scale ~6×: a 13px label to a 3rem name, confident but not shouting. */
+  --t-tag: 0.82rem;
+  --t-meta: 0.92rem;
+  --t-body: 1.08rem;
+  --t-open: 1.3rem;
+  --t-entry: 1.35rem;
+  --t-name: clamp(2.4rem, 6vw, 3.4rem);
+
+  --measure: 42rem;
+}
+
+.ascent * {
+  box-sizing: border-box;
+}
+
+.ascent {
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: var(--t-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.ascent .page {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 4.5rem 1.5rem 7rem;
+}
+
+/* ── Intro: name, one line, and what comes next ─────────────────────── */
+
+.ascent .name {
+  font-size: var(--t-name);
+  line-height: 1.02;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.ascent .tagline {
+  font-size: var(--t-open);
+  line-height: 1.35;
+  color: var(--ink-quiet);
+  margin: 1rem 0 0;
+  max-width: 32em;
+}
+
+.ascent .place {
+  font-size: var(--t-meta);
+  color: var(--ink-faint);
+  margin: 1rem 0 0;
+}
+
+/* The thesis: what you want next, set as a headline, not a footnote. */
+.ascent .open {
+  margin: 2.25rem 0 0;
+  padding: 1.1rem 1.25rem;
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: 2px;
+  font-size: var(--t-open);
+  line-height: 1.4;
+}
+
+.ascent .open-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--mono);
+  font-size: var(--t-tag);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.ascent .dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--accent);
+  display: inline-block;
+}
+
+.ascent .open-line {
+  margin: 0;
+}
+
+.ascent .open-line strong {
+  font-weight: 700;
+}
+
+/* ── Sections ───────────────────────────────────────────────────────── */
+
+.ascent .section {
+  margin-top: 3.5rem;
+}
+
+.ascent .section-title {
+  font-size: var(--t-meta);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin: 0 0 1.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* ── Projects: what you learned first ───────────────────────────────── */
+
+.ascent .cards {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 2rem;
+}
+
+.ascent .project-title {
+  font-size: var(--t-entry);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.ascent .learned {
+  margin: 0.5rem 0 0;
+  font-size: var(--t-body);
+  color: var(--ink);
+}
+
+.ascent .learned-label {
+  font-family: var(--mono);
+  font-size: var(--t-tag);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  margin-right: 0.4rem;
+}
+
+.ascent .project-body {
+  margin: 0.7rem 0 0;
+  color: var(--ink-quiet);
+}
+
+.ascent .tags {
+  margin: 0.9rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.ascent .tag {
+  font-family: var(--mono);
+  font-size: var(--t-tag);
+  color: var(--ink-quiet);
+  border: 1px solid var(--edge);
+  border-radius: 3px;
+  padding: 0.15rem 0.5rem;
+}
+
+.ascent .project-link {
+  display: inline-block;
+  margin: 0.9rem 0 0;
+  font-size: var(--t-meta);
+  color: var(--accent);
+  text-underline-offset: 0.2em;
+}
+
+/* ── Experience & education: institution is the heading ─────────────── */
+
+.ascent .entry + .entry {
+  margin-top: 1.5rem;
+}
+
+.ascent .entry-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+}
+
+.ascent .entry-inst {
+  font-size: var(--t-entry);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.ascent .entry-role {
+  margin: 0.15rem 0 0;
+  color: var(--ink-quiet);
+}
+
+.ascent .entry-note {
+  margin: 0.4rem 0 0;
+  color: var(--ink-quiet);
+  font-size: var(--t-meta);
+}
+
+.ascent .entry-when {
+  font-family: var(--mono);
+  font-size: var(--t-tag);
+  color: var(--ink-faint);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Skills: a first-class section, not an aside ────────────────────── */
+
+.ascent .skills {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ascent .skills .tag {
+  font-family: var(--sans);
+  font-size: var(--t-meta);
+  color: var(--ink);
+  padding: 0.3rem 0.7rem;
+}
+
+/* ── Contact ────────────────────────────────────────────────────────── */
+
+.ascent .contact {
+  margin-top: 3.5rem;
+  border-top: 1px solid var(--rule);
+  padding-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.75rem;
+  font-size: var(--t-meta);
+}
+
+.ascent .contact a {
+  color: var(--accent);
+  text-underline-offset: 0.2em;
+}
+
+/* ── Theme toggle — plain text, top-right ───────────────────────────── */
+
+.ascent .theme-control {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+}
+
+.ascent .theme-toggle {
+  font-family: var(--mono);
+  font-size: var(--t-tag);
+  color: var(--ink-quiet);
+  background: transparent;
+  border: 0;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+}
+
+.ascent .theme-toggle:hover {
+  color: var(--accent);
+}
+
+/* ── Focus + skip link, which are floor ─────────────────────────────── */
+
+.ascent a:focus-visible,
+.ascent .theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.ascent .skip-link {
+  position: absolute;
+  left: -9999px;
+}
+
+.ascent .skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  background: var(--paper);
+  color: var(--ink);
+  padding: 0.5rem 0.75rem;
+  font-size: var(--t-tag);
+  z-index: 3;
+}
+
+@media (max-width: 40rem) {
+  .ascent .page {
+    padding: 3rem 1.25rem 5rem;
+  }
+
+  .ascent .entry-head {
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+}
