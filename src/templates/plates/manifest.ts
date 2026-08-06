@@ -33,6 +33,11 @@ export const manifest: TemplateManifest<PlatesOptions> = {
   // what this design has and that one does not.
   uses: ['settings', 'projects', 'experiences', 'testimonials'],
 
+  attributes: {
+    useCases: ['Designers', 'Photographers'],
+    imagery: 'image-forward',
+  },
+
   options,
 
   constraint:

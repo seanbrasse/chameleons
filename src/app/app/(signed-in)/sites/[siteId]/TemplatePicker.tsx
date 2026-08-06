@@ -2,19 +2,13 @@
 
 import { useActionState, useState } from 'react';
 
+import { PreviewFrame } from '../../PreviewFrame';
+import { TemplateTags } from '../../TemplateTags';
+import { useTemplateBrowser, type BrowsableTemplate } from '../../TemplateBrowser';
 import { chooseTemplateAction, type EditorState } from './actions';
 import { Feedback } from './Feedback';
 
-export type TemplateChoice = {
-  id: string;
-  name: string;
-  description: string;
-  constraint: string;
-};
-
-/** The size each preview renders at before being scaled into its card. */
-const PREVIEW_WIDTH = 1280;
-const PREVIEW_HEIGHT = 800;
+export type TemplateChoice = BrowsableTemplate;
 
 /**
  * Picking the design is the first step of the flow, because the design decides
@@ -48,18 +42,29 @@ export function TemplatePicker({
   // after the round trip. The radio is still what the submit sends.
   const [chosen, setChosen] = useState(selectedId);
 
+  const { visible, controls } = useTemplateBrowser(templates);
+
   return (
     <form action={action} className="admin-form admin-form-wide">
       <input type="hidden" name="siteId" value={siteId} />
 
+      {controls}
+
+      {visible.length === 0 ? (
+        <p className="admin-note" role="status">
+          No design matches those filters. Clear one to see more.
+        </p>
+      ) : null}
+
       <div className="admin-gallery">
-        {templates.map((template) => (
+        {visible.map((template) => (
           <div
             className={`admin-gallery-item admin-choice${chosen === template.id ? ' is-chosen' : ''}`}
             key={template.id}
           >
             {/* The label wraps the preview, so clicking the design picks it —
-                which is what a card invites you to do. */}
+                which is what a card invites you to do. The preview's own size
+                toggle is a button, so it changes the width without selecting. */}
             <label className="admin-choice-label">
               <span className="admin-choice-head">
                 <input
@@ -75,18 +80,13 @@ export function TemplatePicker({
                 ) : null}
               </span>
 
-              <span className="admin-preview">
-                <iframe
-                  src={`/app/preview/${siteId}?template=${template.id}&embed=1`}
-                  title={`${template.name}, showing your content`}
-                  loading="lazy"
-                  tabIndex={-1}
-                  width={PREVIEW_WIDTH}
-                  height={PREVIEW_HEIGHT}
-                />
-              </span>
+              <PreviewFrame
+                src={`/app/preview/${siteId}?template=${template.id}&embed=1`}
+                title={`${template.name}, showing your content`}
+              />
             </label>
 
+            <TemplateTags attributes={template.attributes} />
             <p className="admin-note">{template.description}</p>
             <p className="admin-note">
               <strong>Its rule:</strong> {template.constraint}

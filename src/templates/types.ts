@@ -3,6 +3,21 @@ import type { z } from 'zod';
 
 import type { Issue } from '@/content/types';
 
+/** How much a design leans on imagery — a real axis the templates differ on. */
+export type TemplateImagery = 'image-forward' | 'balanced' | 'text-led';
+
+/**
+ * The facets a person browses templates by, kept structured rather than buried
+ * in prose so the picker can filter and sort on them (plan §23.2). `description`
+ * and `constraint` are still what a card reads out; these are what it filters by.
+ */
+export type TemplateAttributes = {
+  /** Who the design is built for — the primary filter. At least one. */
+  useCases: string[];
+  /** Whether the work is looked at or read. */
+  imagery: TemplateImagery;
+};
+
 /**
  * Templates share a floor, not a design system. `Issue` and the invariants in
  * `floor.ts` are common to all of them; tokens, sections, CSS and components are
@@ -16,6 +31,8 @@ export type TemplateManifest<TOptions> = {
   description: string;
   /** Which parts of an Issue this template can show, so the builder can warn about gaps. */
   uses: Array<keyof Issue>;
+  /** The facets the picker filters and sorts by. */
+  attributes: TemplateAttributes;
   /** The customization schema. The builder renders its form from this. */
   options: z.ZodType<TOptions>;
   /** The one hard rule this design is built around. */

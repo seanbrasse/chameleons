@@ -32,6 +32,11 @@ export const manifest: TemplateManifest<DossierOptions> = {
   // — a number set enormous is this design's whole argument.
   uses: ['settings', 'metrics', 'projects', 'experiences', 'education'],
 
+  attributes: {
+    useCases: ['Engineers', 'Operators'],
+    imagery: 'text-led',
+  },
+
   options,
 
   constraint:

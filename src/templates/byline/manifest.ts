@@ -31,6 +31,11 @@ export const manifest: TemplateManifest<BylineOptions> = {
   // pieces (deferred; one section at a time).
   uses: ['settings', 'projects', 'experiences'],
 
+  attributes: {
+    useCases: ['Writers', 'Product managers', 'Operators'],
+    imagery: 'text-led',
+  },
+
   options,
 
   constraint:
