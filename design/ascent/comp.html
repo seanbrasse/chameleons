@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ascent — comp</title>
+
+    <!--
+      Template #6, stage 2 of plan §20.4. Standalone; open by double-clicking.
+
+      Content is a realistic new grad at real length — one internship, two
+      projects, one degree — because the whole test of this design is that it
+      looks intentional with little, not that it fills up with a lot. Lorem
+      would hide exactly the sparsity it has to survive.
+
+      Constraint: optimism over inventory. Leads with what you want next and
+      what you're learning; projects lead with what you learned. See BRIEF.md.
+    -->
+
+    <style>
+      :root {
+        --paper: #f8faf9;
+        --ink: #16201c;
+        --ink-quiet: #4f5a54;
+        /* A shade darker than it wants so it clears AA (5.1:1) — the dossier
+           margin lesson. */
+        --ink-faint: #616b65;
+        --rule: #dfe6e2;
+        --edge: #cdd6d0;
+        /* Emerald. One accent: the "open to" line, section markers, links, the
+           availability dot. Not ember/blue/red/plum. */
+        --accent: #0f6b52;
+        --accent-soft: #e5f0ea;
+
+        /* A friendly geometric-ish sans throughout — this is the warm, forward
+           template, not a serif document. */
+        --sans:
+          ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+        /* Scale ~6×: a 13px label to a 3rem name, confident but not shouting. */
+        --t-tag: 0.82rem;
+        --t-meta: 0.92rem;
+        --t-body: 1.08rem;
+        --t-open: 1.3rem;
+        --t-entry: 1.35rem;
+        --t-name: clamp(2.4rem, 6vw, 3.4rem);
+
+        --measure: 42rem;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #131815;
+          --ink: #eef2ef;
+          --ink-quiet: #a6b0aa;
+          --ink-faint: #8a948e;
+          --rule: #29302b;
+          --edge: #3a423c;
+          --accent: #4fd1a5;
+          --accent-soft: #1b2620;
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: var(--t-body);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .page {
+        max-width: var(--measure);
+        margin: 0 auto;
+        padding: 4.5rem 1.5rem 7rem;
+      }
+
+      /* ── Intro: name, one line, and what comes next ───────────────────── */
+
+      .name {
+        font-size: var(--t-name);
+        line-height: 1.02;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        margin: 0;
+      }
+
+      .tagline {
+        font-size: var(--t-open);
+        line-height: 1.35;
+        color: var(--ink-quiet);
+        margin: 1rem 0 0;
+        max-width: 32em;
+      }
+
+      .place {
+        font-size: var(--t-meta);
+        color: var(--ink-faint);
+        margin: 1rem 0 0;
+      }
+
+      /* The thesis: what you want next, set as a headline, not a footnote. */
+      .open {
+        margin: 2.25rem 0 0;
+        padding: 1.1rem 1.25rem;
+        background: var(--accent-soft);
+        border-left: 3px solid var(--accent);
+        border-radius: 2px;
+        font-size: var(--t-open);
+        line-height: 1.4;
+      }
+
+      .open-flag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: var(--mono);
+        font-size: var(--t-tag);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+        margin-bottom: 0.5rem;
+      }
+
+      .dot {
+        width: 0.55rem;
+        height: 0.55rem;
+        border-radius: 50%;
+        background: var(--accent);
+        display: inline-block;
+      }
+
+      .open strong {
+        font-weight: 700;
+      }
+
+      /* ── Sections ─────────────────────────────────────────────────────── */
+
+      .section {
+        margin-top: 3.5rem;
+      }
+
+      .section-title {
+        font-size: var(--t-meta);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+        margin: 0 0 1.25rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--rule);
+      }
+
+      /* ── Projects: what you learned first ─────────────────────────────── */
+
+      .cards {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 2rem;
+      }
+
+      .project-title {
+        font-size: var(--t-entry);
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        line-height: 1.2;
+        margin: 0;
+      }
+
+      .learned {
+        margin: 0.5rem 0 0;
+        font-size: var(--t-body);
+        color: var(--ink);
+      }
+
+      .learned-label {
+        font-family: var(--mono);
+        font-size: var(--t-tag);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--accent);
+        margin-right: 0.4rem;
+      }
+
+      .project-body {
+        margin: 0.7rem 0 0;
+        color: var(--ink-quiet);
+      }
+
+      .tags {
+        margin: 0.9rem 0 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+
+      .tag {
+        font-family: var(--mono);
+        font-size: var(--t-tag);
+        color: var(--ink-quiet);
+        border: 1px solid var(--edge);
+        border-radius: 3px;
+        padding: 0.15rem 0.5rem;
+      }
+
+      .project-link {
+        display: inline-block;
+        margin: 0.9rem 0 0;
+        font-size: var(--t-meta);
+        color: var(--accent);
+        text-underline-offset: 0.2em;
+      }
+
+      /* ── Experience & education: institution is the heading ───────────── */
+
+      .entry + .entry {
+        margin-top: 1.5rem;
+      }
+
+      .entry-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: baseline;
+      }
+
+      .entry-inst {
+        font-size: var(--t-entry);
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        line-height: 1.2;
+        margin: 0;
+      }
+
+      .entry-role {
+        margin: 0.15rem 0 0;
+        color: var(--ink-quiet);
+      }
+
+      .entry-note {
+        margin: 0.4rem 0 0;
+        color: var(--ink-quiet);
+        font-size: var(--t-meta);
+      }
+
+      .entry-when {
+        font-family: var(--mono);
+        font-size: var(--t-tag);
+        color: var(--ink-faint);
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ── Skills: a first-class section, not an aside ──────────────────── */
+
+      .skills {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .skills .tag {
+        font-family: var(--sans);
+        font-size: var(--t-meta);
+        color: var(--ink);
+        padding: 0.3rem 0.7rem;
+      }
+
+      /* ── Contact ──────────────────────────────────────────────────────── */
+
+      .contact {
+        margin-top: 3.5rem;
+        border-top: 1px solid var(--rule);
+        padding-top: 1.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 1.75rem;
+        font-size: var(--t-meta);
+      }
+
+      .contact a {
+        color: var(--accent);
+        text-underline-offset: 0.2em;
+      }
+
+      /* ── Focus + skip link, which are floor ───────────────────────────── */
+
+      a:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+        border-radius: 2px;
+      }
+
+      .skip-link {
+        position: absolute;
+        left: -9999px;
+      }
+
+      .skip-link:focus {
+        left: 1rem;
+        top: 1rem;
+        background: var(--paper);
+        color: var(--ink);
+        padding: 0.5rem 0.75rem;
+        font-size: var(--t-tag);
+        z-index: 2;
+      }
+
+      @media (max-width: 40rem) {
+        .page {
+          padding: 3rem 1.25rem 5rem;
+        }
+        .entry-head {
+          flex-direction: column;
+          gap: 0.1rem;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#work">Skip to the work</a>
+
+    <div class="page">
+      <header>
+        <h1 class="name">Priya Raman</h1>
+        <p class="tagline">
+          Computer science new grad who likes turning confusing things into ones people can actually
+          use.
+        </p>
+        <p class="place">Austin, TX · open to relocating</p>
+
+        <div class="open">
+          <span class="open-flag"><span class="dot"></span> Available now</span>
+          <div>Looking for a first role in <strong>frontend or full-stack engineering</strong>.</div>
+        </div>
+      </header>
+
+      <section class="section" id="work" aria-labelledby="s-work">
+        <h2 class="section-title" id="s-work">What I’ve been building</h2>
+        <ul class="cards">
+          <li>
+            <h3 class="project-title">StudyLoop</h3>
+            <p class="learned">
+              <span class="learned-label">Learned</span>How to design a data model that survives its
+              own schema changing three times.
+            </p>
+            <p class="project-body">
+              A spaced-repetition study app for my classmates. You add what you’re learning, it
+              schedules the reviews, and it works offline on the bus. About 60 people used it during
+              finals.
+            </p>
+            <ul class="tags">
+              <li class="tag">React</li>
+              <li class="tag">TypeScript</li>
+              <li class="tag">Supabase</li>
+              <li class="tag">PWA</li>
+            </ul>
+            <a class="project-link" href="#">studyloop.app →</a>
+          </li>
+
+          <li>
+            <h3 class="project-title">CampusMap accessibility audit</h3>
+            <p class="learned">
+              <span class="learned-label">Learned</span>That most accessibility bugs are found with a
+              keyboard, not with a scanner.
+            </p>
+            <p class="project-body">
+              I audited the university’s campus map for a HCI course, filed 23 issues, and fixed the
+              nine that were keyboard traps. Two of the fixes shipped to the real site.
+            </p>
+            <ul class="tags">
+              <li class="tag">Accessibility</li>
+              <li class="tag">WCAG</li>
+              <li class="tag">JavaScript</li>
+            </ul>
+          </li>
+        </ul>
+      </section>
+
+      <section class="section" aria-labelledby="s-exp">
+        <h2 class="section-title" id="s-exp">Experience</h2>
+        <div class="entry">
+          <div class="entry-head">
+            <h3 class="entry-inst">Brightwave (internship)</h3>
+            <span class="entry-when">Summer 2024</span>
+          </div>
+          <p class="entry-role">Software Engineering Intern</p>
+          <p class="entry-note">
+            Shipped a settings redesign to production and wrote the team’s first component tests.
+          </p>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="s-edu">
+        <h2 class="section-title" id="s-edu">Education</h2>
+        <div class="entry">
+          <div class="entry-head">
+            <h3 class="entry-inst">University of Texas at Austin</h3>
+            <span class="entry-when">2025</span>
+          </div>
+          <p class="entry-role">B.S. Computer Science</p>
+          <p class="entry-note">
+            Coursework: Distributed Systems, Human–Computer Interaction, Databases, Algorithms.
+          </p>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="s-skills">
+        <h2 class="section-title" id="s-skills">Skills &amp; tools</h2>
+        <ul class="skills">
+          <li class="tag">JavaScript</li>
+          <li class="tag">TypeScript</li>
+          <li class="tag">React</li>
+          <li class="tag">Node.js</li>
+          <li class="tag">Python</li>
+          <li class="tag">Supabase</li>
+          <li class="tag">Git</li>
+          <li class="tag">Accessibility</li>
+          <li class="tag">Figma</li>
+        </ul>
+      </section>
+
+      <footer class="contact">
+        <a href="mailto:priya@example.com">priya@example.com</a>
+        <a href="#">GitHub</a>
+        <a href="#">LinkedIn</a>
+        <a href="#">Résumé</a>
+      </footer>
+    </div>
+  </body>
+</html>
