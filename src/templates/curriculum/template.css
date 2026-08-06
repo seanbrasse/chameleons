@@ -1,0 +1,365 @@
+/*
+ * Template #4 — Curriculum.
+ *
+ * Promoted from `design/curriculum/comp.html`, which stays in the repo as the
+ * design record diffed against when this drifts (plan §20.4).
+ *
+ * A faculty homepage crossed with a typeset CV: a fixed identity column beside a
+ * numbered, reverse-chronological record. Its one rule is that every work is a
+ * citation line — no cards, no thumbnails, no images anywhere — so the type
+ * scale is wide and the venue and year carry the signal.
+ *
+ * Colours come from the tokens stylesheet (`--paper`, `--ink`, `--accent`…),
+ * injected per request and overridden under `[data-theme="dark"]`. Only the
+ * non-colour scale lives here, where the lint rule permits it. Oxford blue, not
+ * `dossier`'s red — the two document templates must not read as one site.
+ */
+
+:root {
+  --serif: 'Charter', 'Bitstream Charter', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+  --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+
+  /* Scale ~6.5×: 12.5px caption to a 2.5rem name. Type is the only hierarchy. */
+  --t-micro: 0.78rem;
+  --t-label: 0.82rem;
+  --t-body: 1.02rem;
+  --t-cite: 1rem;
+  --t-entry: 1.2rem;
+  --t-name: 2.5rem;
+
+  --gap-line: 0.3rem;
+  --gap-item: 1.4rem;
+  --gap-section: 4.5rem;
+
+  --identity-col: 17rem;
+  --measure: 40rem;
+}
+
+.curriculum * {
+  box-sizing: border-box;
+}
+
+.curriculum {
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: var(--t-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.curriculum .page {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 4rem 2rem 8rem;
+  display: grid;
+  grid-template-columns: var(--identity-col) minmax(0, var(--measure));
+  column-gap: 4rem;
+  align-items: start;
+}
+
+/* ── Identity column: fixed while the record scrolls past it ─────────── */
+
+.curriculum .identity {
+  position: sticky;
+  top: 4rem;
+  align-self: start;
+}
+
+.curriculum .name {
+  font-size: var(--t-name);
+  line-height: 1.05;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+.curriculum .affiliation {
+  margin: 0.6rem 0 0;
+  color: var(--ink-quiet);
+  font-size: var(--t-cite);
+  line-height: 1.4;
+}
+
+.curriculum .identity-block {
+  margin-top: 1.5rem;
+  font-size: var(--t-micro);
+  line-height: 1.6;
+}
+
+.curriculum .identity-block h2 {
+  font-family: var(--sans);
+  font-size: var(--t-micro);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-faint);
+  margin: 0 0 0.4rem;
+}
+
+.curriculum .contact,
+.curriculum .interests {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.curriculum .contact a {
+  color: var(--accent);
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+}
+
+.curriculum .interests li {
+  color: var(--ink-quiet);
+}
+
+/* ── The record ─────────────────────────────────────────────────────── */
+
+.curriculum .record {
+  min-width: 0;
+}
+
+.curriculum .section + .section {
+  margin-top: var(--gap-section);
+}
+
+.curriculum .section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.5rem;
+  margin: 0 0 1.4rem;
+}
+
+.curriculum .section-num {
+  font-family: var(--sans);
+  font-size: var(--t-label);
+  font-weight: 600;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.curriculum .section-title {
+  font-family: var(--sans);
+  font-size: var(--t-label);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  margin: 0;
+}
+
+.curriculum .section-count {
+  margin-left: auto;
+  font-family: var(--sans);
+  font-size: var(--t-micro);
+  color: var(--ink-faint);
+}
+
+/* Publications: a numbered bibliography, the design's hero. */
+.curriculum .pubs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: pub;
+}
+
+.curriculum .pub {
+  position: relative;
+  padding-left: 2.2rem;
+  font-size: var(--t-cite);
+  line-height: 1.5;
+}
+
+.curriculum .pub + .pub {
+  margin-top: var(--gap-item);
+}
+
+.curriculum .pubs:not(.pubs-plain) .pub::before {
+  counter-increment: pub;
+  content: '[' counter(pub) ']';
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: var(--sans);
+  font-size: var(--t-micro);
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Plain (unnumbered) variant keeps the hanging indent without the counter. */
+.curriculum .pubs-plain .pub {
+  padding-left: 0;
+}
+
+.curriculum .pub-title {
+  color: var(--ink);
+}
+
+.curriculum .pub-venue {
+  color: var(--accent);
+  font-style: italic;
+}
+
+.curriculum .pub-links {
+  font-family: var(--sans);
+  font-size: var(--t-micro);
+}
+
+.curriculum .pub-links a {
+  color: var(--accent);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.curriculum .pub-links a:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* Appointments & education: institution is the heading, dates in a rail. */
+.curriculum .entry {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 1.5rem;
+  align-items: baseline;
+}
+
+.curriculum .entry + .entry {
+  margin-top: var(--gap-item);
+}
+
+.curriculum .entry-inst {
+  font-size: var(--t-entry);
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.curriculum .entry-role {
+  color: var(--ink-quiet);
+  margin: 0.1rem 0 0;
+  font-size: var(--t-cite);
+}
+
+.curriculum .entry-note {
+  margin: 0.3rem 0 0;
+  color: var(--ink-quiet);
+  font-size: var(--t-cite);
+}
+
+.curriculum .entry-date {
+  font-family: var(--sans);
+  font-size: var(--t-micro);
+  color: var(--ink-faint);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Distinctions: a row of figures set large. */
+.curriculum .stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.curriculum .stat-value {
+  display: block;
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.curriculum .stat-label {
+  display: block;
+  margin-top: 0.35rem;
+  font-family: var(--sans);
+  font-size: var(--t-micro);
+  color: var(--ink-quiet);
+}
+
+/* ── Theme toggle — plain text, top-right ───────────────────────────── */
+
+.curriculum .theme-control {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+}
+
+.curriculum .theme-toggle {
+  font-family: var(--sans);
+  font-size: var(--t-micro);
+  color: var(--ink-quiet);
+  background: transparent;
+  border: 0;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+}
+
+.curriculum .theme-toggle:hover {
+  color: var(--accent);
+}
+
+/* ── Focus + skip link, which are floor, not styling ────────────────── */
+
+.curriculum a:focus-visible,
+.curriculum .theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 1px;
+}
+
+.curriculum .skip-link {
+  position: absolute;
+  left: -9999px;
+}
+
+.curriculum .skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  background: var(--paper);
+  color: var(--ink);
+  padding: 0.5rem 0.75rem;
+  font-family: var(--sans);
+  font-size: var(--t-micro);
+  z-index: 3;
+}
+
+/* Below the two-column width the identity column stops being a column: it moves
+   to the top, stops sticking, and everything reads in DOM order. */
+@media (max-width: 52rem) {
+  :root {
+    --t-name: 2rem;
+    --gap-section: 3rem;
+  }
+
+  .curriculum .page {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 2.5rem;
+    padding: 2.5rem 1.25rem 5rem;
+  }
+
+  .curriculum .identity {
+    position: static;
+  }
+
+  .curriculum .entry {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0.2rem;
+  }
+
+  .curriculum .entry-date {
+    text-align: left;
+  }
+}
