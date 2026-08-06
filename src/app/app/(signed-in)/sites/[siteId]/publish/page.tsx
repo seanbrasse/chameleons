@@ -1,13 +1,16 @@
 import { notFound } from 'next/navigation';
 
 import { builderHref, tenantConfig } from '@/lib/tenant-config';
+import { portfolioAdvice } from '@/server/domain/portfolio-advisor';
 import { loadEditor } from '@/server/services/editSite';
 import { loadHistory } from '@/server/services/rollbackSite';
+import { getManifest } from '@/templates/manifests';
 
 import { DeleteSite } from '../DeleteSite';
 import { History } from '../History';
 import { PublishBar } from '../PublishBar';
 import { Steps, StepNav } from '../Steps';
+import { StrengthAdvisor } from '../StrengthAdvisor';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +31,11 @@ export default async function PublishStep({ params }: { params: Promise<{ siteId
 
   const history = await loadHistory(siteId);
   const { mode, rootDomain } = tenantConfig();
+
+  // A pre-flight, not a gate: publishing stays available whatever it says. The
+  // manifest is null when the site names a design this build no longer ships,
+  // and the advisor then reasons about every section rather than none.
+  const advice = portfolioAdvice(editor.issue, getManifest(editor.templateId));
 
   return (
     <>
@@ -51,6 +59,18 @@ export default async function PublishStep({ params }: { params: Promise<{ siteId
             publishedVersion={editor.publishedVersion}
             previewHref={builderHref(`/preview/${editor.siteId}`)}
           />
+        </section>
+
+        <section className="admin-section" id="strength">
+          <div className="admin-section-head">
+            <h3>Strength</h3>
+            {advice.length > 0 ? <span className="admin-note">{advice.length}</span> : null}
+          </div>
+          <p className="admin-note">
+            Suggestions from what you have written. None of them block publishing — they are what
+            would make the page land harder.
+          </p>
+          <StrengthAdvisor siteId={editor.siteId} advice={advice} />
         </section>
 
         <section className="admin-section" id="history">
