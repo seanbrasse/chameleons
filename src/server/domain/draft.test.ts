@@ -113,6 +113,51 @@ describe('readDraft', () => {
     expect(draft.projects[0]).toMatchObject({ title: 'Billing migration', employer: 'PayPal' });
     expect(draft.projects[1]?.employer).toBe('');
   });
+
+  it('transcribes a project’s links and drops anything that is not a URL', () => {
+    const draft = readDraft({
+      projects: [
+        {
+          title: 'Cadence',
+          links: [
+            { url: 'https://cadence.app', label: 'Live', type: 'live' },
+            { url: 'github.com/sean/cadence', label: 'Repo' }, // no scheme → dropped
+            { url: 'not a url' }, // dropped
+          ],
+        },
+      ],
+    });
+
+    expect(draft.projects[0]?.links).toEqual([
+      { label: 'Live', url: 'https://cadence.app', type: 'live' },
+    ]);
+  });
+
+  it('labels and types a bare GitHub URL from the host, and dedupes', () => {
+    const draft = readDraft({
+      projects: [
+        {
+          title: 'Cadence',
+          links: [
+            { url: 'https://github.com/sean/cadence', label: '' },
+            { url: 'https://github.com/sean/cadence', label: 'dup' }, // same URL → dropped
+          ],
+        },
+      ],
+    });
+
+    expect(draft.projects[0]?.links).toEqual([
+      { label: 'GitHub', url: 'https://github.com/sean/cadence', type: 'repo' },
+    ]);
+  });
+
+  it('ignores a link type the model made up', () => {
+    const draft = readDraft({
+      projects: [{ title: 'X', links: [{ url: 'https://x.dev', label: 'X', type: 'blog' }] }],
+    });
+
+    expect(draft.projects[0]?.links[0]).toEqual({ label: 'X', url: 'https://x.dev' });
+  });
 });
 
 describe('gapsIn', () => {
@@ -273,6 +318,50 @@ describe('applyDraft', () => {
     expect(after.projects[0]?.impact).toBe('Shipped to 400 users');
     expect(after.projects[0]?.images).toHaveLength(1);
     expect(after.projects[0]?.links).toHaveLength(1);
+    expect(after.projects[0]?.links[0]?.label).toBe('Repo');
     expect(after.projects[0]?.starred).toBe(true);
+  });
+
+  it('carries a new project’s links from the source', () => {
+    const issue = applyDraft(
+      base,
+      readDraft({
+        projects: [{ title: 'Cadence', links: [{ url: 'https://github.com/s/c', label: '' }] }],
+      }),
+    );
+
+    expect(issue.projects[0]?.links).toEqual([
+      { label: 'GitHub', url: 'https://github.com/s/c', type: 'repo' },
+    ]);
+  });
+
+  it('fills links onto a project that had none, without overwriting edited ones', () => {
+    const started: typeof base = {
+      ...base,
+      projects: [
+        {
+          id: 'proj-cadence',
+          title: 'Cadence',
+          summary: '',
+          date: '',
+          tech: [],
+          impact: '',
+          images: [],
+          links: [],
+          context: 'personal',
+          status: 'shipped',
+          duration: '',
+        },
+      ] as never,
+    };
+
+    const after = applyDraft(
+      started,
+      readDraft({
+        projects: [{ title: 'Cadence', links: [{ url: 'https://cadence.app', label: 'Live' }] }],
+      }),
+    );
+
+    expect(after.projects[0]?.links).toEqual([{ label: 'Live', url: 'https://cadence.app' }]);
   });
 });
