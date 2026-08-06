@@ -1757,6 +1757,31 @@ body {
   border: 1px solid var(--rule);
 }
 
+/* ── Occupation → suggestions ────────────────────────────────────────────
+   In the new-portfolio gallery the "what do you do?" answer ranks and marks
+   the matching designs. A soft recommendation, so the mark is a quiet badge and
+   a lifted border, not a filter that removed the rest. */
+.admin-gallery-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.admin-gallery-item.is-recommended {
+  border-color: var(--accent-a);
+}
+
+.tpl-recommend {
+  font-size: var(--t-micro);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-a) 14%, var(--matte));
+  color: var(--accent-ink);
+}
+
 /* ── Portfolio-strength advisor ──────────────────────────────────────────
    A pre-flight before publish: advice from the draft, never a gate. Each row
    is a tag, the nudge, and a link to the step that fixes it. */
