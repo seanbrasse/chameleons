@@ -22,6 +22,98 @@
  * is a smaller harm than handing back a file that will not open.
  */
 
+/**
+ * The pixel dimensions of an image, read from its header without decoding it.
+ *
+ * The `Asset` a template renders carries width and height — to reserve the
+ * space before the bytes arrive (no layout shift) and to anchor a focal-point
+ * crop. Both are in the file's own header, a few bytes in, so there is no need
+ * to decode the whole image to learn them. Returns null for a format not parsed
+ * here or a header too short to trust, and the caller treats that as "unknown"
+ * rather than guessing.
+ */
+export type Dimensions = { width: number; height: number };
+
+export function imageDimensions(bytes: Uint8Array, mime: string): Dimensions | null {
+  try {
+    if (mime === 'image/jpeg') return jpegDimensions(bytes);
+    if (mime === 'image/png') return pngDimensions(bytes);
+    if (mime === 'image/gif') return gifDimensions(bytes);
+    if (mime === 'image/webp') return webpDimensions(bytes);
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+const u16be = (b: Uint8Array, i: number) => (b[i]! << 8) | b[i + 1]!;
+const u16le = (b: Uint8Array, i: number) => b[i]! | (b[i + 1]! << 8);
+const u24le = (b: Uint8Array, i: number) => b[i]! | (b[i + 1]! << 8) | (b[i + 2]! << 16);
+const u32be = (b: Uint8Array, i: number) =>
+  (b[i]! << 24) | (b[i + 1]! << 16) | (b[i + 2]! << 8) | b[i + 3]!;
+
+function pngDimensions(bytes: Uint8Array): Dimensions | null {
+  // IHDR is always the first chunk; width and height are the first two fields of
+  // its data, at a fixed offset past the 8-byte signature and the chunk header.
+  if (bytes.length < 24) return null;
+  return { width: u32be(bytes, 16), height: u32be(bytes, 20) };
+}
+
+function gifDimensions(bytes: Uint8Array): Dimensions | null {
+  // The logical screen descriptor, little-endian, right after the 6-byte header.
+  if (bytes.length < 10) return null;
+  return { width: u16le(bytes, 6), height: u16le(bytes, 8) };
+}
+
+function jpegDimensions(bytes: Uint8Array): Dimensions | null {
+  if (bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
+  let i = 2;
+
+  while (i + 1 < bytes.length) {
+    if (bytes[i] !== 0xff) return null;
+    let marker = bytes[i + 1]!;
+    let j = i + 1;
+    while (marker === 0xff && j + 1 < bytes.length) marker = bytes[++j]!;
+
+    // A Start Of Frame carries the dimensions: precision, then height, then
+    // width. SOF0..SOF15 except the ones that are not frame headers (DHT 0xC4,
+    // JPG 0xC8, DAC 0xCC).
+    const isSof =
+      marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc;
+    const lenAt = j + 1;
+    if (isSof) {
+      if (lenAt + 6 > bytes.length) return null;
+      return { height: u16be(bytes, lenAt + 3), width: u16be(bytes, lenAt + 5) };
+    }
+
+    if (marker === 0xda) return null; // Reached the scan without an SOF.
+    const length = u16be(bytes, lenAt);
+    if (length < 2) return null;
+    i = lenAt + length;
+  }
+  return null;
+}
+
+function webpDimensions(bytes: Uint8Array): Dimensions | null {
+  if (bytes.length < 30) return null;
+  const codec = String.fromCharCode(bytes[12]!, bytes[13]!, bytes[14]!, bytes[15]!);
+
+  if (codec === 'VP8X') {
+    // The extended header stores each dimension minus one as a 24-bit LE value.
+    return { width: u24le(bytes, 24) + 1, height: u24le(bytes, 27) + 1 };
+  }
+  if (codec === 'VP8 ') {
+    // Lossy: the 14-bit dimensions sit after the start-code in the frame header.
+    return { width: u16le(bytes, 26) & 0x3fff, height: u16le(bytes, 28) & 0x3fff };
+  }
+  if (codec === 'VP8L') {
+    // Lossless: 14 bits each, packed little-endian starting after the 0x2f byte.
+    const bits = bytes[21]! | (bytes[22]! << 8) | (bytes[23]! << 16) | (bytes[24]! << 24);
+    return { width: (bits & 0x3fff) + 1, height: ((bits >> 14) & 0x3fff) + 1 };
+  }
+  return null;
+}
+
 /** The MIME types whose metadata this module actually removes today. */
 const STRIPPED = new Set(['image/jpeg', 'image/png']);
 

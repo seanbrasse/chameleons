@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { stripMetadata, stripsMetadata } from './image-metadata';
+import { imageDimensions, stripMetadata, stripsMetadata } from './image-metadata';
 
 const bytes = (...values: Array<number | number[]>): Uint8Array =>
   Uint8Array.from(values.flat());
@@ -111,6 +111,56 @@ describe('stripMetadata — PNG', () => {
   it('returns the original for a chunk length past the end of the file', () => {
     const broken = bytes(sig, [0x7f, 0xff, 0xff, 0xff], ascii('eXIf'), [0x00]);
     expect([...stripMetadata(broken, 'image/png')]).toEqual([...broken]);
+  });
+});
+
+describe('imageDimensions', () => {
+  it('reads a PNG from IHDR', () => {
+    // 8-byte signature, then IHDR length+type, then width=800 height=600.
+    const png = bytes(
+      [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+      [0, 0, 0, 13],
+      ascii('IHDR'),
+      [0, 0, 0x03, 0x20], // 800
+      [0, 0, 0x02, 0x58], // 600
+      [8, 6, 0, 0, 0],
+    );
+    expect(imageDimensions(png, 'image/png')).toEqual({ width: 800, height: 600 });
+  });
+
+  it('reads a GIF from the logical screen descriptor (little-endian)', () => {
+    const gif = bytes(ascii('GIF89a'), [0x20, 0x03], [0x58, 0x02]); // 800 × 600
+    expect(imageDimensions(gif, 'image/gif')).toEqual({ width: 800, height: 600 });
+  });
+
+  it('reads a JPEG from the SOF marker', () => {
+    const sofBody = [0x08, 0x02, 0x58, 0x03, 0x20]; // precision, height 600, width 800
+    const jpeg = bytes(
+      [0xff, 0xd8],
+      [0xff, 0xe0, 0x00, 0x04, 0x00, 0x00], // an APP0 to skip past
+      [0xff, 0xc0, ((sofBody.length + 2) >> 8) & 0xff, (sofBody.length + 2) & 0xff],
+      sofBody,
+    );
+    expect(imageDimensions(jpeg, 'image/jpeg')).toEqual({ width: 800, height: 600 });
+  });
+
+  it('reads an extended WebP (VP8X, dimension minus one)', () => {
+    const webp = bytes(
+      ascii('RIFF'),
+      [0, 0, 0, 0],
+      ascii('WEBP'),
+      ascii('VP8X'),
+      [0, 0, 0, 0, 0, 0, 0, 0], // flags + reserved to reach offset 24
+      [0x1f, 0x03, 0x00], // width-1 = 799 → 800
+      [0x57, 0x02, 0x00], // height-1 = 599 → 600
+    );
+    expect(imageDimensions(webp, 'image/webp')).toEqual({ width: 800, height: 600 });
+  });
+
+  it('returns null for a format it does not parse or a header too short', () => {
+    expect(imageDimensions(bytes(ascii('RIFF')), 'image/webp')).toBeNull();
+    expect(imageDimensions(bytes([0xff, 0xd8]), 'image/jpeg')).toBeNull();
+    expect(imageDimensions(bytes([1, 2, 3]), 'video/mp4')).toBeNull();
   });
 });
 
