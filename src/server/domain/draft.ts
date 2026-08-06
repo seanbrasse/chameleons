@@ -1,4 +1,11 @@
-import { type Education, type Experience, type Issue, type Project } from '@/content/types';
+import {
+  type Education,
+  type Experience,
+  type Issue,
+  type Link,
+  type LinkType,
+  type Project,
+} from '@/content/types';
 
 /**
  * Turning a résumé, a write-up or a pasted note into content.
@@ -23,7 +30,7 @@ export type Draft = {
   experiences: Array<Omit<Experience, 'id' | 'impactBullets'> & { impactBullets: string[] }>;
   education: Array<Omit<Education, 'id' | 'links'>>;
   projects: Array<
-    Pick<Project, 'title' | 'summary' | 'date'> & { tech: string[]; employer: string }
+    Pick<Project, 'title' | 'summary' | 'date' | 'links'> & { tech: string[]; employer: string }
   >;
 };
 
@@ -73,6 +80,9 @@ export const PROJECTS = [
   '  work.',
   '- `title` is what the work was; `summary` is what the source says about it,',
   '  or empty. `tech` only where the source names tools.',
+  '- `links`: only URLs the source actually gives for that project — a repo, a',
+  '  live link, a case study. Copy them exactly; never invent or guess a URL, and',
+  '  leave the list empty when the source states none.',
   '- Do not invent a project the résumé does not describe, and do not split one',
   '  effort into several to pad the list.',
 ].join('\n');
@@ -173,8 +183,34 @@ export const TOOL_SCHEMA: {
           summary: { type: 'string', description: 'Only if the source describes it.' },
           date: MONTH,
           tech: { type: 'array', items: { type: 'string' } },
+          links: {
+            type: 'array',
+            description:
+              'Only URLs the source states for this project — a repo, a live link, a case ' +
+              'study. Copy exactly; empty if none. Never invent a URL.',
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              properties: {
+                url: { type: 'string', description: 'The full URL, copied exactly.' },
+                label: {
+                  type: 'string',
+                  description: 'A short label if the source gives one, else empty.',
+                },
+                // Not required: the source rarely labels a link's kind, and forcing a
+                // guess would put "repo" on a live site. The reader classifies from the
+                // host where it is unambiguous, and leaves it unset otherwise.
+                type: {
+                  type: 'string',
+                  enum: ['live', 'repo', 'case_study', 'press'],
+                  description: 'The kind of link, only if clear from the URL or context.',
+                },
+              },
+              required: ['url', 'label'],
+            },
+          },
         },
-        required: ['title', 'employer', 'summary', 'date', 'tech'],
+        required: ['title', 'employer', 'summary', 'date', 'tech', 'links'],
       },
     },
   },
@@ -187,6 +223,56 @@ const list = (value: unknown): string[] =>
 
 /** `YYYY-MM` or empty — anything else is dropped rather than rendered as a broken date. */
 const month = (value: unknown): string => (/^\d{4}-\d{2}$/.test(text(value)) ? text(value) : '');
+
+const LINK_TYPES = new Set<LinkType>(['live', 'repo', 'case_study', 'press']);
+
+/** A handful of hosts whose kind is unambiguous, for the type and a nicer label. */
+const HOST: Record<string, { label: string; type: LinkType }> = {
+  'github.com': { label: 'GitHub', type: 'repo' },
+  'gitlab.com': { label: 'GitLab', type: 'repo' },
+  'bitbucket.org': { label: 'Bitbucket', type: 'repo' },
+};
+
+/** The host without a leading `www.`, or empty if the URL will not parse. */
+function host(url: string): string {
+  try {
+    return new URL(url).host.replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Normalise a project's links from the draft. Only real `http(s)` URLs survive —
+ * a URL is the one thing here that is unambiguously in the source, so it is safe
+ * to transcribe, but a malformed one is dropped rather than rendered as a dead
+ * link. The label falls back to the host and the type to a host it recognises;
+ * both are mechanical reads of the URL itself, never a claim about the work.
+ */
+function links(value: unknown): Link[] {
+  if (!Array.isArray(value)) return [];
+
+  const out: Link[] = [];
+  const seen = new Set<string>();
+
+  for (const raw of value) {
+    const row = (raw ?? {}) as Record<string, unknown>;
+    const url = text(row.url);
+    if (!/^https?:\/\//i.test(url) || seen.has(url)) continue;
+    seen.add(url);
+
+    const known = HOST[host(url)];
+    const label = text(row.label) || known?.label || host(url) || 'Link';
+
+    const stated = text(row.type);
+    const type = LINK_TYPES.has(stated as LinkType) ? (stated as LinkType) : known?.type;
+
+    out.push({ label, url, ...(type ? { type } : {}) });
+    if (out.length >= 6) break;
+  }
+
+  return out;
+}
 
 /**
  * Read the model's answer defensively.
@@ -236,6 +322,7 @@ export function readDraft(raw: unknown): Draft {
         summary: text(row.summary),
         date: month(row.date),
         tech: list(row.tech),
+        links: links(row.links),
       })),
   };
 }
@@ -357,20 +444,24 @@ export function applyDraft(issue: Issue, draft: Draft): Issue {
           // (§23.5).
           impact: '',
           images: [] as Issue['projects'][number]['images'],
-          links: [] as Issue['projects'][number]['links'],
+          // Links the source stated for this project. A URL is in the document,
+          // so transcribing it is safe — unlike impact, which is the person's to
+          // write. On a re-import the `keep` below defends anything they edited.
+          links: project.links,
           starred: false,
           status: 'shipped' as const,
           duration: '',
         };
       }),
-      // The one that matters: images, impact and links are the person's work,
-      // never a document's, so a re-import must not blank them. The employer
-      // link is re-derived each time, so it follows a corrected résumé.
+      // Images and impact are the person's work, never a document's, so a
+      // re-import must not blank them. Links, once the person has any, are theirs
+      // too — but an untouched project (no links yet) still picks up links a
+      // corrected résumé now carries. The employer link is re-derived each time.
       (previous, next) => ({
         ...next,
         impact: previous.impact || next.impact,
         images: previous.images,
-        links: previous.links,
+        links: previous.links.length > 0 ? previous.links : next.links,
         starred: previous.starred,
         story: previous.story,
       }),
