@@ -5,6 +5,7 @@ import {
   checkUpload,
   formatBytes,
   MAX_BYTES,
+  prepareUpload,
   SITE_QUOTA_BYTES,
   sniff,
 } from './upload';
@@ -181,5 +182,48 @@ describe('the allowlist', () => {
 
   it('gives every accepted type a kind with a limit', () => {
     for (const type of ACCEPTED) expect(MAX_BYTES[type.kind]).toBeGreaterThan(0);
+  });
+});
+
+describe('prepareUpload', () => {
+  // A whole JPEG carrying an APP1/EXIF segment, so the strip is observable
+  // end-to-end rather than only in the metadata unit.
+  const seg = (marker: number, body: number[]) => [
+    0xff,
+    marker,
+    ((body.length + 2) >> 8) & 0xff,
+    (body.length + 2) & 0xff,
+    ...body,
+  ];
+  const jpegWithExif = new Uint8Array([
+    0xff, 0xd8,
+    ...seg(0xe1, [...text('Exif\0\0secret-gps')]),
+    ...seg(0xdb, [0, 1, 2, 3]),
+    0xff, 0xda, 0x00, 0x03, 0x00, 0x9a,
+    0xff, 0xd9,
+  ]);
+
+  it('refuses an SVG before any stripping', () => {
+    const svg = text('<svg xmlns="http://www.w3.org/2000/svg"></svg>');
+    const result = prepareUpload(svg, 0);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.refusal.reason).toBe('svg-banned');
+  });
+
+  it('accepts a JPEG and hands back bytes with the EXIF removed', () => {
+    const result = prepareUpload(jpegWithExif, 0);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.type.mime).toBe('image/jpeg');
+      expect(result.strippedMetadata).toBe(true);
+      expect(String.fromCharCode(...result.bytes)).not.toContain('secret-gps');
+      expect(result.bytes.length).toBeLessThan(jpegWithExif.length);
+    }
+  });
+
+  it('passes the quota refusal through from checkUpload', () => {
+    const result = prepareUpload(jpegWithExif, SITE_QUOTA_BYTES);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.refusal.reason).toBe('quota');
   });
 });

@@ -7,6 +7,8 @@
  * Supabase.
  */
 
+import { stripMetadata, stripsMetadata } from './image-metadata';
+
 export type MediaKind = 'image' | 'video';
 
 /**
@@ -197,6 +199,39 @@ export function checkUpload(input: {
   }
 
   return { ok: true, type: sniffed };
+}
+
+export type PreparedUpload =
+  | { ok: true; type: AcceptedType; bytes: Uint8Array; strippedMetadata: boolean }
+  | { ok: false; refusal: UploadRefusal };
+
+/**
+ * The whole server-side gate over a file's bytes: decide whether it may be
+ * stored, and if so hand back the exact bytes to store.
+ *
+ * `checkUpload` decides admissibility from the head and the size; this then
+ * removes metadata (EXIF/GPS) from the formats that carry it, so the bytes that
+ * reach storage are already clean. Composing the two here means the eventual
+ * upload service has a single call to make and cannot forget the strip — the
+ * step that, skipped, silently publishes someone's location.
+ *
+ * The quota was measured against the original size, which is only ever larger
+ * than the stripped result, so a file that fit still fits.
+ */
+export function prepareUpload(bytes: Uint8Array, usedBytes: number): PreparedUpload {
+  const check = checkUpload({
+    head: bytes.subarray(0, 512),
+    bytes: bytes.length,
+    usedBytes,
+  });
+  if (!check.ok) return check;
+
+  return {
+    ok: true,
+    type: check.type,
+    bytes: stripMetadata(bytes, check.type.mime),
+    strippedMetadata: stripsMetadata(check.type.mime),
+  };
 }
 
 /** What the file input offers, so the picker and the server agree on one list. */
