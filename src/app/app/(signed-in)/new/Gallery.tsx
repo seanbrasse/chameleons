@@ -41,7 +41,10 @@ export function Gallery({
   hasContent: boolean;
 }) {
   const [state, action, pending] = useActionState<NewSiteState, FormData>(startPortfolio, {});
-  const { visible, controls } = useTemplateBrowser(templates);
+  // Recommend mode: the "what do you do?" occupation ranks and marks the matching
+  // designs but hides nothing — a first-run suggestion, not a filter that removes
+  // the rest before the person has even looked.
+  const { visible, controls, recommended } = useTemplateBrowser(templates, { mode: 'recommend' });
 
   return (
     <>
@@ -55,13 +58,17 @@ export function Gallery({
 
       {visible.length === 0 ? (
         <p className="admin-note" role="status">
-          No design matches those filters. Clear one to see more.
+          No design matches that style. Clear it to see more.
         </p>
       ) : null}
 
       <div className="admin-gallery">
         {visible.map((template) => (
-          <form action={action} key={template.id} className="admin-gallery-item">
+          <form
+            action={action}
+            key={template.id}
+            className={`admin-gallery-item${recommended.has(template.id) ? ' is-recommended' : ''}`}
+          >
             <input type="hidden" name="templateId" value={template.id} />
 
             {/* The frame is a picture of the design; its own toggle switches it
@@ -72,7 +79,12 @@ export function Gallery({
               title={`${template.name}, previewed with your content`}
             />
 
-            <h2>{template.name}</h2>
+            <div className="admin-gallery-title">
+              <h2>{template.name}</h2>
+              {recommended.has(template.id) ? (
+                <span className="tpl-recommend">Recommended for you</span>
+              ) : null}
+            </div>
             <TemplateTags attributes={template.attributes} />
             <p className="admin-note">{template.description}</p>
 
