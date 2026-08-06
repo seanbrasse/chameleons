@@ -6,7 +6,10 @@ the things that have already cost time.
 Read `AGENTS.md` first for the conventions — they are binding and this document
 assumes them. `CAPACITY.md` sits alongside this one and answers "will this
 scale" so nobody has to guess: the short version is that storage binds at
-around 50–100 users and nothing else binds at any plausible size.
+around 50–100 users and nothing else binds at any plausible size. `DIRECTION.md`
+is the product north star — the ownership model (pay to leave and own, or stay
+free-hosted for analytics and updates), the customizability tiers, and the
+add-on roadmap — and is where "what should we build next and why" is argued.
 
 ---
 
