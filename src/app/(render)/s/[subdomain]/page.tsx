@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 
 import { apexOrigin, tenantConfig } from '@/lib/tenant-config';
 import { siteUrl } from '@/server/domain/tenant';
+import { personJsonLd } from '@/server/domain/structuredData';
 import { readCurrentSnapshot } from '@/server/services/publishedSite';
 import { getTemplate } from '@/templates/registry';
 import { parseOptions } from '@/templates/types';
@@ -89,11 +90,27 @@ export default async function Site({ params }: { params: Promise<{ subdomain: st
   // the snapshot read stays cacheable (docs/ANALYTICS.md).
   const apex = apexOrigin();
 
+  // A schema.org Person, only in host mode where the canonical URL is stable —
+  // in path mode the origin is a per-branch preview whose URL is gone next week,
+  // so structured data pointing at it is worse than none (same reasoning as the
+  // canonical in generateMetadata). Emitting it here rather than in metadata
+  // because JSON-LD is a script block, not an OG tag.
+  const config = tenantConfig();
+  const canonical = config.mode === 'host' ? siteUrl(subdomain, config) : null;
+  const name = snapshot.issue.settings.displayName.trim() || subdomain;
+  const jsonLd = canonical ? personJsonLd(snapshot.issue, { name, url: canonical }) : null;
+
   return (
     <>
       {/* Injected per request rather than at build: the palette comes from the
           tenant's snapshot and has to be present on first paint. */}
       <style dangerouslySetInnerHTML={{ __html: stylesheet(defaultTokens) }} />
+      {jsonLd ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      ) : null}
       <Component issue={snapshot.issue} tokens={defaultTokens} options={options} />
       <ViewBeacon hitUrl={apex ? `${apex}/api/hit` : null} subdomain={subdomain} />
     </>

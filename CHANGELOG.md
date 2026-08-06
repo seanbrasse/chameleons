@@ -9,6 +9,23 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ## [Unreleased]
 
+### SEO — schema.org Person on every published portfolio
+
+- **Published sites now emit JSON-LD structured data** (`Person`) so a search for
+  the owner's name surfaces *their* page — plan §20.7's "only job." We control the
+  render, so we can emit correct structured data; this directly closes the SEO gap
+  `docs/DIRECTION.md` calls out about hosted no-code builders.
+- Built from the snapshot's `Issue` by a pure `domain/structuredData.ts`
+  (unit-tested): name and canonical URL always; then `jobTitle`, `description`
+  (preferring `ogTagline`), `email`, `address`, `sameAs` (profile links),
+  `knowsAbout` (skills), `worksFor` (the current role only — a stale end date
+  would misstate the present), and `alumniOf` (schools). **Only fields the content
+  states are included** — §23.5 applied to metadata, so we never assert something
+  the person did not provide.
+- Emitted only in host mode, where the canonical URL is stable; path-mode previews
+  skip it, matching the canonical in `generateMetadata`. The `<script>` is inert
+  to the floor (the per-template axe run stays green).
+
 ### Product direction (`docs/DIRECTION.md`)
 
 - **The north star, written down.** A really great portfolio builder — AI-powered
