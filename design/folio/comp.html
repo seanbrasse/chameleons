@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>folio — comp</title>
+
+    <!--
+      Template #7, stage 2 of plan §20.4. One standalone file, no React, no build
+      step, no data layer: open it by double-clicking.
+
+      Content is realistic creative content at real length (a fictional but
+      plausible art director), because lorem hides what a comp is for — a plate
+      grid has to survive a one-word title (`Salt`) beside a six-word one (`Field
+      Notes for the Anthropocene`), and disciplines and years of different widths.
+
+      Constraint: every case study is a plate — one image at full width, its words
+      in a separate zone that never overlaps it. Text is never set over an image.
+      That is the art direction AND what keeps the contrast floor checkable. See
+      BRIEF.md.
+    -->
+
+    <style>
+      /* This template's vocabulary. Colours here only; the (non-colour) scale
+         would move to template.css after promotion. Electric violet — the one
+         vivid hue unused across timeline/plates/dossier/curriculum/byline/ascent,
+         so folio can never be mistaken for another template in a different ink. */
+      :root {
+        --paper: #f6f4ef;
+        --ink: #141216;
+        --ink-quiet: #4a4750;
+        /* Faint tone for figure labels and meta. A margin-grey that fails AA is
+           the mistake the dossier comp caught; this is ~5.7:1 on paper. */
+        --ink-faint: #605c66;
+        --rule: #ddd8cf;
+        --plate-frame: #e7e2d9;
+        /* Two jobs: display accents (numbers, links, the closing block) and the
+           hairline that leads each plate. Never a text background under body copy. */
+        --accent: #6420e6;
+        --on-accent: #ffffff;
+
+        --grot: 'Helvetica Neue', Helvetica, Arial, 'Segoe UI', system-ui, sans-serif;
+        --mono: ui-monospace, 'SF Mono', 'Roboto Mono', Menlo, Consolas, monospace;
+
+        /* Scale ~8×: a 13px mono label to a ~7rem name. Display-led by design —
+           §20.1's timid-scale failure is the one folio most has to beat. */
+        --t-label: 0.8125rem; /* 13px */
+        --t-meta: 0.875rem; /* 14px */
+        --t-body: 1.0625rem; /* 17px */
+        --t-lead: 1.375rem;
+        --t-work: clamp(2rem, 5.5vw, 3.75rem);
+        --t-name: clamp(3.25rem, 12vw, 7rem);
+        --t-close: clamp(2.25rem, 6vw, 4.5rem);
+
+        --edge: clamp(1.25rem, 5vw, 5.5rem);
+        --gap-plate: clamp(4rem, 9vw, 8rem);
+        --measure: 34rem;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #111013;
+          --ink: #f1eee8;
+          --ink-quiet: #b6b2ba;
+          --ink-faint: #918d97;
+          --rule: #2b2930;
+          --plate-frame: #1d1b21;
+          --accent: #b79bff;
+          --on-accent: #16121f;
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--grot);
+        font-size: var(--t-body);
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: var(--accent);
+        text-underline-offset: 0.18em;
+        text-decoration-thickness: from-font;
+      }
+
+      /* --- shared type primitives ------------------------------------------ */
+
+      .label {
+        font-family: var(--mono);
+        font-size: var(--t-label);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-faint);
+        margin: 0;
+      }
+
+      .kicker {
+        display: flex;
+        align-items: baseline;
+        gap: 1rem;
+        margin: 0 0 1.75rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--rule);
+      }
+      .kicker .num {
+        font-family: var(--mono);
+        font-size: var(--t-label);
+        color: var(--accent);
+        letter-spacing: 0.1em;
+      }
+
+      /* --- masthead -------------------------------------------------------- */
+
+      .masthead {
+        padding: clamp(3.5rem, 9vw, 8rem) var(--edge) var(--gap-plate);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: clamp(2rem, 5vw, 3.5rem);
+      }
+
+      .name {
+        font-size: var(--t-name);
+        line-height: 0.92;
+        letter-spacing: -0.03em;
+        font-weight: 800;
+        margin: 0;
+        max-width: 14ch;
+      }
+      .name .surname {
+        color: var(--accent);
+      }
+
+      .masthead-lower {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: clamp(1.5rem, 4vw, 3rem);
+      }
+      @media (min-width: 60rem) {
+        .masthead-lower {
+          grid-template-columns: 1fr minmax(0, var(--measure));
+          align-items: end;
+        }
+      }
+
+      .role {
+        font-size: var(--t-lead);
+        font-weight: 600;
+        line-height: 1.15;
+        letter-spacing: -0.01em;
+        margin: 0;
+        max-width: 20ch;
+      }
+      .role .role-sep {
+        color: var(--accent);
+      }
+
+      .statement {
+        font-size: var(--t-lead);
+        line-height: 1.35;
+        color: var(--ink-quiet);
+        margin: 0;
+        font-weight: 400;
+      }
+
+      .meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 2rem;
+        padding: 1.5rem var(--edge) 0;
+        border-top: 1px solid var(--rule);
+        margin: 0 var(--edge);
+        padding-left: 0;
+        padding-right: 0;
+      }
+      .meta-row .label a {
+        color: var(--ink);
+      }
+
+      /* --- work ------------------------------------------------------------ */
+
+      main {
+        display: block;
+      }
+
+      section {
+        padding: 0 var(--edge);
+      }
+
+      .work {
+        padding-top: var(--gap-plate);
+      }
+
+      .plate {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: clamp(1.5rem, 3vw, 2.5rem);
+        padding-bottom: var(--gap-plate);
+      }
+      @media (min-width: 60rem) {
+        .plate {
+          grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+          align-items: start;
+          gap: clamp(2.5rem, 5vw, 5rem);
+        }
+        /* Alternate the plates so the page reads as a spread, not a stack —
+           §20.1 cause 5 (symmetry everywhere) is the slop signature to beat. */
+        .plate:nth-child(even) .plate-figure {
+          order: 2;
+        }
+      }
+
+      .plate-figure {
+        margin: 0;
+      }
+
+      /* The image band. In the template this is an <img>; here it is a tonal
+         placeholder so the layout is proven against plate proportion, not against
+         photography we do not have. NOTHING is set over it — the caption lives
+         below, in the type zone. */
+      .plate-image {
+        aspect-ratio: 4 / 3;
+        border: 1px solid var(--plate-frame);
+        border-radius: 2px;
+      }
+      .plate:nth-child(2) .plate-image {
+        aspect-ratio: 3 / 4;
+      }
+      .plate-image.a {
+        background:
+          radial-gradient(120% 100% at 15% 10%, #7b3bff 0%, #3a12a0 55%, #180a44 100%);
+      }
+      .plate-image.b {
+        background:
+          linear-gradient(150deg, #e9e3d6 0%, #cdc6b6 45%, #a29a86 100%);
+      }
+      .plate-image.c {
+        background:
+          conic-gradient(from 210deg at 70% 30%, #ff8a3d, #ffd24d, #6420e6, #ff8a3d);
+      }
+      .plate-image.d {
+        background:
+          linear-gradient(200deg, #2a2d33 0%, #4c525c 40%, #878d97 78%, #c3c8cf 100%);
+      }
+
+      .plate-figcaption {
+        margin: 0.9rem 0 0;
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .plate-body {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding-top: clamp(0.5rem, 2vw, 2rem);
+      }
+      .plate-index {
+        font-family: var(--mono);
+        font-size: var(--t-label);
+        color: var(--accent);
+        letter-spacing: 0.1em;
+      }
+      .plate-title {
+        font-size: var(--t-work);
+        line-height: 0.98;
+        letter-spacing: -0.025em;
+        font-weight: 800;
+        margin: 0;
+      }
+      .plate-premise {
+        font-size: var(--t-body);
+        line-height: 1.5;
+        color: var(--ink-quiet);
+        margin: 0;
+        max-width: 36ch;
+      }
+      .plate-foot {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 1.5rem;
+        margin-top: 0.5rem;
+      }
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 0.75rem;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .tags li {
+        font-family: var(--mono);
+        font-size: var(--t-label);
+        letter-spacing: 0.06em;
+        color: var(--ink-faint);
+      }
+      .tags li::before {
+        content: '/ ';
+        color: var(--accent);
+      }
+
+      /* --- roster (studios / recognition) --------------------------------- */
+
+      .roster {
+        padding-top: var(--gap-plate);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: clamp(3rem, 7vw, 5rem);
+      }
+      @media (min-width: 60rem) {
+        .roster {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .credits {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .credits > li {
+        display: flex;
+        justify-content: space-between;
+        gap: 1.5rem;
+        padding: 1rem 0;
+        border-top: 1px solid var(--rule);
+      }
+      .credits > li:last-child {
+        border-bottom: 1px solid var(--rule);
+      }
+      .credit-name {
+        font-size: var(--t-body);
+        font-weight: 700;
+        margin: 0;
+        line-height: 1.2;
+      }
+      .credit-role {
+        color: var(--ink-quiet);
+        font-size: var(--t-meta);
+        margin: 0.2rem 0 0;
+      }
+      .credit-years {
+        font-family: var(--mono);
+        font-size: var(--t-label);
+        color: var(--ink-faint);
+        white-space: nowrap;
+        padding-top: 0.15rem;
+      }
+
+      .awards {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .awards li {
+        display: flex;
+        gap: 1rem;
+        padding: 0.85rem 0;
+        border-top: 1px solid var(--rule);
+        align-items: baseline;
+      }
+      .awards li:last-child {
+        border-bottom: 1px solid var(--rule);
+      }
+      .award-year {
+        font-family: var(--mono);
+        font-size: var(--t-label);
+        color: var(--accent);
+        white-space: nowrap;
+      }
+      .award-text {
+        margin: 0;
+        font-size: var(--t-body);
+      }
+
+      /* --- closing block --------------------------------------------------- */
+
+      .close {
+        margin-top: var(--gap-plate);
+        background: var(--accent);
+        color: var(--on-accent);
+        padding: clamp(3.5rem, 9vw, 8rem) var(--edge);
+      }
+      .close h2 {
+        font-size: var(--t-close);
+        line-height: 0.98;
+        letter-spacing: -0.02em;
+        font-weight: 800;
+        margin: 0 0 1.5rem;
+        max-width: 16ch;
+      }
+      .close p {
+        font-size: var(--t-lead);
+        max-width: 40ch;
+        margin: 0 0 2rem;
+        line-height: 1.4;
+      }
+      .close a {
+        color: var(--on-accent);
+        font-weight: 700;
+        text-underline-offset: 0.2em;
+      }
+      .close-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem 2.5rem;
+        font-size: var(--t-lead);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <header class="masthead">
+      <h1 class="name">Riley <span class="surname">Okafor</span></h1>
+
+      <div class="masthead-lower">
+        <p class="role">
+          Art Director <span class="role-sep">&amp;</span> Brand Designer
+        </p>
+        <p class="statement">
+          I build identities for the moment they leave the studio — on a shelf, a
+          street, a screen — where a system has to hold together without me in the
+          room to defend it. Fifteen years across studios and my own practice,
+          most of it in print that had to survive contact with the real world.
+        </p>
+      </div>
+
+      <div class="meta-row">
+        <p class="label">Brooklyn, NY</p>
+        <p class="label"><a href="mailto:riley@okafor.studio">riley@okafor.studio</a></p>
+        <p class="label"><a href="#">Instagram</a></p>
+        <p class="label"><a href="#">Are.na</a></p>
+      </div>
+    </header>
+
+    <main>
+      <section class="work" aria-labelledby="s-work">
+        <div class="kicker">
+          <span class="num">01</span>
+          <h2 class="label" id="s-work">Selected Work</h2>
+        </div>
+
+        <article class="plate">
+          <figure class="plate-figure">
+            <div class="plate-image a" role="img" aria-label="Meridian transit identity — a violet wayfinding system photographed on a station platform"></div>
+            <figcaption class="plate-figcaption">
+              <span class="label">Fig. 01 — Wayfinding, applied</span>
+              <span class="label">2025</span>
+            </figcaption>
+          </figure>
+          <div class="plate-body">
+            <p class="plate-index">Project 01</p>
+            <h3 class="plate-title">Meridian</h3>
+            <p class="plate-premise">
+              A complete identity and wayfinding system for a regional transit
+              authority — one grid stretched from a pocket map to a forty-foot
+              station wall, legible at a glance and at a run.
+            </p>
+            <div class="plate-foot">
+              <ul class="tags">
+                <li>Identity</li>
+                <li>Wayfinding</li>
+                <li>Type design</li>
+              </ul>
+            </div>
+            <p class="label"><a href="#">View case study →</a></p>
+          </div>
+        </article>
+
+        <article class="plate">
+          <figure class="plate-figure">
+            <div class="plate-image b" role="img" aria-label="The Weather Almanac 2025 — a bound book of data-visualisation spreads in warm neutral tones"></div>
+            <figcaption class="plate-figcaption">
+              <span class="label">Fig. 02 — 288-page edition</span>
+              <span class="label">2024</span>
+            </figcaption>
+          </figure>
+          <div class="plate-body">
+            <p class="plate-index">Project 02</p>
+            <h3 class="plate-title">The Weather Almanac, 2025 Edition</h3>
+            <p class="plate-premise">
+              A data-driven annual: a year of climate records turned into a
+              readable book. Editorial design, information graphics, and a type
+              system that carries dense tables without ever feeling like a
+              spreadsheet.
+            </p>
+            <div class="plate-foot">
+              <ul class="tags">
+                <li>Editorial</li>
+                <li>Data viz</li>
+                <li>Print</li>
+              </ul>
+            </div>
+            <p class="label"><a href="#">View case study →</a></p>
+          </div>
+        </article>
+
+        <article class="plate">
+          <figure class="plate-figure">
+            <div class="plate-image c" role="img" aria-label="Salt — a bold packaging system for a pantry brand in saturated colour blocks"></div>
+            <figcaption class="plate-figcaption">
+              <span class="label">Fig. 03 — Packaging range</span>
+              <span class="label">2023</span>
+            </figcaption>
+          </figure>
+          <div class="plate-body">
+            <p class="plate-index">Project 03</p>
+            <h3 class="plate-title">Salt</h3>
+            <p class="plate-premise">
+              Packaging for a pantry-staples brand that wanted to look like
+              nothing else on the shelf. One typeface, five colours, and a rule
+              that the product name is always the biggest thing in the room.
+            </p>
+            <div class="plate-foot">
+              <ul class="tags">
+                <li>Packaging</li>
+                <li>Brand</li>
+              </ul>
+            </div>
+            <p class="label"><a href="#">View case study →</a></p>
+          </div>
+        </article>
+
+        <article class="plate">
+          <figure class="plate-figure">
+            <div class="plate-image d" role="img" aria-label="Field Notes for the Anthropocene — a museum exhibition identity in cool photographic greys"></div>
+            <figcaption class="plate-figcaption">
+              <span class="label">Fig. 04 — Exhibition identity</span>
+              <span class="label">2022</span>
+            </figcaption>
+          </figure>
+          <div class="plate-body">
+            <p class="plate-index">Project 04</p>
+            <h3 class="plate-title">Field Notes for the Anthropocene</h3>
+            <p class="plate-premise">
+              The identity for a travelling museum exhibition on human impact on
+              the landscape — signage, catalogue and motion, built so a small
+              institution could install the whole show from a single spec.
+            </p>
+            <div class="plate-foot">
+              <ul class="tags">
+                <li>Exhibition</li>
+                <li>Signage</li>
+                <li>Motion</li>
+              </ul>
+            </div>
+            <p class="label"><a href="#">View case study →</a></p>
+          </div>
+        </article>
+      </section>
+
+      <section class="roster">
+        <div aria-labelledby="s-studios">
+          <div class="kicker">
+            <span class="num">02</span>
+            <h2 class="label" id="s-studios">Studios &amp; Clients</h2>
+          </div>
+          <ul class="credits">
+            <li>
+              <div>
+                <h3 class="credit-name">Okafor Studio</h3>
+                <p class="credit-role">Founder &amp; Principal — independent practice</p>
+              </div>
+              <span class="credit-years">2019—</span>
+            </li>
+            <li>
+              <div>
+                <h3 class="credit-name">Pentagram</h3>
+                <p class="credit-role">Senior Designer, contract — transit &amp; culture</p>
+              </div>
+              <span class="credit-years">2017—19</span>
+            </li>
+            <li>
+              <div>
+                <h3 class="credit-name">Instrument</h3>
+                <p class="credit-role">Designer — brand systems</p>
+              </div>
+              <span class="credit-years">2013—17</span>
+            </li>
+            <li>
+              <div>
+                <h3 class="credit-name">Selected clients</h3>
+                <p class="credit-role">MTA · Aesop · The Criterion Collection · MoMA PS1</p>
+              </div>
+              <span class="credit-years">—</span>
+            </li>
+          </ul>
+        </div>
+
+        <div aria-labelledby="s-rec">
+          <div class="kicker">
+            <span class="num">03</span>
+            <h2 class="label" id="s-rec">Recognition</h2>
+          </div>
+          <ul class="awards">
+            <li>
+              <span class="award-year">2025</span>
+              <p class="award-text">D&amp;AD Yellow Pencil — Identity, <em>Meridian</em></p>
+            </li>
+            <li>
+              <span class="award-year">2024</span>
+              <p class="award-text">AIGA 50 Books | 50 Covers — <em>The Weather Almanac</em></p>
+            </li>
+            <li>
+              <span class="award-year">2023</span>
+              <p class="award-text">The Dieline Award, First Place — Packaging</p>
+            </li>
+            <li>
+              <span class="award-year">2022</span>
+              <p class="award-text">Type Directors Club, Certificate of Excellence</p>
+            </li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <footer class="close">
+      <h2>Have something that has to leave the studio and hold?</h2>
+      <p>Taking on brand and editorial commissions for 2026. Studios and in-house teams welcome.</p>
+      <div class="close-links">
+        <a href="mailto:riley@okafor.studio">riley@okafor.studio</a>
+        <a href="#">Book a call →</a>
+      </div>
+    </footer>
+  </body>
+</html>
