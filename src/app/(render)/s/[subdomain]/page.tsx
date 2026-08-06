@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-import { tenantConfig } from '@/lib/tenant-config';
+import { apexOrigin, tenantConfig } from '@/lib/tenant-config';
 import { siteUrl } from '@/server/domain/tenant';
 import { readCurrentSnapshot } from '@/server/services/publishedSite';
 import { getTemplate } from '@/templates/registry';
 import { parseOptions } from '@/templates/types';
+
+import { ViewBeacon } from './ViewBeacon';
 
 export const dynamicParams = true;
 
@@ -82,12 +84,18 @@ export default async function Site({ params }: { params: Promise<{ subdomain: st
   const { manifest, defaultTokens, stylesheet, Component } = template;
   const options = parseOptions(manifest, snapshot.customization);
 
+  // The apex, where `/api/hit` lives. Null in path mode (previews), where the
+  // beacon stays off. The page itself is unchanged whether it fires or not, so
+  // the snapshot read stays cacheable (docs/ANALYTICS.md).
+  const apex = apexOrigin();
+
   return (
     <>
       {/* Injected per request rather than at build: the palette comes from the
           tenant's snapshot and has to be present on first paint. */}
       <style dangerouslySetInnerHTML={{ __html: stylesheet(defaultTokens) }} />
       <Component issue={snapshot.issue} tokens={defaultTokens} options={options} />
+      <ViewBeacon hitUrl={apex ? `${apex}/api/hit` : null} subdomain={subdomain} />
     </>
   );
 }
