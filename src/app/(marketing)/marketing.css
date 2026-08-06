@@ -2,19 +2,20 @@
  * The landing page.
  *
  * Its own sheet rather than the builder's: this is the one surface a stranger
- * sees, and it should not inherit a stylesheet written for forms. Deliberately
- * small — a wordmark, a claim, a way in, and the designs themselves doing the
- * arguing.
+ * sees, and it should not inherit a stylesheet written for forms. The designs
+ * themselves do the arguing — every card is a live, scrollable render of the
+ * demo portfolio, and the builder mock beside them shows the form those renders
+ * are driven from.
  */
 .home {
   --page: #f4f1ea;
   --ink: #141414;
   --ink-quiet: #5f5a52;
   --rule: #e0dbd1;
+  --rule-strong: #cdc7ba;
   --accent: #b0421a;
   --card: #ffffff;
 
-  --measure: 34ch;
   --gutter: clamp(24px, 6vw, 96px);
 
   min-height: 100%;
@@ -40,14 +41,26 @@
   letter-spacing: -0.02em;
 }
 
+/* ── Hero: the claim beside a live design ─────────────────────────────── */
+
 .home-hero {
-  padding: clamp(56px, 12vh, 140px) var(--gutter) clamp(40px, 8vh, 88px);
+  padding: clamp(48px, 10vh, 120px) var(--gutter) clamp(40px, 8vh, 88px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(40px, 6vw, 72px);
+  align-items: center;
+}
+
+@media (min-width: 68rem) {
+  .home-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  }
 }
 
 /* 13 -> 76px. A narrow range is the reliable tell of a generic page
    (plan §20.1 cause 2), and this is the page most at risk of reading as one. */
 .home-hero h1 {
-  font-size: clamp(40px, 7vw, 76px);
+  font-size: clamp(40px, 6.5vw, 76px);
   line-height: 1.02;
   letter-spacing: -0.035em;
   margin: 0;
@@ -95,49 +108,261 @@
   margin: 16px 0 0;
 }
 
-/* The designs argue for themselves. Real names and real constraints, because
-   the constraint is what actually distinguishes one from another (§20.5). */
+.home-note code {
+  font-size: 12px;
+}
+
+/* ── A design, framed like a browser ──────────────────────────────────── */
+
+.browser {
+  border: 1px solid var(--rule-strong);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card);
+  box-shadow: 0 24px 60px -32px rgba(20, 16, 12, 0.5);
+}
+
+.browser-bar,
+.mock-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--ink) 4%, var(--card));
+  border-bottom: 1px solid var(--rule);
+}
+
+.browser-dots {
+  display: inline-flex;
+  gap: 6px;
+  flex: none;
+}
+
+.browser-dots i {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--rule-strong);
+}
+
+.browser-url {
+  font-size: 12px;
+  color: var(--ink-quiet);
+  background: var(--page);
+  border-radius: 999px;
+  padding: 4px 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The scrollable live preview. `container-type: size` fully contains the
+   over-tall frame so `aspect-ratio` alone sets the card's height and the design
+   is clipped to it; the frame renders at a real 1120px desktop width and is
+   scaled to fit, so what shows is the true layout, and it scrolls because the
+   frame keeps its pointer events. */
+.design-shot {
+  container-type: size;
+  overflow: hidden;
+  background: var(--card);
+}
+
+.design-shot iframe {
+  display: block;
+  width: 1120px;
+  border: 0;
+  transform: scale(calc(100cqw / 1120px));
+  transform-origin: top left;
+}
+
+.design-shot-hero {
+  aspect-ratio: 16 / 10;
+}
+
+.design-shot-hero iframe {
+  height: 700px; /* 1120 × 10/16, so the scaled height fills a 16:10 frame. */
+}
+
+/* ── The builder mock ─────────────────────────────────────────────────── */
+
+.home-builder {
+  padding: clamp(40px, 8vh, 88px) var(--gutter);
+  border-top: 1px solid var(--rule);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(28px, 5vw, 56px);
+  align-items: center;
+}
+
+@media (min-width: 68rem) {
+  .home-builder {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  }
+}
+
+.home-builder-copy h2 {
+  font-size: clamp(26px, 3.4vw, 40px);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0 0 14px;
+  max-width: 18ch;
+}
+
+.home-builder-copy p {
+  font-size: clamp(15px, 1.5vw, 18px);
+  color: var(--ink-quiet);
+  margin: 0;
+  max-width: 44ch;
+}
+
+.mock {
+  border: 1px solid var(--rule-strong);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card);
+  box-shadow: 0 24px 60px -32px rgba(20, 16, 12, 0.5);
+}
+
+.mock-steps {
+  display: inline-flex;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-quiet);
+}
+
+.mock-steps span {
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.mock-steps .is-on {
+  background: var(--ink);
+  color: var(--card);
+}
+
+.mock-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 40rem) {
+  .mock-body {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.mock-form {
+  padding: clamp(18px, 3vw, 28px);
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.mock-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+  margin-top: 8px;
+}
+
+.mock-label:first-child {
+  margin-top: 0;
+}
+
+.mock-input {
+  font-size: 15px;
+  padding: 9px 12px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px;
+  background: var(--page);
+}
+
+.mock-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.mock-tag {
+  font-size: 12px;
+  color: var(--ink-quiet);
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.mock-preview {
+  border-top: 1px solid var(--rule);
+  background: color-mix(in srgb, var(--ink) 3%, var(--card));
+}
+
+@media (min-width: 40rem) {
+  .mock-preview {
+    border-top: 0;
+    border-left: 1px solid var(--rule);
+  }
+}
+
+.mock-preview .design-shot {
+  aspect-ratio: 3 / 4;
+  background: transparent;
+}
+
+.mock-preview .design-shot iframe {
+  height: 1493px; /* 1120 × 4/3, matching the 3:4 frame. */
+}
+
+/* ── The full set of designs ──────────────────────────────────────────── */
+
 .home-designs {
   padding: clamp(40px, 8vh, 88px) var(--gutter) clamp(64px, 14vh, 160px);
   border-top: 1px solid var(--rule);
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: clamp(24px, 4vw, 56px);
 }
 
 .home-designs h2 {
-  grid-column: 1 / -1;
   font-size: 13px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ink-quiet);
   font-weight: 400;
-  margin: 0;
+  margin: 0 0 clamp(24px, 4vw, 44px);
+}
+
+.home-design-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: clamp(28px, 4vw, 48px);
 }
 
 .home-design {
-  background: var(--card);
-  border: 1px solid var(--rule);
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.home-design .design-shot {
+  aspect-ratio: 4 / 5;
+  border: 1px solid var(--rule-strong);
   border-radius: 10px;
-  padding: 24px;
+}
+
+.home-design .design-shot iframe {
+  height: 1400px; /* 1120 × 5/4, matching the 4:5 frame. */
 }
 
 .home-design h3 {
-  margin: 0 0 8px;
-  font-size: 23px;
+  margin: 4px 0 0;
+  font-size: 22px;
   letter-spacing: -0.01em;
 }
 
 .home-design p {
-  margin: 0 0 12px;
+  margin: 0;
   color: var(--ink-quiet);
   font-size: 15px;
-}
-
-.home-design .rule {
-  font-size: 13px;
-  color: var(--ink);
-  margin: 0;
 }
 
 .home-foot {
