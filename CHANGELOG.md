@@ -9,6 +9,28 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ## [Unreleased]
 
+### Product direction (`docs/DIRECTION.md`)
+
+- **The north star, written down.** A really great portfolio builder — AI-powered
+  where it helps, deeply customizable without becoming a code editor, and honest
+  about ownership: **pay to leave and own** (remove branding, custom domain,
+  export a working static site, self-host and build on it) **or stay free-hosted**
+  for analytics, template upgrades and discovery.
+- Positions us against the two incumbents' documented failure modes: Replit's
+  cost/reliability/scale problems (which come from an AI editing a live codebase —
+  we don't) and Framer's lock-in (our moat is the operational layer, not the code,
+  so ownership is a feature, not a threat).
+- Defines the **customizability tiers** — options/reorder → custom CSS (floor-
+  gated) → **sandboxed JS/TS blocks** (author in Claude Code, run on us) → head-
+  integration allowlist → unrestricted code only on a user's own domain — and the
+  **branding/growth loop** (subdomain billboard, OG card, free-tier badge,
+  discovery; export attribution is honor-system, no HTML DRM).
+- Includes an **add-on roadmap** grouped by audience (résumé PDF and "tailor for
+  this job" for job-hunters; embeds and a custom-block library for creators; a
+  **blog / personal-site content type** for writers and researchers; SEO/JSON-LD,
+  export, custom domain and team mode for ownership and scale) with feasibility
+  tags and a sequencing plan.
+
 ### Template #4 — Curriculum
 
 - **A fourth design, for work measured in papers rather than screenshots.**
