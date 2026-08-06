@@ -1,0 +1,463 @@
+/*
+ * Template #7 — Folio.
+ *
+ * Promoted from `design/folio/comp.html`, which stays in the repo as the design
+ * record diffed against when this drifts (plan §20.4).
+ *
+ * A monograph for the person whose work is the image: every case study is a
+ * plate — one image at full width — with its words in a separate zone that never
+ * overlaps it. Numbered, full-bleed, asymmetric spreads at display scale. The
+ * comp proved the layout against tonal placeholders rather than photography we
+ * do not have; here a plate with no image yet keeps that same proportion.
+ *
+ * Colours come from the tokens stylesheet (`--paper`, `--ink`, `--accent`…),
+ * injected per request and overridden under `[data-theme="dark"]`. Only the
+ * non-colour scale lives here, where the lint rule permits it. Electric violet,
+ * unused by any other template.
+ */
+
+:root {
+  --grot: 'Helvetica Neue', Helvetica, Arial, 'Segoe UI', system-ui, sans-serif;
+  --mono: ui-monospace, 'SF Mono', 'Roboto Mono', Menlo, Consolas, monospace;
+
+  /* Scale ~8×: a 13px mono label to a ~7rem name. Display-led by design —
+     §20.1's timid-scale failure is the one folio most has to beat. */
+  --t-label: 0.8125rem; /* 13px */
+  --t-meta: 0.875rem; /* 14px */
+  --t-body: 1.0625rem; /* 17px */
+  --t-lead: 1.375rem;
+  --t-work: clamp(2rem, 5.5vw, 3.75rem);
+  --t-name: clamp(3.25rem, 12vw, 7rem);
+  --t-close: clamp(2.25rem, 6vw, 4.5rem);
+
+  --edge: clamp(1.25rem, 5vw, 5.5rem);
+  --gap-plate: clamp(4rem, 9vw, 8rem);
+  --measure: 34rem;
+}
+
+.folio * {
+  box-sizing: border-box;
+}
+
+.folio {
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--grot);
+  font-size: var(--t-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.folio a {
+  color: var(--accent);
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: from-font;
+}
+
+/* --- shared type primitives ------------------------------------------ */
+
+.folio .label {
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0;
+}
+
+.folio .kicker {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin: 0 0 1.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.folio .kicker .num {
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  color: var(--accent);
+  letter-spacing: 0.1em;
+}
+
+/* --- masthead -------------------------------------------------------- */
+
+.folio .masthead {
+  padding: clamp(3.5rem, 9vw, 8rem) var(--edge) var(--gap-plate);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(2rem, 5vw, 3.5rem);
+}
+
+.folio .name {
+  font-size: var(--t-name);
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  font-weight: 800;
+  margin: 0;
+  max-width: 14ch;
+}
+
+.folio .name .surname {
+  color: var(--accent);
+}
+
+.folio .masthead-lower {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(1.5rem, 4vw, 3rem);
+}
+
+@media (min-width: 60rem) {
+  .folio .masthead-lower {
+    grid-template-columns: 1fr minmax(0, var(--measure));
+    align-items: end;
+  }
+}
+
+.folio .role {
+  font-size: var(--t-lead);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin: 0;
+  max-width: 20ch;
+}
+
+.folio .statement {
+  font-size: var(--t-lead);
+  line-height: 1.35;
+  color: var(--ink-quiet);
+  margin: 0;
+  font-weight: 400;
+}
+
+.folio .meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 2rem;
+  border-top: 1px solid var(--rule);
+  padding-top: 1.5rem;
+}
+
+.folio .meta-row .label a {
+  color: var(--ink);
+}
+
+/* --- work ------------------------------------------------------------ */
+
+.folio main {
+  display: block;
+}
+
+.folio section {
+  padding: 0 var(--edge);
+}
+
+.folio .work {
+  padding-top: var(--gap-plate);
+}
+
+.folio .plate {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+  padding-bottom: var(--gap-plate);
+}
+
+@media (min-width: 60rem) {
+  .folio .plate {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    align-items: start;
+    gap: clamp(2.5rem, 5vw, 5rem);
+  }
+
+  /* Alternate the plates so the page reads as a spread, not a stack — §20.1
+     cause 5 (symmetry everywhere) is the slop signature to beat. */
+  .folio .plate-alt .plate-figure {
+    order: 2;
+  }
+}
+
+.folio .plate-figure {
+  margin: 0;
+}
+
+/* The image band. NOTHING is set over it — the caption lives below, in the type
+   zone — so the contrast floor stays measurable against a known background. */
+.folio .plate-image {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--plate-frame);
+  border-radius: 2px;
+}
+
+.folio img.plate-image {
+  height: auto;
+}
+
+.folio .plate-image--empty {
+  aspect-ratio: 4 / 3;
+  background: var(--plate-frame);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.folio .plate:nth-child(3) .plate-image--empty {
+  aspect-ratio: 3 / 4;
+}
+
+.folio .plate-empty {
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+}
+
+.folio .plate-figcaption {
+  margin: 0.9rem 0 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.folio .plate-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-top: clamp(0.5rem, 2vw, 2rem);
+}
+
+.folio .plate-index {
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  margin: 0;
+}
+
+.folio .plate-title {
+  font-size: var(--t-work);
+  line-height: 0.98;
+  letter-spacing: -0.025em;
+  font-weight: 800;
+  margin: 0;
+}
+
+.folio .plate-premise {
+  font-size: var(--t-body);
+  line-height: 1.5;
+  color: var(--ink-quiet);
+  margin: 0;
+  max-width: 36ch;
+}
+
+.folio .plate-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.folio .plate-link {
+  margin: 0;
+}
+
+.folio .tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.folio .tags li {
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+}
+
+.folio .tags li::before {
+  content: '/ ';
+  color: var(--accent);
+}
+
+/* --- roster (studios / recognition) --------------------------------- */
+
+.folio .roster {
+  padding-top: var(--gap-plate);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(3rem, 7vw, 5rem);
+}
+
+@media (min-width: 60rem) {
+  .folio .roster {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.folio .credits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.folio .credits > li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+}
+
+.folio .credits > li:last-child {
+  border-bottom: 1px solid var(--rule);
+}
+
+.folio .credit-name {
+  font-size: var(--t-body);
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.folio .credit-role {
+  color: var(--ink-quiet);
+  font-size: var(--t-meta);
+  margin: 0.2rem 0 0;
+}
+
+.folio .credit-years {
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  color: var(--ink-faint);
+  white-space: nowrap;
+  padding-top: 0.15rem;
+}
+
+.folio .awards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.folio .awards li {
+  display: flex;
+  gap: 1rem;
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--rule);
+  align-items: baseline;
+}
+
+.folio .awards li:last-child {
+  border-bottom: 1px solid var(--rule);
+}
+
+.folio .award-year {
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.folio .award-text {
+  margin: 0;
+  font-size: var(--t-body);
+}
+
+/* --- closing block --------------------------------------------------- */
+
+.folio .close {
+  margin-top: var(--gap-plate);
+  background: var(--accent);
+  color: var(--on-accent);
+  padding: clamp(3.5rem, 9vw, 8rem) var(--edge);
+}
+
+.folio .close h2 {
+  font-size: var(--t-close);
+  line-height: 0.98;
+  letter-spacing: -0.02em;
+  font-weight: 800;
+  margin: 0 0 1.5rem;
+  max-width: 16ch;
+}
+
+.folio .close p {
+  font-size: var(--t-lead);
+  max-width: 40ch;
+  margin: 0 0 2rem;
+  line-height: 1.4;
+}
+
+.folio .close a {
+  color: var(--on-accent);
+  font-weight: 700;
+  text-underline-offset: 0.2em;
+}
+
+.folio .close-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2.5rem;
+  font-size: var(--t-lead);
+}
+
+/* --- theme toggle — mono text, top-right ---------------------------- */
+
+.folio .theme-control {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+}
+
+.folio .theme-toggle {
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  color: var(--ink-faint);
+  background: transparent;
+  border: 0;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.folio .theme-toggle:hover {
+  color: var(--accent);
+}
+
+/* --- focus + skip link, which are floor ----------------------------- */
+
+.folio a:focus-visible,
+.folio .theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.folio .skip-link {
+  position: absolute;
+  left: -9999px;
+}
+
+.folio .skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  background: var(--paper);
+  color: var(--ink);
+  padding: 0.5rem 0.75rem;
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  z-index: 3;
+}

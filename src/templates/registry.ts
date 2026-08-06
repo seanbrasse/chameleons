@@ -1,7 +1,10 @@
 import type { AnyTemplate } from './types';
 
+import ascent from './ascent';
+import byline from './byline';
 import curriculum from './curriculum';
 import dossier from './dossier';
+import folio from './folio';
 import plates from './plates';
 import timeline from './timeline';
 
@@ -17,6 +20,9 @@ const TEMPLATES: Record<string, AnyTemplate> = {
   [plates.manifest.id]: plates,
   [dossier.manifest.id]: dossier,
   [curriculum.manifest.id]: curriculum,
+  [byline.manifest.id]: byline,
+  [ascent.manifest.id]: ascent,
+  [folio.manifest.id]: folio,
 };
 
 export function getTemplate(id: string): AnyTemplate | null {
