@@ -33,6 +33,27 @@ import, the floor enforced in CI per template, the rule that a template version
 bump must carry a changelog entry, the builder redesign, and the two entry paths
 of plan §23.
 
+**And, most recently, a wave that turned it from "a builder" into "the product
+`DIRECTION.md` describes":**
+
+- **Four live templates**, up from two — `dossier` and `curriculum` promoted from
+  comps (§20.4), each validating that `Issue` + `floor.ts` are the whole shared
+  contract. Two more comps (`byline`, `ascent`) are open for Sean's veto, and a
+  designer template is next; the target is one template per audience.
+- **Résumé → projects.** The parser now pulls professional projects out of the
+  job entries, not just an explicit "Projects" heading, and ties each to its
+  employer — so a backend/PM/operator résumé stops rendering an empty carousel.
+- **Portfolio analytics (phase 1).** Published sites count views via a cache-safe
+  client beacon; the dashboard shows totals. `docs/ANALYTICS.md` has the design.
+- **The Google-login apex fix.** A cross-host hop in the OAuth handshake was
+  dropping the PKCE verifier; the whole flow is now pinned to one origin. See §6.
+- **`DIRECTION.md` — the product north star.** The ownership model (pay to leave
+  and own, or stay free-hosted for analytics + upgrades + discovery), the
+  customizability tiers (options → floor-gated custom CSS → sandboxed JS/TS blocks
+  → unrestricted code only on a user's own domain), the branding/growth loop, and
+  the add-on roadmap. **Read it before deciding what to build next** — this
+  document is "what exists", that one is "where it goes and why."
+
 **One site, from landing page to publish.** `chameleons.dev` is the marketing
 page *and* the builder: you arrive, sign in, and build in one place, and only
 leave for a hostname of your own once you publish. That is safe because the auth
@@ -64,11 +85,11 @@ because a sibling was edited.
 
 | Verified | |
 |---|---|
-| desktop | 0.01% differing pixels vs the original |
+| desktop | 0.01% differing pixels vs the original (template #1) |
 | mobile | 0.03% |
-| tests | 180 unit, 27 e2e |
-| lint | 2 warnings, both pre-existing `<img>` in `Work.tsx` |
-| CI | ~75s end to end |
+| tests | 197 unit; e2e across host/path plus **20 floor checks** (4 templates × 5) |
+| lint | clean (the two `<img>` warnings are annotated exceptions in `timeline`/`plates`) |
+| CI | typecheck → lint → vitest → build → playwright, green on every merge |
 
 Both figures are from one run of the same harness against both applications;
 comparing a number from one harness against a number from another is how the
@@ -90,26 +111,55 @@ frame from the tab order alone leaves its links focusable and unreachable, which
 is what axe calls `frame-focusable-content`, and `inert` does not cross into a
 nested browsing context.
 
-**There are four designs now**, which is what makes the picker a picker.
-`timeline` does not scroll and shows work at thumbnail scale; `plates` is a
-scrolling catalogue whose one rule is that **no text is ever set over an image**
-— which is also the only way the contrast floor stays checkable, since a
-photograph uploaded after the design ships has unknown tones. `dossier` is the
-opposite of both: a document with **no images anywhere**, for engineers whose
-best work has no screenshot — dates, employers and tech set as Tufte sidenotes,
-metrics blown up to display size. They read different field sets (`plates` shows
-no education, `timeline` no testimonials, `dossier` no testimonials and leans on
-`metrics`), so they exercise each other's "not on this design" behaviour.
+**There are four live designs, aimed at four audiences**, which is what makes the
+picker a picker:
 
-Promoting `dossier` from its comp (§20.4) validated the floor as the *only*
-shared contract a third time: registering the manifest was all it took to add
-its coverage, and `Issue` and `floor.ts` carried it unchanged. Each template
-owns its palette (both themes, in its token file), its CSS, and — since a lint
-rule forbids one template importing another — its own `ThemeScript`/`ThemeToggle`.
+- **`timeline`** — the original, ported unchanged: a no-scroll carousel that shows
+  work at thumbnail scale. For frontend/product people whose work has visuals.
+- **`plates`** — a scrolling catalogue whose one rule is that **no text is ever set
+  over an image** (also the only way the contrast floor stays checkable, since an
+  uploaded photo has unknown tones). For visual/creative catalogues.
+- **`dossier`** — a document with **no images anywhere**, Tufte sidenotes and
+  metrics blown up to display size, printer's red. For engineers/infra whose best
+  work has no screenshot.
+- **`curriculum`** — a faculty-homepage-meets-CV: a sticky identity column beside a
+  numbered publication list, oxford blue. For academics/researchers.
+
+They read different field sets (`plates` no education, `timeline` no testimonials,
+`dossier`/`curriculum` lean on `metrics`), so they exercise each other's "not on
+this design" behaviour. **Two more comps await Sean's veto** — `byline` (editorial,
+for writers/PMs/operators) and `ascent` (forward-looking, for students/new-grads)
+— with a designer template next.
+
+Each promotion validated the floor as the *only* shared contract again: registering
+a manifest is all it takes to add its coverage, and `Issue` and `floor.ts` have
+carried every design unchanged. Each template owns its palette (both themes, in its
+token file), its CSS, and — since a lint rule forbids one template importing another
+— its own `ThemeScript`/`ThemeToggle`.
+
+**Custom templates are coming, but as extraction, not composition.** Sean's call
+(recorded so it is not reopened): keep templates independent *now*, and extract
+shared "blocks" only once a pattern genuinely repeats across three — never build a
+shared component vocabulary up front, because that is the slop generator §6/§20
+exist to prevent. "Build your own" ships first as arrange/retune *within* a
+template, and the sandboxed-JS/TS-block tier in `DIRECTION.md` §5 is how users add
+real features without lowering the floor or being severed from the platform.
 
 ---
 
 ## 2. Outstanding work
+
+This section is the **tactical** backlog — the specific things half-built or
+waiting on a person. The **strategic** roadmap (what the product becomes, and in
+what order) now lives in `DIRECTION.md` §7–8: content/site export, SEO/JSON-LD,
+custom CSS (floor-gated), sandboxed custom blocks, custom domain, the blog /
+personal-site content type, and team mode. When those two disagree, `DIRECTION.md`
+is the intent and this is the status.
+
+Still active from the current build loop, ahead of that roadmap: promote the
+`byline`/`ascent` comps once vetoed, land the designer template, and the
+onboarding work Sean asked for — occupation/purpose intake → template suggestions
+→ a "your portfolio could be stronger" advisor.
 
 ### 2.1 What the builder is made of
 
@@ -213,14 +263,15 @@ that had been pulled.
    `/users/<login>/repos` call has never run: this sandbox's proxy blocks it,
    because sessions are scoped to configured repositories. Worth watching once
    on a preview deploy.
-4. **The document reader has never met the real API.** A shared `Autofill` box
-   sits on the content step, the profile and the intake screen: drop a résumé or
-   paste a write-up and the fields fill themselves. One target-aware service
-   (`draftInto`) serves a site draft and the profile alike, sending the source
-   as one forced tool call. Every failure path returns a specific message — 401,
-   429, malformed reply, oversized file — but the happy path has not run, because
-   this environment has no `ANTHROPIC_API_KEY`. Put one résumé through it once a
-   key is set; the box is on the editor waiting.
+4. **The document reader — key now set, one real run still worth watching.** A
+   shared `Autofill` box sits on the content step, the profile and the intake
+   screen: drop a résumé or paste a write-up and the fields fill themselves. One
+   target-aware service (`draftInto`) serves a site draft and the profile alike,
+   sending the source as one forced tool call. Every failure path returns a
+   specific message — 401, 429, malformed reply, oversized file. **Sean has since
+   set `ANTHROPIC_API_KEY` on the deployment**, so the box is live; what remains is
+   simply eyeballing one real résumé end to end (does the projects-from-jobs
+   extraction surface the right work, are the gaps reported honestly).
 
    Three properties to keep, all tested:
 
@@ -295,10 +346,11 @@ Nobody can do these from a checkout:
 
    The callback URLs are the part worth remembering. Supabase **silently falls
    back to the project's Site URL** when a `redirectTo` is not on the allowlist,
-   which presents as a successful Google sign-in landing on
-   `http://localhost:3000/?code=…` in production with no error anywhere. All
-   three callbacks are allowlisted under Authentication → URL Configuration; the
-   preview one carries an `/app` prefix because previews run in `path` mode.
+   which presents as a successful Google sign-in landing on the wrong host with no
+   error anywhere. **Sean has since set Site URL = `https://chameleons.dev` and
+   allowlisted `https://chameleons.dev/**`** (plus `http://localhost:3000/**` and
+   the `/app`-prefixed preview URL for `path` mode) — which, together with the
+   apex-guard code fix in §6, is what actually made Google login work.
 
 `.dev` is HSTS-preloaded, so HTTPS is mandatory on every host under it and there
 is no HTTP fallback to test against. `sean.localhost:3000` is unaffected.
@@ -314,6 +366,29 @@ Do not relitigate these; each was argued out and the reasoning is load-bearing.
 components are each template's own. There is no `src/components/ui` and there
 will not be — a shared `Card` is how every template ends up looking the same.
 Lint enforces this and the rules have their own tests.
+
+**Custom templates come from extraction, not composition** (Sean's call, when he
+asked for a "build your own" feature). Keep templates independent now; extract a
+shared block only after a pattern repeats across three templates, never before.
+Building a shared component vocabulary up front to let users mix pieces is the
+exact slop generator the point above exists to prevent. "Build your own" ships
+first as arrange/retune *within* a template, and richer customization arrives as
+the tiers in `DIRECTION.md` §5 (floor-gated CSS → sandboxed blocks → own-domain
+code), each gated so it cannot lower the floor.
+
+**Ownership is a feature, not a leak** (`DIRECTION.md` §4). Users can pay to leave
+and own their site (remove branding, custom domain, export a working static site,
+self-host) or stay free-hosted for analytics, upgrades and discovery. We do not
+build lock-in: the moat is the operational layer (hosting, render, analytics, AI,
+updates, the subdomain billboard), none of which leaves with an HTML export.
+Chasing branding into an exported zip ("HTML DRM") is out — branding lives where
+we render.
+
+**AI stays bounded and opt-in.** Every AI surface is a discrete, capped action
+(parse this résumé, draft from this repo), never an agent editing a live codebase.
+This is the property that makes cost predictable and edits reversible — it is what
+structurally separates us from the Replit failure mode, so it is a constraint on
+new features, not just a description of the current ones.
 
 **Publishing is a pointer move.** `sites.current_version_id` names the live
 `site_versions` row, so publish is atomic and rollback is a pointer write. The FK
