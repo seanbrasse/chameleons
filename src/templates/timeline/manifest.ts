@@ -29,6 +29,11 @@ export const manifest: TemplateManifest<TimelineOptions> = {
   description:
     'One screen that does not scroll. A project carousel riding a career timeline, with the work as the subject and everything else compressed around it.',
   uses: ['settings', 'education', 'experiences', 'projects'],
+
+  attributes: {
+    useCases: ['Engineers', 'Product managers'],
+    imagery: 'balanced',
+  },
   options,
   constraint:
     'The page does not scroll on a desktop viewport. Anything that cannot earn a place in a single view does not belong on it — which is why the work is a carousel rather than a grid, and why the career history is a line rather than a list.',

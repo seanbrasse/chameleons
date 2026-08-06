@@ -50,6 +50,7 @@ export default async function DesignStep({ params }: { params: Promise<{ siteId:
               name: manifest.name,
               description: manifest.description,
               constraint: manifest.constraint,
+              attributes: manifest.attributes,
             }))}
           />
         </section>

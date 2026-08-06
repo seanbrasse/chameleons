@@ -2,22 +2,12 @@
 
 import { useActionState } from 'react';
 
+import { PreviewFrame } from '../PreviewFrame';
+import { TemplateTags } from '../TemplateTags';
+import { useTemplateBrowser, type BrowsableTemplate } from '../TemplateBrowser';
 import { startPortfolio, type NewSiteState } from '../actions';
 
-export type GalleryTemplate = {
-  id: string;
-  name: string;
-  description: string;
-  constraint: string;
-};
-
-/**
- * The viewport each preview is rendered at before being scaled down. Template #1
- * is built not to scroll at a desktop size, so a preview narrower than this
- * would show a design nobody will ever see.
- */
-const PREVIEW_WIDTH = 1280;
-const PREVIEW_HEIGHT = 800;
+export type GalleryTemplate = BrowsableTemplate;
 
 /**
  * The first screen of a new account.
@@ -51,6 +41,7 @@ export function Gallery({
   hasContent: boolean;
 }) {
   const [state, action, pending] = useActionState<NewSiteState, FormData>(startPortfolio, {});
+  const { visible, controls } = useTemplateBrowser(templates);
 
   return (
     <>
@@ -60,27 +51,29 @@ export function Gallery({
         </p>
       ) : null}
 
+      {controls}
+
+      {visible.length === 0 ? (
+        <p className="admin-note" role="status">
+          No design matches those filters. Clear one to see more.
+        </p>
+      ) : null}
+
       <div className="admin-gallery">
-        {templates.map((template) => (
+        {visible.map((template) => (
           <form action={action} key={template.id} className="admin-gallery-item">
             <input type="hidden" name="templateId" value={template.id} />
 
-            <div className="admin-preview">
-              {/* Inert: the frame is a picture of the design, and a click
-                  anywhere on the card should choose it rather than land inside
-                  a nested page. `tabindex=-1` keeps the preview out of the tab
-                  order for the same reason. */}
-              <iframe
-                src={`/app/preview/template/${template.id}`}
-                title={`${template.name}, previewed with your content`}
-                loading="lazy"
-                tabIndex={-1}
-                width={PREVIEW_WIDTH}
-                height={PREVIEW_HEIGHT}
-              />
-            </div>
+            {/* The frame is a picture of the design; its own toggle switches it
+                between desktop and phone width. A click anywhere else on the
+                card chooses the design. */}
+            <PreviewFrame
+              src={`/app/preview/template/${template.id}`}
+              title={`${template.name}, previewed with your content`}
+            />
 
             <h2>{template.name}</h2>
+            <TemplateTags attributes={template.attributes} />
             <p className="admin-note">{template.description}</p>
 
             {/* The constraint, not an adjective. It is what actually separates

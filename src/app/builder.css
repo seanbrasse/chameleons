@@ -1490,28 +1490,120 @@ body {
 
    `cqw` is why this needs no measuring in JavaScript — the scale factor is the
    card's own width over the viewport the frame renders at. */
+/* `container-type: size` (not just inline-size) so the frame can be fit by
+   height as well as width — a portrait phone is fit to the card's height and
+   centred, a landscape desktop to its width — while the card box itself keeps
+   one shape. The device width lives in `--dw`/`--dh`, which the mobile toggle
+   swaps; everything downstream reads from those. */
 .admin-preview {
-  container-type: inline-size;
+  container-type: size;
+  position: relative;
   aspect-ratio: 1280 / 800;
   overflow: hidden;
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   background: var(--surface-sunk);
+  --dw: 1280px;
+  --dh: 800px;
+}
+
+.admin-preview.is-mobile {
+  --dw: 390px;
+  --dh: 844px;
 }
 
 .admin-preview iframe {
-  display: block;
-  width: 1280px;
-  height: 800px;
+  /* Centred with `left/top:50%` + `translate(-50%,-50%)`: the unscaled frame is
+     larger than the card, and this is the one centring that holds for an
+     oversized box (grid clamps it, auto margins on an abspos box mis-anchor the
+     scale). */
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--dw);
+  height: var(--dh);
   border: 0;
   /* Divided by a length, not a number: `calc()` yields a ratio only when both
      operands carry units, and `scale(<length>)` is invalid, so the whole
-     declaration is dropped silently if the `px` is left off. */
-  transform: scale(calc(100cqw / 1280px));
-  transform-origin: top left;
+     declaration is dropped silently if the `px` is left off. `min()` fits the
+     frame inside the card by whichever axis binds first — width for desktop,
+     height for the phone. */
+  transform: translate(-50%, -50%)
+    scale(min(calc(100cqw / var(--dw)), calc(100cqh / var(--dh))));
+  transform-origin: center;
+  /* The width and height animate, so the iframe reflows live as it narrows into
+     a phone or widens back — the preview is seen being responsive. */
+  transition:
+    width 0.5s cubic-bezier(0.22, 0.61, 0.36, 1),
+    height 0.5s cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
   /* The card is one big control. A click belongs to the form that chooses this
      design, never to the page inside the frame. */
   pointer-events: none;
+}
+
+/* A phone reads as a phone: round the screen and lift it off the matte. */
+.admin-preview.is-mobile iframe {
+  border-radius: 16px;
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-preview iframe {
+    transition: none;
+  }
+}
+
+/* ── The desktop / mobile size toggle ────────────────────────────────────
+   Pinned to the corner of its own preview, so every frame carries its own. It
+   overlays the (click-through) iframe, so it takes pointer events back and
+   stops the click from reaching the card that would otherwise select it. */
+.preview-modes {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  border: 1px solid var(--rule);
+  backdrop-filter: blur(6px);
+}
+
+.preview-mode {
+  display: inline-grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.preview-mode svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+
+.preview-mode[aria-pressed='true'] {
+  background: var(--accent-a);
+  color: var(--on-accent);
+}
+
+.preview-mode:hover:not([aria-pressed='true']) {
+  color: var(--ink);
+}
+
+.preview-mode:focus-visible {
+  outline: 2px solid var(--accent-a);
+  outline-offset: 2px;
 }
 
 .admin-gallery-item {
@@ -1536,4 +1628,131 @@ body {
 
 .admin-gallery-item:hover {
   border-color: var(--rule-strong);
+}
+
+/* ── Browsing templates by their attributes ──────────────────────────────
+   The picker filters and sorts, so it is a picker and not a fixed menu (plan
+   §23.2). The facets come from the manifests, so this markup never lists a
+   role or a style by hand. */
+.tpl-browse {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  margin-bottom: var(--s-4);
+}
+
+.tpl-facet {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.tpl-facet-sort {
+  margin-left: auto;
+}
+
+.tpl-facet-label {
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+}
+
+.tpl-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tpl-chip {
+  font: inherit;
+  font-size: var(--t-micro);
+  line-height: 1;
+  padding: 6px 12px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  background: var(--matte);
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.tpl-chip:hover {
+  border-color: var(--ink-muted);
+}
+
+.tpl-chip[aria-pressed='true'] {
+  background: var(--accent-a);
+  border-color: var(--accent-a);
+  color: var(--on-accent);
+}
+
+.tpl-chip:focus-visible {
+  outline: 2px solid var(--accent-a);
+  outline-offset: 2px;
+}
+
+.tpl-sort {
+  font: inherit;
+  font-size: var(--t-micro);
+  padding: 6px 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--matte);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.tpl-sort:focus-visible {
+  outline: 2px solid var(--accent-a);
+  outline-offset: 2px;
+}
+
+.tpl-clear {
+  font: inherit;
+  font-size: var(--t-micro);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-ink);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.tpl-clear:focus-visible {
+  outline: 2px solid var(--accent-a);
+  outline-offset: 2px;
+}
+
+/* ── A card's own attribute tags ─────────────────────────────────────────
+   The same facets the filter uses, worn by each card so a person can see why a
+   design surfaced. */
+.tpl-tags {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+
+.tpl-tag {
+  font-size: var(--t-micro);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--surface-sunk);
+  color: var(--ink-muted);
+}
+
+.tpl-tag-style {
+  background: transparent;
+  border: 1px solid var(--rule);
 }

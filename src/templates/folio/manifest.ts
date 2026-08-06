@@ -32,6 +32,11 @@ export const manifest: TemplateManifest<FolioOptions> = {
   // for it.
   uses: ['settings', 'projects', 'experiences', 'metrics'],
 
+  attributes: {
+    useCases: ['Designers', 'Photographers'],
+    imagery: 'image-forward',
+  },
+
   options,
 
   constraint:

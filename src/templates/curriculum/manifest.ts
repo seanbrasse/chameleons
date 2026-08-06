@@ -31,6 +31,11 @@ export const manifest: TemplateManifest<CurriculumOptions> = {
   // they do not have in the image-forward templates.
   uses: ['settings', 'projects', 'experiences', 'education', 'metrics'],
 
+  attributes: {
+    useCases: ['Academics'],
+    imagery: 'text-led',
+  },
+
   options,
 
   constraint:

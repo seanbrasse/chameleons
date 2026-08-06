@@ -44,4 +44,20 @@ describe('every manifest', () => {
     const ids = listManifests().map((manifest) => manifest.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
+
+  it('carries the attributes the picker filters by', () => {
+    // The gallery filters on `useCases`, so a template with none can never be
+    // found through the filter it should appear in — it would only ever show
+    // when no filter is set.
+    for (const manifest of listManifests()) {
+      expect(manifest.attributes.useCases.length, manifest.id).toBeGreaterThan(0);
+      expect(new Set(manifest.attributes.useCases).size, `${manifest.id} repeats a use case`).toBe(
+        manifest.attributes.useCases.length,
+      );
+      expect(
+        ['image-forward', 'balanced', 'text-led'],
+        manifest.id,
+      ).toContain(manifest.attributes.imagery);
+    }
+  });
 });

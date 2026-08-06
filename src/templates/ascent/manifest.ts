@@ -32,6 +32,11 @@ export const manifest: TemplateManifest<AscentOptions> = {
   // thing this design exists to avoid. It still renders roles when they exist.
   uses: ['settings', 'projects', 'education'],
 
+  attributes: {
+    useCases: ['Students', 'New grads'],
+    imagery: 'balanced',
+  },
+
   options,
 
   constraint:
