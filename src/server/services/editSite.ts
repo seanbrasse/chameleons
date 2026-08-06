@@ -7,11 +7,14 @@ import { applySettings, type SettingsEdit } from '@/server/domain/edit-settings'
 import { removeExperience, upsertExperience, type ExperienceEdit } from '@/server/domain/edit-experiences';
 import { removeEducation, upsertEducation, type EducationEdit } from '@/server/domain/edit-education';
 import {
+  addProjectImage,
   addProjects,
   removeProject,
+  removeProjectImage,
   upsertProject,
   type ProjectEdit,
 } from '@/server/domain/edit-projects';
+import { deleteMedia, uploadMedia } from './media';
 import { removeMetric, upsertMetric, type MetricEdit } from '@/server/domain/edit-metrics';
 import {
   removeTestimonial,
@@ -149,6 +152,67 @@ export function saveProject(
 
 export function deleteProject(target: Target, projectId: string): Promise<SaveResult> {
   return saveIssue(target, (issue) => removeProject(issue, projectId));
+}
+
+export type ImageUploadResult =
+  | { ok: true; problems: ContentProblem[] }
+  | { ok: false; reason: 'unauthenticated' | 'not-found' }
+  | { ok: false; reason: 'refused'; message: string };
+
+/**
+ * Store an uploaded image and record it on a project.
+ *
+ * Ownership and the storage prefix are resolved together: a site must be the
+ * caller's before anything is written under its prefix, and the profile is keyed
+ * on the session owner so there is no id in the request to forge — the same
+ * scoping every other write here uses. The media service does the admission
+ * checks and the strip; this only decides *where* the bytes may go and records
+ * the result on the draft.
+ */
+export async function uploadProjectImage(
+  target: Target,
+  projectId: string,
+  fileBytes: ArrayBuffer,
+): Promise<ImageUploadResult> {
+  const owner = await currentUser();
+  if (!owner) return { ok: false, reason: 'unauthenticated' };
+
+  let prefix: string;
+  if (target.kind === 'site') {
+    const working = await readWorkingState(target.siteId, owner.id);
+    if (!working) return { ok: false, reason: 'not-found' };
+    prefix = target.siteId;
+  } else {
+    prefix = `profile-${owner.id}`;
+  }
+
+  const uploaded = await uploadMedia(prefix, fileBytes);
+  if (!uploaded.ok) return { ok: false, reason: 'refused', message: uploaded.message };
+
+  const saved = await saveIssue(target, (issue) =>
+    addProjectImage(issue, projectId, uploaded.asset),
+  );
+  return saved.ok
+    ? { ok: true, problems: saved.problems }
+    : { ok: false, reason: saved.reason };
+}
+
+/**
+ * Drop an image from a project, then reap the stored object.
+ *
+ * The row is updated first — the person's edit must not wait on storage, and a
+ * page never points at an object it lost — so the reap is best-effort after.
+ */
+export async function deleteProjectImage(
+  target: Target,
+  projectId: string,
+  image: { id: string; src: string },
+): Promise<SaveResult> {
+  const result = await saveIssue(target, (issue) =>
+    removeProjectImage(issue, projectId, image.id),
+  );
+  if (result.ok) await deleteMedia(image.src);
+  return result;
 }
 
 /**

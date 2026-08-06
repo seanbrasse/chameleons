@@ -1,4 +1,4 @@
-import type { Issue, Project, ProjectStatus } from '@/content/types';
+import type { Asset, Issue, Project, ProjectStatus } from '@/content/types';
 
 /**
  * The text fields this screen owns. `images` and `links` are untouched — they
@@ -83,6 +83,35 @@ export function upsertProject(issue: Issue, id: string, edit: ProjectEdit): Issu
 
 export function removeProject(issue: Issue, id: string): Issue {
   return { ...issue, projects: issue.projects.filter((project) => project.id !== id) };
+}
+
+/**
+ * Appends an uploaded image to a project. The bytes are already stored and
+ * stripped by the time this runs (`services/media.ts`); this only records the
+ * `Asset` on the row, so it stays a pure transform like the text edits and the
+ * media service owns everything that touches storage.
+ */
+export function addProjectImage(issue: Issue, projectId: string, image: Asset): Issue {
+  return {
+    ...issue,
+    projects: issue.projects.map((project) =>
+      project.id === projectId
+        ? { ...project, images: [...project.images, image] }
+        : project,
+    ),
+  };
+}
+
+/** Drops an image from a project by id. The stored object is reaped separately. */
+export function removeProjectImage(issue: Issue, projectId: string, imageId: string): Issue {
+  return {
+    ...issue,
+    projects: issue.projects.map((project) =>
+      project.id === projectId
+        ? { ...project, images: project.images.filter((image) => image.id !== imageId) }
+        : project,
+    ),
+  };
 }
 
 /**

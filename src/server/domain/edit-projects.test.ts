@@ -2,9 +2,27 @@ import { describe, expect, it } from 'vitest';
 
 import { starterIssue } from '@/content/starter';
 
-import { parseStatus, parseTech, readProjectForm, removeProject, upsertProject } from './edit-projects';
+import {
+  addProjectImage,
+  parseStatus,
+  parseTech,
+  readProjectForm,
+  removeProject,
+  removeProjectImage,
+  upsertProject,
+} from './edit-projects';
+import type { Asset } from '@/content/types';
 
 const form = (values: Record<string, string>) => (name: string) => values[name] ?? null;
+
+const asset = (id: string): Asset => ({
+  id,
+  src: `https://example.com/${id}.png`,
+  alt: '',
+  width: 800,
+  height: 600,
+  kind: 'screenshot',
+});
 
 describe('parseStatus', () => {
   it('keeps a known status', () => {
@@ -128,5 +146,34 @@ describe('removeProject', () => {
 
     expect(removeProject(two, 'p-1').projects.map((p) => p.id)).toEqual(['p-2']);
     expect(removeProject(two, 'nope')).toEqual(two);
+  });
+});
+
+describe('addProjectImage / removeProjectImage', () => {
+  const withProject = () =>
+    upsertProject(starterIssue('Kim', 'kim@example.com'), 'p-1', readProjectForm(form({ title: 'A' })));
+
+  it('appends an image to the matching project only', () => {
+    const two = upsertProject(withProject(), 'p-2', readProjectForm(form({ title: 'B' })));
+    const after = addProjectImage(two, 'p-1', asset('a'));
+
+    expect(after.projects.find((p) => p.id === 'p-1')?.images.map((i) => i.id)).toEqual(['a']);
+    expect(after.projects.find((p) => p.id === 'p-2')?.images).toEqual([]);
+  });
+
+  it('keeps upload order when several are added', () => {
+    const after = addProjectImage(addProjectImage(withProject(), 'p-1', asset('a')), 'p-1', asset('b'));
+    expect(after.projects[0]?.images.map((i) => i.id)).toEqual(['a', 'b']);
+  });
+
+  it('removes an image by id and leaves the rest', () => {
+    const two = addProjectImage(addProjectImage(withProject(), 'p-1', asset('a')), 'p-1', asset('b'));
+    expect(removeProjectImage(two, 'p-1', 'a').projects[0]?.images.map((i) => i.id)).toEqual(['b']);
+  });
+
+  it('does not mutate the issue it was given', () => {
+    const issue = addProjectImage(withProject(), 'p-1', asset('a'));
+    addProjectImage(issue, 'p-1', asset('b'));
+    expect(issue.projects[0]?.images).toHaveLength(1);
   });
 });

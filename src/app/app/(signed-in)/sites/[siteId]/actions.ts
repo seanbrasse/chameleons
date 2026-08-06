@@ -18,6 +18,7 @@ import {
   deleteExperience,
   deleteMetric,
   deleteProject,
+  deleteProjectImage,
   deleteTestimonial,
   saveEducation,
   saveExperience,
@@ -26,6 +27,7 @@ import {
   saveSettings,
   saveTestimonial,
   addImportedProjects,
+  uploadProjectImage,
   type SaveResult,
   type Target,
 } from '@/server/services/editSite';
@@ -283,6 +285,54 @@ export async function removeProjectRow(_state: EditorState, form: FormData): Pro
   if (!target || !projectId) return { problem: REFUSALS['not-found'] };
 
   const result = await deleteProject(target, projectId);
+  if (result.ok) revalidateFor(target);
+  return toState(result);
+}
+
+/**
+ * A project's images. The file arrives in the action and the media service does
+ * every admission check and the EXIF strip before a byte is stored (§8); a
+ * refusal carries its own message (over the size cap, out of quota, an SVG)
+ * rather than a generic one, because "your 12 MB image is over the 10 MB limit"
+ * is the actionable version.
+ */
+export async function uploadProjectImageRow(
+  _state: EditorState,
+  form: FormData,
+): Promise<EditorState> {
+  const target = targetOf(form);
+  const projectId = rowId(form, 'projectId');
+  if (!target || !projectId) return { problem: REFUSALS['not-found'] };
+
+  const upload = form.get('image');
+  if (!(upload instanceof File) || upload.size === 0) {
+    return { problem: 'Choose an image to upload.' };
+  }
+
+  const result = await uploadProjectImage(target, projectId, await upload.arrayBuffer());
+  if (!result.ok) {
+    return result.reason === 'refused'
+      ? { problem: result.message }
+      : { problem: REFUSALS[result.reason] };
+  }
+
+  revalidateFor(target);
+  return { saved: true, note: 'Image added.', problems: result.problems };
+}
+
+export async function removeProjectImageRow(
+  _state: EditorState,
+  form: FormData,
+): Promise<EditorState> {
+  const target = targetOf(form);
+  const projectId = rowId(form, 'projectId');
+  const imageId = rowId(form, 'imageId');
+  const src = form.get('src');
+  if (!target || !projectId || !imageId || typeof src !== 'string') {
+    return { problem: REFUSALS['not-found'] };
+  }
+
+  const result = await deleteProjectImage(target, projectId, { id: imageId, src });
   if (result.ok) revalidateFor(target);
   return toState(result);
 }
