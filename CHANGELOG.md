@@ -9,6 +9,25 @@ real versions, changelogged in `templates/<id>/CHANGELOG.md`.
 
 ## [Unreleased]
 
+### Template #4 — Curriculum
+
+- **A fourth design, for work measured in papers rather than screenshots.**
+  Promoted from `design/curriculum/comp.html` (plan §20.4). A faculty homepage
+  crossed with a typeset CV: a fixed identity column beside a numbered,
+  reverse-chronological record — publications as citation lines, then
+  appointments, education and distinctions.
+- The constraint: **every work is a citation line, no images anywhere.** Oxford
+  blue accent on section numbers, venues and links — chosen so it does not read
+  like `dossier`, the other document template.
+- Maps onto `Issue` with no new field: Publications ← `projects`, Appointments ←
+  `experiences`, Education ← `education`, Distinctions ← `metrics`. Sections are
+  numbered by the order they render, so an empty one never leaves a gap.
+- Registering the manifest added its floor coverage: passes `e2e/floor.spec.ts`
+  in both themes (WCAG AA, one h1, no skips, DOM-not-canvas, body ≥14px). Its own
+  token file carries both palettes and its own `ThemeScript`/`ThemeToggle`, since
+  a lint rule forbids one template importing another. Four templates now share
+  `Issue` and `floor.ts` unchanged.
+
 ### Portfolio analytics (phase 1 — page views)
 
 - **Published portfolios now count their views, and the dashboard shows them.**

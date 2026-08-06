@@ -87,7 +87,7 @@ frame from the tab order alone leaves its links focusable and unreachable, which
 is what axe calls `frame-focusable-content`, and `inert` does not cross into a
 nested browsing context.
 
-**There are three designs now**, which is what makes the picker a picker.
+**There are four designs now**, which is what makes the picker a picker.
 `timeline` does not scroll and shows work at thumbnail scale; `plates` is a
 scrolling catalogue whose one rule is that **no text is ever set over an image**
 — which is also the only way the contrast floor stays checkable, since a
