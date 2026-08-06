@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>byline — comp</title>
+
+    <!--
+      Template #5, stage 2 of plan §20.4. Standalone; open by double-clicking.
+
+      Content is realistic PM/operator content at real length — a one-sentence
+      outcome beside a three-sentence one — because a narrative layout lives or
+      dies on how uneven real writing is, which lorem hides.
+
+      Constraint: the bio leads; every piece of work is one outcome sentence
+      before its paragraph. No grid, no card, no metric wall. See BRIEF.md.
+    -->
+
+    <style>
+      :root {
+        --paper: #fbf9f6;
+        --ink: #211c1f;
+        --ink-quiet: #5c545a;
+        /* Carries meta and dates; a shade darker than it wants so it clears AA
+           (5.2:1), the lesson from the dossier comp's margin. */
+        --ink-faint: #6d646b;
+        --rule: #e6e0da;
+        /* Plum — not ember, blue or red. One job: links, the section kicker, and
+           a hairline. The prose itself is always ink. */
+        --accent: #8a3d63;
+
+        --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Charter, Georgia, serif;
+        --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+
+        /* Scale ~7×: a 12.5px kicker to a display lede. The lede, not the name,
+           is the largest thing on the page — the writing is the hero. */
+        --t-kicker: 0.8rem;
+        --t-meta: 0.9rem;
+        --t-body: 1.15rem;
+        --t-outcome: 1.5rem;
+        --t-title: 1.9rem;
+        --t-lede: clamp(1.9rem, 4.2vw, 3rem);
+
+        --measure: 40rem;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #17141a;
+          --ink: #efe9ec;
+          --ink-quiet: #b0a6ad;
+          --ink-faint: #948a92;
+          --rule: #322b33;
+          --accent: #d98cb0;
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--serif);
+        font-size: var(--t-body);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .page {
+        max-width: var(--measure);
+        margin: 0 auto;
+        padding: 5rem 1.5rem 8rem;
+      }
+
+      .kicker {
+        font-family: var(--sans);
+        font-size: var(--t-kicker);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--accent);
+        margin: 0;
+      }
+
+      /* ── The deck: byline quiet, argument large ───────────────────────── */
+
+      .name {
+        /* A byline, not a headline — small, so the deck below can be big. Still
+           the h1: it is what the page is found by, and the floor asserts one. */
+        font-size: var(--t-meta);
+        font-weight: 600;
+        font-family: var(--sans);
+        color: var(--ink);
+        letter-spacing: 0;
+        margin: 0.5rem 0 0;
+      }
+
+      .name-by {
+        color: var(--ink-quiet);
+        font-weight: 400;
+      }
+
+      .lede {
+        font-size: var(--t-lede);
+        line-height: 1.2;
+        font-weight: 400;
+        letter-spacing: -0.015em;
+        margin: 1.5rem 0 0;
+        text-wrap: balance;
+      }
+
+      .intro-meta {
+        font-family: var(--sans);
+        font-size: var(--t-meta);
+        color: var(--ink-faint);
+        margin: 1.5rem 0 0;
+      }
+
+      /* ── Sections ─────────────────────────────────────────────────────── */
+
+      .section {
+        margin-top: 4.5rem;
+      }
+
+      .section-kicker {
+        font-family: var(--sans);
+        font-size: var(--t-kicker);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--accent);
+        border-top: 2px solid var(--accent);
+        padding-top: 0.6rem;
+        margin: 0 0 2rem;
+      }
+
+      /* ── Work: outcome, then title, then the paragraph that earns it ───── */
+
+      .piece {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .work {
+        padding-bottom: 2.5rem;
+        margin-bottom: 2.5rem;
+        border-bottom: 1px solid var(--rule);
+      }
+
+      .work:last-child {
+        border-bottom: 0;
+        margin-bottom: 0;
+      }
+
+      .work-title {
+        font-size: var(--t-title);
+        line-height: 1.15;
+        font-weight: 600;
+        letter-spacing: -0.015em;
+        margin: 0;
+      }
+
+      /* The outcome line: set as a lede under the title, ink not accent — it is
+         the sentence you read first, so it has to be prose, not a badge. */
+      .outcome {
+        font-size: var(--t-outcome);
+        line-height: 1.35;
+        color: var(--ink);
+        margin: 0.5rem 0 0;
+        text-wrap: pretty;
+      }
+
+      .work-body {
+        color: var(--ink-quiet);
+        margin: 0.9rem 0 0;
+      }
+
+      .work-foot {
+        font-family: var(--sans);
+        font-size: var(--t-meta);
+        margin: 1rem 0 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 1.5rem;
+        align-items: baseline;
+      }
+
+      .work-when {
+        color: var(--ink-faint);
+      }
+
+      .work-links a {
+        color: var(--accent);
+        text-underline-offset: 0.2em;
+      }
+
+      /* ── Experience: a compact ruled list, dates incidental ───────────── */
+
+      .roles {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .role {
+        display: flex;
+        justify-content: space-between;
+        gap: 1.5rem;
+        padding: 0.7rem 0;
+        border-top: 1px solid var(--rule);
+        font-family: var(--sans);
+        font-size: var(--t-meta);
+      }
+
+      .role-what {
+        color: var(--ink);
+      }
+
+      .role-where {
+        color: var(--ink-quiet);
+      }
+
+      .role-when {
+        color: var(--ink-faint);
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ── Contact ──────────────────────────────────────────────────────── */
+
+      .contact {
+        margin-top: 4.5rem;
+        border-top: 1px solid var(--rule);
+        padding-top: 1.5rem;
+        font-family: var(--sans);
+        font-size: var(--t-meta);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 1.75rem;
+      }
+
+      .contact a {
+        color: var(--accent);
+        text-underline-offset: 0.2em;
+      }
+
+      /* ── Focus + skip link, which are floor ───────────────────────────── */
+
+      a:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+        border-radius: 1px;
+      }
+
+      .skip-link {
+        position: absolute;
+        left: -9999px;
+      }
+
+      .skip-link:focus {
+        left: 1rem;
+        top: 1rem;
+        background: var(--paper);
+        color: var(--ink);
+        padding: 0.5rem 0.75rem;
+        font-family: var(--sans);
+        font-size: var(--t-kicker);
+        z-index: 2;
+      }
+
+      @media (max-width: 40rem) {
+        .page {
+          padding: 3rem 1.25rem 5rem;
+        }
+        .role {
+          flex-direction: column;
+          gap: 0.1rem;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#work">Skip to the work</a>
+
+    <div class="page">
+      <header>
+        <p class="kicker">Product &amp; operations</p>
+        <!-- The h1, set small on purpose: a byline over a big deck. -->
+        <h1 class="name"><span class="name-by">By</span> Dana Whitfield</h1>
+        <p class="lede">
+          I take the product nobody can explain and turn it into the one customers can’t put down.
+        </p>
+        <p class="intro-meta">Product lead · Remote, GMT−5 · Fintech and developer tools</p>
+      </header>
+
+      <section class="section" id="work" aria-labelledby="s-work">
+        <h2 class="section-kicker" id="s-work">Selected work</h2>
+
+        <ol class="piece">
+          <li class="work">
+            <h3 class="work-title">Onboarding, rebuilt around the first ten minutes</h3>
+            <p class="outcome">
+              Cut time-to-first-value from three days to under an hour, and activation rose 34% the
+              quarter it shipped.
+            </p>
+            <p class="work-body">
+              The signup flow assumed patience nobody had. I cut it to a single decision, moved
+              verification to the background, and let people reach a real result before we asked for
+              anything. The hard part was convincing three teams that fewer steps was not less rigor.
+            </p>
+            <p class="work-foot">
+              <span class="work-when">2025</span>
+              <span class="work-links"><a href="#">Read the write-up</a></span>
+            </p>
+          </li>
+
+          <li class="work">
+            <h3 class="work-title">A pricing page that finally told the truth</h3>
+            <p class="outcome">
+              Rewrote pricing end to end; support tickets about billing fell by half.
+            </p>
+            <p class="work-body">
+              People were not confused about the price — they were confused about what they were
+              buying. I threw out the tier names, wrote the page like a person explaining it to a
+              friend, and shipped it in a week against a lot of institutional nervousness.
+            </p>
+            <p class="work-foot">
+              <span class="work-when">2024</span>
+              <span class="work-links"><a href="#">See it live</a></span>
+            </p>
+          </li>
+
+          <li class="work">
+            <h3 class="work-title">The migration nobody noticed</h3>
+            <p class="outcome">
+              Moved 40,000 accounts to a new billing system with zero customer-facing downtime.
+            </p>
+            <p class="work-body">
+              A year of quiet work whose entire success metric was that no one wrote in. I ran it as
+              a series of reversible steps, each shippable on its own, so we were never one big
+              launch away from disaster.
+            </p>
+            <p class="work-foot">
+              <span class="work-when">2023</span>
+            </p>
+          </li>
+        </ol>
+      </section>
+
+      <section class="section" aria-labelledby="s-exp">
+        <h2 class="section-kicker" id="s-exp">Experience</h2>
+        <ul class="roles">
+          <li class="role">
+            <span class="role-what">Product Lead</span>
+            <span class="role-where">Ledgerline</span>
+            <span class="role-when">2022 — now</span>
+          </li>
+          <li class="role">
+            <span class="role-what">Senior PM</span>
+            <span class="role-where">Northwind Tools</span>
+            <span class="role-when">2019 — 2022</span>
+          </li>
+          <li class="role">
+            <span class="role-what">Operations Manager</span>
+            <span class="role-where">Basley &amp; Co.</span>
+            <span class="role-when">2016 — 2019</span>
+          </li>
+        </ul>
+      </section>
+
+      <footer class="contact">
+        <a href="mailto:dana@example.com">dana@example.com</a>
+        <a href="#">LinkedIn</a>
+        <a href="#">Writing</a>
+        <a href="#">Résumé</a>
+      </footer>
+    </div>
+  </body>
+</html>
