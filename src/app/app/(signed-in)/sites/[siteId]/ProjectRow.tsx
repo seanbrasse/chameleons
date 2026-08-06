@@ -6,6 +6,7 @@ import { CAPS, type Experience, type Project } from '@/content/types';
 
 import { removeProjectRow, saveProjectRow, type EditorState } from './actions';
 import { Feedback } from './Feedback';
+import { ProjectImages } from './ProjectImages';
 import { ScopeFields, type EditScope } from './scope';
 import { useBlankRow } from './useBlankRow';
 
@@ -135,6 +136,12 @@ export function ProjectRow({
           </button>
         </div>
       </form>
+
+      {/* Images attach to a saved row's id, so they appear once the project
+          exists. New rows show the fields first; save, then add images. */}
+      {!isNew ? (
+        <ProjectImages scope={scope} projectId={id} images={project?.images ?? []} />
+      ) : null}
 
       {!isNew ? (
         <form action={removeAction} className="admin-buttons">
