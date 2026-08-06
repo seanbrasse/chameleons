@@ -1756,3 +1756,76 @@ body {
   background: transparent;
   border: 1px solid var(--rule);
 }
+
+/* ── Portfolio-strength advisor ──────────────────────────────────────────
+   A pre-flight before publish: advice from the draft, never a gate. Each row
+   is a tag, the nudge, and a link to the step that fixes it. */
+.admin-advice {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s-2);
+}
+
+.admin-advice-clear {
+  margin-top: 0;
+}
+
+.advice-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  padding: var(--s-3);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--matte);
+}
+
+.advice-tag {
+  font-size: var(--t-micro);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.advice-gap {
+  background: color-mix(in srgb, var(--accent-a) 16%, var(--matte));
+  color: var(--accent-ink);
+}
+
+.advice-nudge {
+  background: var(--surface-sunk);
+  color: var(--ink-muted);
+}
+
+.advice-message {
+  color: var(--ink);
+}
+
+.advice-fix {
+  font-size: var(--t-micro);
+  white-space: nowrap;
+  color: var(--accent-ink);
+  text-decoration: none;
+}
+
+.advice-fix:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+@media (max-width: 34rem) {
+  .advice-item {
+    grid-template-columns: auto 1fr;
+  }
+
+  .advice-fix {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
