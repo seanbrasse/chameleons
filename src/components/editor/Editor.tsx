@@ -614,6 +614,7 @@ const GLYPH: Record<BlockKind, string> = {
   image: '▦',
   button: '⬭',
   divider: '—',
+  themeToggle: '◐',
   identity: '◈',
   skills: '❖',
   timeline: '⌗',
@@ -849,10 +850,16 @@ function BlockPreview({
       return (
         <div className="pv-identity">
           <div className="pv-name">{settings.displayName || 'Your name'}</div>
-          <div className="pv-role">
-            {[settings.role, settings.location].filter(Boolean).join(' · ') || settings.tagline}
-          </div>
+          <div className="pv-role">{[settings.role, settings.location].filter(Boolean).join(' · ')}</div>
+          {settings.tagline ? <p className="pv-bio">{settings.tagline}</p> : null}
         </div>
+      );
+    case 'themeToggle':
+      return (
+        <span className="pv-theme">
+          <span className="pv-theme-dot" aria-hidden="true" />
+          Light
+        </span>
       );
     case 'skills':
       return (

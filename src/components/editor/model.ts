@@ -21,6 +21,7 @@ export type BlockKind =
   | 'image'
   | 'button'
   | 'divider'
+  | 'themeToggle'
   // content, bound to the Issue
   | 'identity'
   | 'skills'
@@ -38,6 +39,7 @@ export const BLOCK_KINDS: readonly BlockKind[] = [
   'image',
   'button',
   'divider',
+  'themeToggle',
   'identity',
   'skills',
   'timeline',
@@ -231,6 +233,7 @@ export const PALETTE: { group: string; items: PaletteItem[] }[] = [
       { kind: 'image', label: 'Image', hint: 'A picture' },
       { kind: 'button', label: 'Button', hint: 'A link' },
       { kind: 'divider', label: 'Divider', hint: 'A rule' },
+      { kind: 'themeToggle', label: 'Theme toggle', hint: 'Light / dark switch' },
     ],
   },
   {
@@ -260,6 +263,7 @@ const SPAN_FRACTION: Record<BlockKind, number> = {
   image: 1 / 3,
   button: 0.25,
   divider: 1,
+  themeToggle: 0.2,
   identity: 1,
   skills: 1,
   timeline: 1,
