@@ -458,50 +458,98 @@ function defaultText(kind: BlockKind): string {
 
 /**
  * A preset is a ready-made *composition* of base components dropped as one — the
- * proof that components build from components. It returns several blocks (a
- * parent and its nested children), already wired, so the palette can offer a
- * finished piece next to the raw primitives.
+ * proof that components build from components. It returns several blocks, already
+ * wired (nesting, and where relevant a modal trigger), so the palette can offer
+ * a finished piece next to the raw primitives.
  */
-export type PresetKind = 'animatedCard';
+export type PresetKind = 'animatedCard' | 'hero' | 'contactForm' | 'contactModal';
 
 export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'animatedCard', label: 'Animated card', hint: 'A card that lifts on hover, holding a title, text and button' },
+  { preset: 'hero', label: 'Hero', hint: 'A full-width intro: big heading, tagline and a button' },
+  { preset: 'contactForm', label: 'Contact form', hint: 'A card with name, email and message fields' },
+  { preset: 'contactModal', label: 'Contact modal', hint: 'A button that opens the contact form in a modal' },
 ];
 
 export function isPresetKind(value: unknown): value is PresetKind {
   return typeof value === 'string' && PRESETS.some((p) => p.preset === value);
 }
 
+/** A child block wired to `parentId`, placed at an absolute cell. */
+function presetChild(
+  kind: BlockKind,
+  label: string,
+  text: string,
+  parentId: string,
+  place: Placement,
+): Block {
+  const block = makeBlock(kind, label, place.row);
+  block.text = text;
+  block.parentId = parentId;
+  block.placement = clampPlacement(place);
+  return block;
+}
+
+/** The fields of a contact form, nested in `cardId`, from `base`. Shared by the
+ *  inline form and the modal that wraps the same form. */
+function contactFields(cardId: string, base: number): Block[] {
+  const col = 3;
+  const span = 26;
+  return [
+    presetChild('heading', 'Title', 'Get in touch', cardId, { col, colSpan: span, row: base + 2 }),
+    presetChild('input', 'Name', 'Your name', cardId, { col, colSpan: span, row: base + 5, rowSpan: 3 }),
+    presetChild('input', 'Email', 'Your email', cardId, { col, colSpan: span, row: base + 9, rowSpan: 3 }),
+    presetChild('textarea', 'Message', 'Your message', cardId, { col, colSpan: span, row: base + 13, rowSpan: 5 }),
+    presetChild('button', 'Submit', 'Send', cardId, { col, colSpan: 8, row: base + 19 }),
+  ];
+}
+
 /**
  * Build a preset's blocks, laid out from `row`. The first returned block is the
- * container the rest nest inside — the caller selects it — and every child's
- * `parentId` already points at it, so the drop lands as one composed unit.
+ * one the caller selects (a container for most, the trigger for the modal), and
+ * every relationship — nesting, modal wiring — is already set, so the drop lands
+ * as one composed, working unit. All placements are clamped, so a preset can
+ * never arrive out of bounds.
  */
 export function makePreset(preset: PresetKind, row: number): Block[] {
-  // Only one preset today; the switch keeps room for more without a shape change.
-  const width = Math.min(GRID_COLS, Math.max(20, Math.round(GRID_COLS * 0.5)));
-  const inset = 2;
-  const innerCol = 1 + inset;
-  const innerSpan = Math.max(1, width - inset * 2);
+  const half = Math.min(GRID_COLS, Math.max(20, Math.round(GRID_COLS * 0.5)));
+  const inner = { col: 3, span: Math.max(1, half - 4) };
 
+  if (preset === 'hero') {
+    const box = makeBlock('container', 'Hero', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 12 });
+    const heading = presetChild('heading', 'Title', 'Your name, in large type', box.id, { col: 3, colSpan: GRID_COLS - 4, row: row + 2 });
+    const tagline = presetChild('text', 'Tagline', 'A one-line summary of what you do and who for.', box.id, { col: 3, colSpan: Math.round(GRID_COLS * 0.6), row: row + 5, rowSpan: 3 });
+    const button = presetChild('button', 'Button', 'Get in touch', box.id, { col: 3, colSpan: 8, row: row + 8 });
+    return [box, heading, tagline, button];
+  }
+
+  if (preset === 'contactForm') {
+    const card = makeBlock('card', 'Contact', row);
+    card.placement = clampPlacement({ col: 1, colSpan: half, row, rowSpan: 22 });
+    return [card, ...contactFields(card.id, row)];
+  }
+
+  if (preset === 'contactModal') {
+    const trigger = makeBlock('button', 'Open contact', row);
+    trigger.text = 'Contact me';
+    trigger.placement = clampPlacement({ col: 1, colSpan: 8, row });
+    const base = row + 3;
+    const card = makeBlock('card', 'Contact', base);
+    card.asModal = true;
+    card.placement = clampPlacement({ col: 1, colSpan: half, row: base, rowSpan: 22 });
+    trigger.opensModal = card.id;
+    return [trigger, card, ...contactFields(card.id, base)];
+  }
+
+  // animatedCard (default)
   const card = makeBlock('card', 'Card', row);
-  card.placement = clampPlacement({ col: 1, colSpan: width, row, rowSpan: 16 });
+  card.placement = clampPlacement({ col: 1, colSpan: half, row, rowSpan: 16 });
   card.animation = { effect: 'zoom', trigger: 'hover' };
-
-  const heading = makeBlock('heading', 'Title', row + 2);
-  heading.text = 'Project title';
-  heading.parentId = card.id;
-  heading.placement = clampPlacement({ col: innerCol, colSpan: innerSpan, row: row + 2 });
-
-  const text = makeBlock('text', 'Text', row + 5);
-  text.text = 'A short description of what this is and why it matters.';
-  text.parentId = card.id;
-  text.placement = clampPlacement({ col: innerCol, colSpan: innerSpan, row: row + 5, rowSpan: 5 });
-
-  const button = makeBlock('button', 'Button', row + 12);
-  button.text = 'View details';
-  button.parentId = card.id;
-  button.placement = clampPlacement({ col: innerCol, colSpan: 8, row: row + 12 });
-
-  return [card, heading, text, button];
+  return [
+    card,
+    presetChild('heading', 'Title', 'Project title', card.id, { col: inner.col, colSpan: inner.span, row: row + 2 }),
+    presetChild('text', 'Text', 'A short description of what this is and why it matters.', card.id, { col: inner.col, colSpan: inner.span, row: row + 5, rowSpan: 5 }),
+    presetChild('button', 'Button', 'View details', card.id, { col: inner.col, colSpan: 8, row: row + 12 }),
+  ];
 }

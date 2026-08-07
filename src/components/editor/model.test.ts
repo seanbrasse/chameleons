@@ -170,7 +170,31 @@ describe('containers and the tree', () => {
 
   it('isPresetKind validates preset names', () => {
     expect(isPresetKind('animatedCard')).toBe(true);
+    expect(isPresetKind('hero')).toBe(true);
     expect(isPresetKind('nope')).toBe(false);
+  });
+
+  it('the contactModal preset wires a trigger to a hidden modal card', () => {
+    const group = makePreset('contactModal', 5);
+    const [trigger, card] = group;
+    expect(trigger?.kind).toBe('button');
+    expect(card?.kind).toBe('card');
+    expect(card?.asModal).toBe(true);
+    expect(trigger?.opensModal).toBe(card!.id); // the button opens the modal
+    // the form fields all nest in the modal card
+    const fields = group.slice(2);
+    expect(fields.length).toBeGreaterThan(0);
+    expect(fields.every((f) => f.parentId === card!.id)).toBe(true);
+  });
+
+  it('every preset lands in bounds and selects its first block', () => {
+    const kinds = ['animatedCard', 'hero', 'contactForm', 'contactModal'] as const;
+    for (const preset of kinds) {
+      const group = makePreset(preset, 40);
+      expect(group.length).toBeGreaterThan(0);
+      // clampPlacement guarantees every block fits the grid
+      expect(group.every((b) => b.placement.col >= 1 && b.placement.col + b.placement.colSpan - 1 <= GRID_COLS)).toBe(true);
+    }
   });
 
   it('sanitizeParents breaks a cycle between two containers', () => {
