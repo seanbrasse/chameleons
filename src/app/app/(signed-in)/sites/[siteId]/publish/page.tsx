@@ -73,6 +73,23 @@ export default async function PublishStep({ params }: { params: Promise<{ siteId
           <StrengthAdvisor siteId={editor.siteId} advice={advice} />
         </section>
 
+        <section className="admin-section" id="export">
+          <div className="admin-section-head">
+            <h3>Export</h3>
+          </div>
+          <p className="admin-note">
+            Download everything you have written as a JSON file. Your content is yours and comes
+            with you between designs; this is the copy you keep.
+          </p>
+          <div className="admin-buttons">
+            {/* A route handler, not an action: the response is a file with a
+                Content-Disposition, so the link itself is the download. */}
+            <a className="admin-button" href={builderHref(`/sites/${editor.siteId}/export`)} download>
+              Download content (JSON)
+            </a>
+          </div>
+        </section>
+
         <section className="admin-section" id="history">
           <div className="admin-section-head">
             <h3>History</h3>
