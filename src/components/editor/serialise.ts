@@ -35,6 +35,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           col: block.placement.col,
           colSpan: block.placement.colSpan,
           row: block.placement.row,
+          ...(block.placement.rowSpan !== undefined ? { rowSpan: block.placement.rowSpan } : {}),
           ...(block.text !== undefined ? { text: block.text } : {}),
         },
       };
@@ -67,6 +68,9 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
         row: intOr(props.row, 1),
       },
     };
+    if (typeof props.rowSpan === 'number' && Number.isFinite(props.rowSpan) && props.rowSpan >= 1) {
+      block.placement.rowSpan = Math.floor(props.rowSpan);
+    }
     if (node.hidden) block.hidden = true;
     if (typeof props.text === 'string') block.text = props.text;
     blocks.push(block);

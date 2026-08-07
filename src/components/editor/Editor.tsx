@@ -97,8 +97,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     startX: number;
     startY: number;
   } | null>(null);
-  /** The live resize session: which block edge is being dragged. */
-  const resizeRef = useRef<{ id: string; edge: 'w' | 'e'; pointerId: number } | null>(null);
+  /** The live resize session: which block edge/corner is being dragged. */
+  const resizeRef = useRef<{ id: string; edge: ResizeDir; pointerId: number } | null>(null);
   /** Measured block heights in artboard px, by id — for spacing/placement. */
   const heightsRef = useRef<Record<string, number>>({});
 
@@ -190,11 +190,13 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   };
 
   // ── geometry ────────────────────────────────────────────────────────
-  /** A placement's on-artboard box in artboard px. */
+  /** A placement's on-artboard box in artboard px. `height` is set only when the
+   *  block has an explicit `rowSpan`; otherwise it sizes to its content. */
   const boxOf = (p: Placement) => ({
     left: ARTBOARD.margin + (p.col - 1) * colStep + gutterPx / 2,
     top: ARTBOARD.margin + (p.row - 1) * ARTBOARD.rowUnit,
     width: p.colSpan * colStep - gutterPx,
+    height: p.rowSpan ? p.rowSpan * ARTBOARD.rowUnit : undefined,
   });
 
   /** Convert a pointer position (held at grab offset) to a snapped placement. */
@@ -299,8 +301,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     }
   };
 
-  // ── resize (drag a side handle to change width) ─────────────────────
-  const onHandleDown = (e: React.PointerEvent, block: Block, edge: 'w' | 'e') => {
+  // ── resize (drag a side or corner handle) ───────────────────────────
+  const onHandleDown = (e: React.PointerEvent, block: Block, edge: ResizeDir) => {
     if (e.button !== 0) return;
     e.stopPropagation();
     setSelectedId(block.id);
@@ -315,18 +317,37 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     const rect = artboardRef.current?.getBoundingClientRect();
     if (!rect) return;
     const ax = (e.clientX - rect.left) / scale;
-    // The grid line nearest the pointer, counted in columns from the content
-    // edge (0-based). A block on col..col+colSpan meets lines col-1 and col-1+colSpan.
-    const line = Math.round((ax - ARTBOARD.margin) / colStep);
+    const ay = (e.clientY - rect.top) / scale;
+    // Grid lines (0-based) nearest the pointer, in columns and in rows.
+    const colLine = Math.round((ax - ARTBOARD.margin) / colStep);
+    const rowLine = Math.round((ay - ARTBOARD.margin) / ARTBOARD.rowUnit);
+
     const p = clampPlacement(block.placement, tracks);
-    if (r.edge === 'e') {
-      const colSpan = Math.max(1, Math.min(tracks - p.col + 1, line - (p.col - 1)));
-      setPlacement(block.id, { ...p, colSpan });
-    } else {
-      const right = p.col + p.colSpan; // fixed right edge, as a 1-based line
-      const col = Math.max(1, Math.min(right - 1, line + 1));
-      setPlacement(block.id, { ...p, col, colSpan: right - col });
+    let { col, colSpan, row } = p;
+    // Once resized vertically the height is explicit; until then, seed it from
+    // the block's measured height so a corner/edge drag has something to move.
+    let rowSpan =
+      p.rowSpan ?? Math.max(1, Math.round((heightsRef.current[block.id] ?? ARTBOARD.rowUnit * 4) / ARTBOARD.rowUnit));
+    const edge = r.edge;
+
+    if (edge.includes('e')) {
+      colSpan = Math.max(1, Math.min(tracks - col + 1, colLine - (col - 1)));
     }
+    if (edge.includes('w')) {
+      const right = p.col + p.colSpan;
+      col = Math.max(1, Math.min(right - 1, colLine + 1));
+      colSpan = right - col;
+    }
+    if (edge.includes('s')) {
+      rowSpan = Math.max(1, rowLine - (row - 1));
+    }
+    if (edge.includes('n')) {
+      const bottom = row - 1 + rowSpan;
+      const top = Math.max(0, Math.min(bottom - 1, rowLine));
+      row = top + 1;
+      rowSpan = bottom - top;
+    }
+    setPlacement(block.id, { col, colSpan, row, rowSpan });
   };
 
   const onHandleUp = (e: React.PointerEvent, block: Block) => {
@@ -532,11 +553,12 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                     key={block.id}
                     data-block-id={block.id}
                     aria-label={`${block.label} block`}
-                    className={`ed-block${block.id === selectedId ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}`}
+                    className={`ed-block${block.id === selectedId ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height ? ' has-height' : ''}`}
                     style={{
                       left: free ? free.left : box.left,
                       top: free ? free.top : box.top,
                       width: box.width,
+                      height: box.height,
                     }}
                     {...editProps}
                   >
@@ -552,22 +574,18 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                       onEditEnd={() => setEditingId(null)}
                       onOpenProject={setModalProject}
                     />
-                    {isEditMode && block.id === selectedId && editingId !== block.id && tracks > 1 ? (
+                    {isEditMode && block.id === selectedId && editingId !== block.id ? (
                       <>
-                        <span
-                          className="ed-handle ed-handle-w"
-                          aria-hidden="true"
-                          onPointerDown={(e) => onHandleDown(e, block, 'w')}
-                          onPointerMove={(e) => onHandleMove(e, block)}
-                          onPointerUp={(e) => onHandleUp(e, block)}
-                        />
-                        <span
-                          className="ed-handle ed-handle-e"
-                          aria-hidden="true"
-                          onPointerDown={(e) => onHandleDown(e, block, 'e')}
-                          onPointerMove={(e) => onHandleMove(e, block)}
-                          onPointerUp={(e) => onHandleUp(e, block)}
-                        />
+                        {RESIZE_DIRS.map((dir) => (
+                          <span
+                            key={dir}
+                            className={`ed-handle ed-handle-${dir}`}
+                            aria-hidden="true"
+                            onPointerDown={(e) => onHandleDown(e, block, dir)}
+                            onPointerMove={(e) => onHandleMove(e, block)}
+                            onPointerUp={(e) => onHandleUp(e, block)}
+                          />
+                        ))}
                       </>
                     ) : null}
                   </div>
@@ -696,6 +714,10 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
 const DRAG_THRESHOLD = 4;
 /** Padding around the artboard inside the scroll area, in screen px. */
 const CANVAS_PAD = 40;
+
+/** The eight resize handles: four sides and four corners. */
+type ResizeDir = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
+const RESIZE_DIRS: ResizeDir[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 
 const GLYPH: Record<BlockKind, string> = {
   heading: 'H',
