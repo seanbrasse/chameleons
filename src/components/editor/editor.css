@@ -132,19 +132,10 @@
 }
 
 .ed-outline-row {
-  width: 100%;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 8px;
-  border: 0;
   border-radius: 6px;
-  background: transparent;
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
   color: var(--ink-soft);
-  text-align: left;
 }
 
 .ed-outline-row:hover {
@@ -154,7 +145,30 @@
 .ed-outline-row.is-active {
   background: var(--sel-soft);
   color: var(--sel);
+}
+
+.ed-outline-row.is-active .ed-outline-name {
   font-weight: 600;
+}
+
+.ed-outline-row.is-off .ed-outline-select {
+  opacity: 0.5;
+}
+
+.ed-outline-select {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 4px 5px 8px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  color: inherit;
+  text-align: left;
 }
 
 .ed-outline-glyph {
@@ -169,6 +183,35 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.ed-outline-act {
+  flex: none;
+  width: 22px;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-faint);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s;
+}
+
+/* The visibility toggle stays visible when the block is hidden; other actions
+   reveal on row hover to keep the tree quiet. */
+.ed-outline-row:hover .ed-outline-act,
+.ed-outline-row.is-off .ed-outline-act {
+  opacity: 1;
+}
+
+.ed-outline-act:hover {
+  color: var(--ink);
+}
+
+.ed-outline-del:hover {
+  color: var(--danger);
 }
 
 .ed-outline-tag {

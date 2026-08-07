@@ -730,26 +730,46 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const sel = selected ? clampPlacement(selected.placement) : null;
 
   /** A row in the Outline tree: the block, then its children indented under it.
-   *  Clicking selects — the way to reach a nested or covered block the artboard
-   *  makes hard to click. */
+   *  The name selects — the way to reach a nested or covered block the artboard
+   *  makes hard to click — and each row can toggle visibility or delete from
+   *  here, so the tree doubles as a manager. */
   const renderOutline = (block: Block, depth: number): React.ReactNode => {
     const kids = childrenOf(blocks, block.id);
     return (
       <div key={block.id}>
-        <button
-          type="button"
-          className={`ed-outline-row${block.id === selectedId ? ' is-active' : ''}`}
-          style={{ paddingLeft: 10 + depth * 14 }}
-          onClick={() => setSelectedId(block.id)}
-          title={block.label}
-        >
-          <span className="ed-outline-glyph" aria-hidden="true">
-            {GLYPH[block.kind]}
-          </span>
-          <span className="ed-outline-name">{block.label}</span>
-          {block.hidden ? <span className="ed-outline-tag">hidden</span> : null}
-          {block.asModal ? <span className="ed-outline-tag">modal</span> : null}
-        </button>
+        <div className={`ed-outline-row${block.id === selectedId ? ' is-active' : ''}${block.hidden ? ' is-off' : ''}`}>
+          <button
+            type="button"
+            className="ed-outline-select"
+            style={{ paddingLeft: depth * 14 }}
+            onClick={() => setSelectedId(block.id)}
+            title={block.label}
+          >
+            <span className="ed-outline-glyph" aria-hidden="true">
+              {GLYPH[block.kind]}
+            </span>
+            <span className="ed-outline-name">{block.label}</span>
+            {block.asModal ? <span className="ed-outline-tag">modal</span> : null}
+          </button>
+          <button
+            type="button"
+            className="ed-outline-act"
+            onClick={() => update(block.id, { hidden: !block.hidden })}
+            aria-label={block.hidden ? `Show ${block.label}` : `Hide ${block.label}`}
+            title={block.hidden ? 'Show' : 'Hide'}
+          >
+            {block.hidden ? '◌' : '◉'}
+          </button>
+          <button
+            type="button"
+            className="ed-outline-act ed-outline-del"
+            onClick={() => remove(block.id)}
+            aria-label={`Delete ${block.label}`}
+            title="Delete"
+          >
+            ×
+          </button>
+        </div>
         {kids.map((k) => renderOutline(k, depth + 1))}
       </div>
     );
