@@ -87,6 +87,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const [draggingId, setDraggingId] = useState<string | null>(null);
   /** While dragging: the container the block would nest into on release. */
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  /** Whether the keyboard-shortcuts help popover is open. */
+  const [showShortcuts, setShowShortcuts] = useState(false);
   /** While dragging: the block's free (un-snapped) position, and the slot it
    *  will magnetically snap to on release. */
   const [dragFree, setDragFree] = useState<{
@@ -1746,6 +1748,29 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
           <button type="button" className="ed-btn" onClick={reset}>
             Reset
           </button>
+          <div className="ed-shortcuts-wrap">
+            <button
+              type="button"
+              className="ed-btn ed-shortcuts-btn"
+              aria-expanded={showShortcuts}
+              aria-label="Keyboard shortcuts"
+              title="Keyboard shortcuts"
+              onClick={() => setShowShortcuts((v) => !v)}
+            >
+              ?
+            </button>
+            {showShortcuts ? (
+              <div className="ed-shortcuts-pop" role="dialog" aria-label="Keyboard shortcuts">
+                <div className="ed-shortcuts-title">Shortcuts</div>
+                {SHORTCUTS.map((s) => (
+                  <div className="ed-shortcuts-row" key={s.label}>
+                    <span className="ed-shortcuts-keys">{s.keys}</span>
+                    <span className="ed-shortcuts-label">{s.label}</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
         </div>
 
         <div className="ed-canvas-scroll" ref={scrollRef}>
@@ -2193,6 +2218,20 @@ const ALIGN_TOL = 9;
 /** A live alignment line: `pos` is its fixed coordinate, `start`..`end` the
  *  extent it spans across the two aligned blocks (all in artboard px). */
 type AlignGuide = { orient: 'v' | 'h'; pos: number; start: number; end: number };
+/** The keyboard shortcuts surfaced in the help popover. */
+const SHORTCUTS: { keys: string; label: string }[] = [
+  { keys: '⌘A', label: 'Select all' },
+  { keys: 'Esc', label: 'Deselect' },
+  { keys: 'Shift-click / drag', label: 'Multi-select' },
+  { keys: 'Arrows', label: 'Nudge (⇧ = jump)' },
+  { keys: '⌘G / ⇧⌘G', label: 'Group / ungroup' },
+  { keys: '⌘D', label: 'Duplicate' },
+  { keys: '⌘C / ⌘V', label: 'Copy / paste' },
+  { keys: 'Delete', label: 'Delete' },
+  { keys: '⌘Z / ⇧⌘Z', label: 'Undo / redo' },
+  { keys: '⌘-scroll', label: 'Zoom' },
+  { keys: 'Double-click', label: 'Edit text' },
+];
 /** Padding around the artboard inside the scroll area, in screen px. */
 const CANVAS_PAD = 40;
 /** Artboard px of grid to show around the moving object, before its edge fade. */
