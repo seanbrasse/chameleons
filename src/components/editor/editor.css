@@ -115,6 +115,73 @@
   font-size: 15px;
 }
 
+/* ── outline (layers) ─────────────────────────────────────────────── */
+
+.ed-panel-subhead {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding: 12px 16px 6px;
+  border-top: 1px solid var(--panel-line);
+}
+
+.ed-outline-tree {
+  padding: 0 8px 12px;
+}
+
+.ed-outline-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink-soft);
+  text-align: left;
+}
+
+.ed-outline-row:hover {
+  background: var(--sel-soft);
+}
+
+.ed-outline-row.is-active {
+  background: var(--sel-soft);
+  color: var(--sel);
+  font-weight: 600;
+}
+
+.ed-outline-glyph {
+  width: 16px;
+  flex: none;
+  text-align: center;
+  color: var(--ink-faint);
+}
+
+.ed-outline-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ed-outline-tag {
+  flex: none;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+
 /* ── stage / canvas ───────────────────────────────────────────────── */
 
 .ed-stage {

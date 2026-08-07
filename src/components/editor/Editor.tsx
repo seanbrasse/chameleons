@@ -25,6 +25,7 @@ import {
   PALETTE,
   PRESETS,
   makePreset,
+  childrenOf,
   clampPlacement,
   descendantIds,
   isContainer,
@@ -728,6 +729,32 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
 
   const sel = selected ? clampPlacement(selected.placement) : null;
 
+  /** A row in the Outline tree: the block, then its children indented under it.
+   *  Clicking selects — the way to reach a nested or covered block the artboard
+   *  makes hard to click. */
+  const renderOutline = (block: Block, depth: number): React.ReactNode => {
+    const kids = childrenOf(blocks, block.id);
+    return (
+      <div key={block.id}>
+        <button
+          type="button"
+          className={`ed-outline-row${block.id === selectedId ? ' is-active' : ''}`}
+          style={{ paddingLeft: 10 + depth * 14 }}
+          onClick={() => setSelectedId(block.id)}
+          title={block.label}
+        >
+          <span className="ed-outline-glyph" aria-hidden="true">
+            {GLYPH[block.kind]}
+          </span>
+          <span className="ed-outline-name">{block.label}</span>
+          {block.hidden ? <span className="ed-outline-tag">hidden</span> : null}
+          {block.asModal ? <span className="ed-outline-tag">modal</span> : null}
+        </button>
+        {kids.map((k) => renderOutline(k, depth + 1))}
+      </div>
+    );
+  };
+
   /**
    * Render one block and, if it is a container, its children nested inside it.
    * `origin` is the parent's absolute top-left; a child is positioned relative
@@ -888,6 +915,12 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                 </span>
               </button>
             ))}
+          </div>
+        </div>
+        <div className="ed-outline">
+          <div className="ed-panel-subhead">Outline</div>
+          <div className="ed-outline-tree">
+            {childrenOf(blocks, null).map((b) => renderOutline(b, 0))}
           </div>
         </div>
       </aside>
