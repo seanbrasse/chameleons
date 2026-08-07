@@ -124,6 +124,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   } | null>(null);
   /** Measured block heights in artboard px, by id — for spacing/placement. */
   const heightsRef = useRef<Record<string, number>>({});
+  /** The latest block list, so undo/redo can read it without stale closures. */
+  const blocksRef = useRef(blocks);
 
   // The gutter, capped so a one-cell block on the tight grid can't go to zero.
   const gutterPx = Math.min(GUTTER_PX[gutter], CELL - 2);
@@ -220,10 +222,88 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       if (id) next[id] = node.offsetHeight;
     });
     heightsRef.current = next;
+    blocksRef.current = blocks;
   });
 
-  const update = (id: string, patch: Partial<Block>) =>
+  // ── undo / redo ─────────────────────────────────────────────────────
+  // History is snapshots of the block list. A drag or resize is one step: the
+  // gesture snapshots once at the start and suppresses its intermediate frames.
+  const historyRef = useRef<{ past: Block[][]; future: Block[][]; lastAt: number }>({
+    past: [],
+    future: [],
+    lastAt: 0,
+  });
+  const suppressHistoryRef = useRef(false);
+  // The toolbar's enable-state lives in state (not read off the ref) so the
+  // buttons re-render when history changes.
+  const [hist, setHist] = useState({ canUndo: false, canRedo: false });
+  const syncHist = () => {
+    const h = historyRef.current;
+    setHist({ canUndo: h.past.length > 0, canRedo: h.future.length > 0 });
+  };
+  // Only ever called from event handlers (snapshot/restore), never during
+  // render — the clock is read to coalesce a burst of edits into one undo step.
+  // eslint-disable-next-line react-hooks/purity
+  const now = () => (typeof performance !== 'undefined' ? performance.now() : 0);
+
+  const snapshot = (force = false) => {
+    if (suppressHistoryRef.current) return;
+    const h = historyRef.current;
+    const at = now();
+    // Coalesce a burst of edits (dragging a slider, typing) into one step.
+    if (!force && h.past.length > 0 && at - h.lastAt < 350) {
+      h.lastAt = at;
+      return;
+    }
+    h.past.push(blocksRef.current);
+    if (h.past.length > 100) h.past.shift();
+    h.future = [];
+    h.lastAt = at;
+    syncHist();
+  };
+  const beginGesture = () => {
+    snapshot(true);
+    suppressHistoryRef.current = true;
+  };
+  const endGesture = () => {
+    suppressHistoryRef.current = false;
+  };
+  const restore = (from: 'past' | 'future') => {
+    const h = historyRef.current;
+    const snap = h[from].pop();
+    if (snap === undefined) return;
+    (from === 'past' ? h.future : h.past).push(blocksRef.current);
+    h.lastAt = 0;
+    setBlocks(snap);
+    setSelectedId(null);
+    setEditingId(null);
+    syncHist();
+  };
+  const undo = () => restore('past');
+  const redo = () => restore('future');
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      const k = e.key.toLowerCase();
+      const isUndo = k === 'z' && !e.shiftKey;
+      const isRedo = (k === 'z' && e.shiftKey) || k === 'y';
+      if (!isUndo && !isRedo) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      e.preventDefault();
+      restore(isUndo ? 'past' : 'future');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // restore reads only stable refs/setters, so this binds once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const update = (id: string, patch: Partial<Block>) => {
+    snapshot();
     setBlocks((bs) => bs.map((b) => (b.id === id ? { ...b, ...patch } : b)));
+  };
 
   const setPlacement = (id: string, placement: Placement) =>
     update(id, { placement: clampPlacement(placement) });
@@ -240,6 +320,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   };
 
   const add = (kind: BlockKind, label: string) => {
+    snapshot(true);
     const block = makeBlock(kind, label, nextRow());
     setBlocks((bs) => [...bs, block]);
     setSelectedId(block.id);
@@ -250,6 +331,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const addPreset = (preset: PresetKind) => {
     const group = makePreset(preset, nextRow());
     if (group.length === 0) return;
+    snapshot(true);
     setBlocks((bs) => [...bs, ...group]);
     setSelectedId(group[0]!.id);
   };
@@ -257,6 +339,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const duplicate = (id: string) => {
     const src = blocks.find((b) => b.id === id);
     if (!src) return;
+    snapshot(true);
     // The copy lands as a free root, not hidden inside the original's container.
     const copy: Block = withoutParent({
       ...src,
@@ -268,6 +351,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   };
 
   const remove = (id: string) => {
+    snapshot(true);
     // Deleting a container promotes its children to its own parent, so nested
     // content is detached rather than silently lost with the box.
     setBlocks((bs) => {
@@ -289,6 +373,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
 
   /** Detach a block from its container, leaving it where it sits on the page. */
   const detach = (id: string) => {
+    snapshot(true);
     setBlocks((bs) => bs.map((b) => (b.id === id ? withoutParent(b) : b)));
   };
 
@@ -392,6 +477,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     if (!d.moved) {
       if (Math.hypot(e.clientX - d.startX, e.clientY - d.startY) < DRAG_THRESHOLD) return;
       d.moved = true;
+      beginGesture(); // the whole drag is one undo step
       setArranging(true);
       setDraggingId(block.id);
     }
@@ -420,6 +506,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     setArranging(false);
     setDraggingId(null);
     setDragFree(null);
+    if (moved) endGesture(); // close the undo step opened on first move
     if (!(moved && snap)) return;
 
     // Snap to the nearest slot, carry any descendants by the same delta, and
@@ -452,6 +539,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     if (e.button !== 0) return;
     e.stopPropagation();
     setSelectedId(block.id);
+    beginGesture(); // the whole resize is one undo step
     const p = clampPlacement(block.placement);
     const box = boxOf(p);
     const h = box.height ?? heightsRef.current[block.id] ?? CELL;
@@ -532,6 +620,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     }
     resizeRef.current = null;
     setArranging(false);
+    endGesture(); // close the undo step opened on handle-down
   };
 
   // ── keyboard ────────────────────────────────────────────────────────
@@ -551,6 +640,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   };
 
   const reset = () => {
+    snapshot(true); // a reset can be undone
     if (storageKey) {
       try {
         window.localStorage.removeItem(storageKey);
@@ -787,6 +877,28 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                 </button>
               ))}
             </div>
+          </div>
+          <div className="ed-toolbar-field ed-toolbar-history">
+            <button
+              type="button"
+              className="ed-btn"
+              onClick={undo}
+              disabled={!hist.canUndo}
+              title="Undo (⌘Z)"
+              aria-label="Undo"
+            >
+              ↶
+            </button>
+            <button
+              type="button"
+              className="ed-btn"
+              onClick={redo}
+              disabled={!hist.canRedo}
+              title="Redo (⇧⌘Z)"
+              aria-label="Redo"
+            >
+              ↷
+            </button>
           </div>
           <button type="button" className="ed-btn" onClick={reset}>
             Reset
