@@ -358,6 +358,48 @@
   border-radius: 10px;
 }
 
+/* ── animations (Preview only) ─────────────────────────────────────── */
+
+@keyframes pv-anim-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pv-anim-rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes pv-anim-zoom {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: none; }
+}
+
+/* On load: play the entrance once as the preview mounts. */
+.ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-fade { animation: pv-anim-fade 0.5s ease both; }
+.ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-rise { animation: pv-anim-rise 0.5s ease both; }
+.ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-zoom { animation: pv-anim-zoom 0.5s ease both; }
+
+/* On scroll: start hidden, then transition in when the observer adds .is-in. */
+.ed-artboard.is-preview .ed-block.pv-anim-scroll {
+  opacity: 0;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.ed-artboard.is-preview .ed-block.pv-anim-scroll.pv-anim-rise { transform: translateY(18px); }
+.ed-artboard.is-preview .ed-block.pv-anim-scroll.pv-anim-zoom { transform: scale(0.94); }
+.ed-artboard.is-preview .ed-block.pv-anim-scroll.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* On hover: a small, reversible lift/emphasis. */
+.ed-artboard.is-preview .ed-block.pv-anim-hover {
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+.ed-artboard.is-preview .ed-block.pv-anim-hover.pv-anim-rise:hover { transform: translateY(-6px); }
+.ed-artboard.is-preview .ed-block.pv-anim-hover.pv-anim-zoom:hover { transform: scale(1.03); }
+.ed-artboard.is-preview .ed-block.pv-anim-hover.pv-anim-fade:hover { opacity: 0.75; }
+
 /* Form inputs — leaf primitives that render a real field. */
 .pv-input,
 .pv-textarea {
