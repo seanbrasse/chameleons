@@ -32,6 +32,24 @@ export type BlockKind =
 /** Placement on the grid. `col` is 1-based; `span` is in grid columns. */
 export type Placement = { col: number; span: number };
 
+/**
+ * Settle a placement onto a grid of `tracks` columns so it can never overflow:
+ * the span is clamped to the grid, and the start column is pulled back so the
+ * block always ends on or before the last track. This is what makes the canvas
+ * break-proof — a placement saved against a finer grid, or dragged past the
+ * edge, resolves to something that still fits.
+ */
+export function clampPlacement(placement: Placement, tracks: number): Placement {
+  const span = Math.max(1, Math.min(placement.span, tracks));
+  const col = Math.max(1, Math.min(placement.col, tracks - span + 1));
+  return { col, span };
+}
+
+/** The last column a block of `span` may start on within `tracks` columns. */
+export function maxCol(span: number, tracks: number): number {
+  return Math.max(1, tracks - Math.max(1, Math.min(span, tracks)) + 1);
+}
+
 export type Block = {
   id: string;
   kind: BlockKind;

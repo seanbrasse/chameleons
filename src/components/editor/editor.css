@@ -223,6 +223,47 @@
   opacity: 0.4;
 }
 
+.ed-block.is-dragging {
+  border-color: var(--sel);
+  box-shadow: 0 0 0 2px var(--sel-soft);
+  z-index: 2;
+  cursor: grabbing;
+}
+
+.ed-block-grip {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink-faint);
+  font-size: 13px;
+  line-height: 1;
+  cursor: grab;
+  opacity: 0;
+  touch-action: none;
+  transition: opacity 0.12s, background 0.12s;
+}
+
+.ed-block:hover .ed-block-grip,
+.ed-block.is-selected .ed-block-grip {
+  opacity: 1;
+}
+
+.ed-block-grip:hover {
+  background: var(--panel);
+  color: var(--ink-soft);
+}
+
+.ed-block.is-dragging .ed-block-grip {
+  cursor: grabbing;
+}
+
 .ed-block-tag {
   position: absolute;
   top: -9px;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 import type { Issue } from '@/content/types';
 
@@ -9,12 +9,17 @@ import {
   GRID_LABEL,
   GRID_TRACKS,
   PALETTE,
+  clampPlacement,
   isContentBlock,
   makeBlock,
+  maxCol,
   type Block,
   type BlockKind,
   type GridKind,
 } from './model';
+
+/** The grid's inter-track gap, in px — mirrors `--gap` / `gap` in editor.css. */
+const GRID_GAP = 12;
 
 /**
  * The canvas builder — first pass.
@@ -26,14 +31,23 @@ import {
  * for different levels of customizability" idea: fewer tracks is harder to
  * break, more tracks is finer control.
  *
- * This pass wires selection, add-from-palette, show/hide, span and reorder over
- * a live grid. Drag-to-place and persistence to the `LayoutDocument` are the
- * next loops; the model is already shaped for them.
+ * A block is placed on the grid by its start column and span, and dragged
+ * across the grid by its grip — the drag snaps to a track and is clamped so a
+ * block can never spill past the last column (`clampPlacement`), which is the
+ * "break-proof" part. The same placement is editable from the inspector (Width,
+ * Column) for a keyboard path. Vertical order is the block list; reorder is in
+ * the inspector for now.
+ *
+ * Persistence to the `LayoutDocument` is the next loop; the model is already
+ * shaped for it.
  */
 export function Editor({ issue }: { issue: Issue }) {
   const [grid, setGrid] = useState<GridKind>('columns');
   const [blocks, setBlocks] = useState<Block[]>(() => starterBlocks(GRID_TRACKS.columns));
   const [selectedId, setSelectedId] = useState<string | null>(blocks[0]?.id ?? null);
+  /** The block being dragged and the column it is snapping to, live. */
+  const [drag, setDrag] = useState<{ id: string; col: number } | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const tracks = GRID_TRACKS[grid];
   const selected = useMemo(() => blocks.find((b) => b.id === selectedId) ?? null, [blocks, selectedId]);
@@ -61,6 +75,40 @@ export function Editor({ issue }: { issue: Issue }) {
       [next[i], next[j]] = [next[j]!, next[i]!];
       return next;
     });
+
+  /** The start column the pointer is over, snapped to a track and kept in bounds. */
+  const columnAt = (clientX: number, span: number): number => {
+    const el = gridRef.current;
+    if (!el) return 1;
+    const rect = el.getBoundingClientRect();
+    // width = tracks·track + (tracks−1)·gap ⟹ track+gap = (width+gap)/tracks.
+    const step = (rect.width + GRID_GAP) / tracks;
+    const col = Math.floor((clientX - rect.left) / step) + 1;
+    return Math.max(1, Math.min(col, maxCol(span, tracks)));
+  };
+
+  const onGripDown = (e: React.PointerEvent, block: Block) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setSelectedId(block.id);
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const { col } = clampPlacement(block.placement, tracks);
+    setDrag({ id: block.id, col });
+  };
+
+  const onGripMove = (e: React.PointerEvent, block: Block) => {
+    if (drag?.id !== block.id) return;
+    const { span } = clampPlacement(block.placement, tracks);
+    const col = columnAt(e.clientX, span);
+    if (col !== drag.col) setDrag({ id: block.id, col });
+  };
+
+  const onGripUp = (e: React.PointerEvent, block: Block) => {
+    if (drag?.id !== block.id) return;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    update(block.id, { placement: { ...block.placement, col: drag.col } });
+    setDrag(null);
+  };
 
   return (
     <div className="ed">
@@ -116,23 +164,43 @@ export function Editor({ issue }: { issue: Issue }) {
           {/* Clicking the empty canvas clears the selection. */}
           <div className="ed-canvas" onClick={() => setSelectedId(null)}>
             <div
+              ref={gridRef}
               className={`ed-grid ed-grid-${grid}`}
               style={{ ['--tracks' as string]: String(tracks) }}
             >
-              {blocks.map((block) => (
-                <div
-                  key={block.id}
-                  className={`ed-block${block.id === selectedId ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}`}
-                  style={{ gridColumn: `span ${Math.min(block.placement.span, tracks)}` }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedId(block.id);
-                  }}
-                >
-                  <span className="ed-block-tag">{block.label}</span>
-                  <BlockPreview block={block} issue={issue} />
-                </div>
-              ))}
+              {blocks.map((block) => {
+                const { col, span } = clampPlacement(block.placement, tracks);
+                const isDragging = drag?.id === block.id;
+                const startCol = isDragging ? drag.col : col;
+                return (
+                  <div
+                    key={block.id}
+                    className={`ed-block${block.id === selectedId ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${isDragging ? ' is-dragging' : ''}`}
+                    style={{ gridColumn: grid === 'stack' ? undefined : `${startCol} / span ${span}` }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedId(block.id);
+                    }}
+                  >
+                    <span className="ed-block-tag">{block.label}</span>
+                    {grid !== 'stack' ? (
+                      <button
+                        type="button"
+                        className="ed-block-grip"
+                        aria-label={`Move ${block.label} across the grid`}
+                        title="Drag to snap across the grid"
+                        onPointerDown={(e) => onGripDown(e, block)}
+                        onPointerMove={(e) => onGripMove(e, block)}
+                        onPointerUp={(e) => onGripUp(e, block)}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        ⠿
+                      </button>
+                    ) : null}
+                    <BlockPreview block={block} issue={issue} />
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -168,19 +236,44 @@ export function Editor({ issue }: { issue: Issue }) {
             ) : null}
 
             <label className="ed-field">
-              <span className="ed-field-label">Width — {Math.min(selected.placement.span, tracks)} of {tracks}</span>
+              <span className="ed-field-label">
+                Width — {clampPlacement(selected.placement, tracks).span} of {tracks}
+              </span>
               <input
                 type="range"
                 min={1}
                 max={tracks}
-                value={Math.min(selected.placement.span, tracks)}
+                disabled={tracks === 1}
+                value={clampPlacement(selected.placement, tracks).span}
                 onChange={(e) =>
                   update(selected.id, {
-                    placement: { ...selected.placement, span: Number(e.target.value) },
+                    placement: clampPlacement(
+                      { ...selected.placement, span: Number(e.target.value) },
+                      tracks,
+                    ),
                   })
                 }
               />
             </label>
+
+            {tracks > 1 && maxCol(clampPlacement(selected.placement, tracks).span, tracks) > 1 ? (
+              <label className="ed-field">
+                <span className="ed-field-label">
+                  Column — starts at {clampPlacement(selected.placement, tracks).col}
+                </span>
+                <input
+                  type="range"
+                  min={1}
+                  max={maxCol(clampPlacement(selected.placement, tracks).span, tracks)}
+                  value={clampPlacement(selected.placement, tracks).col}
+                  onChange={(e) =>
+                    update(selected.id, {
+                      placement: { ...selected.placement, col: Number(e.target.value) },
+                    })
+                  }
+                />
+              </label>
+            ) : null}
 
             <label className="ed-check">
               <input
