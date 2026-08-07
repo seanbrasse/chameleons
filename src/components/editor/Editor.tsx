@@ -1082,6 +1082,93 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     );
   };
 
+  // ── align & distribute a multi-selection ────────────────────────────
+  // Works on the selection's own roots (a selected block that lives inside
+  // another selected block is left to move with its parent). Each root is
+  // shifted by a whole-cell delta and carries its subtree, all as one step.
+  type Arrange = 'left' | 'centerX' | 'right' | 'top' | 'middleY' | 'bottom' | 'distX' | 'distY';
+  const heightCells = (b: Block) =>
+    b.placement.rowSpan ?? Math.max(1, Math.round((heightsRef.current[b.id] ?? CELL) / CELL));
+
+  const arrangeSelection = (op: Arrange) => {
+    // Drop any selected id contained by another selected id.
+    const rootIds = selection.filter(
+      (id) => !selection.some((o) => o !== id && descendantIds(blocks, o).has(id)),
+    );
+    const items = rootIds
+      .map((id) => blocks.find((b) => b.id === id))
+      .filter((b): b is Block => !!b)
+      .map((b) => {
+        const p = clampPlacement(b.placement);
+        return { b, p, h: heightCells(b) };
+      });
+    const need = op === 'distX' || op === 'distY' ? 3 : 2;
+    if (items.length < need) return;
+
+    const minLeft = Math.min(...items.map((it) => it.p.col));
+    const maxRight = Math.max(...items.map((it) => it.p.col + it.p.colSpan));
+    const minTop = Math.min(...items.map((it) => it.p.row));
+    const maxBottom = Math.max(...items.map((it) => it.p.row + it.h));
+    const groupCx = (minLeft + maxRight) / 2;
+    const groupCy = (minTop + maxBottom) / 2;
+
+    const targetCol = (it: (typeof items)[number]): number => {
+      if (op === 'left') return minLeft;
+      if (op === 'right') return maxRight - it.p.colSpan;
+      if (op === 'centerX') return Math.round(groupCx - it.p.colSpan / 2);
+      return it.p.col;
+    };
+    const targetRow = (it: (typeof items)[number]): number => {
+      if (op === 'top') return minTop;
+      if (op === 'bottom') return maxBottom - it.h;
+      if (op === 'middleY') return Math.round(groupCy - it.h / 2);
+      return it.p.row;
+    };
+
+    // Per-root {col,row} target, defaulting to align ops above.
+    const goal = new Map<string, { col: number; row: number }>();
+    for (const it of items) goal.set(it.b.id, { col: targetCol(it), row: targetRow(it) });
+
+    // Distribute: hold the two extremes, space the rest so centres are even.
+    if (op === 'distX' || op === 'distY') {
+      const cx = (it: (typeof items)[number]) => it.p.col + it.p.colSpan / 2;
+      const cy = (it: (typeof items)[number]) => it.p.row + it.h / 2;
+      const sorted = [...items].sort((a, z) => (op === 'distX' ? cx(a) - cx(z) : cy(a) - cy(z)));
+      const first = sorted[0]!;
+      const last = sorted[sorted.length - 1]!;
+      const c0 = op === 'distX' ? cx(first) : cy(first);
+      const c1 = op === 'distX' ? cx(last) : cy(last);
+      const step = (c1 - c0) / (sorted.length - 1);
+      sorted.forEach((it, i) => {
+        if (i === 0 || i === sorted.length - 1) return;
+        const centre = c0 + step * i;
+        const g = goal.get(it.b.id)!;
+        if (op === 'distX') g.col = Math.round(centre - it.p.colSpan / 2);
+        else g.row = Math.round(centre - it.h / 2);
+      });
+    }
+
+    // Fan each root's delta out over its subtree, then apply in one step.
+    const deltas = new Map<string, { dCol: number; dRow: number }>();
+    for (const it of items) {
+      const g = goal.get(it.b.id)!;
+      const d = { dCol: g.col - it.p.col, dRow: g.row - it.p.row };
+      if (d.dCol === 0 && d.dRow === 0) continue;
+      deltas.set(it.b.id, d);
+      for (const kid of descendantIds(blocks, it.b.id)) deltas.set(kid, d);
+    }
+    if (deltas.size === 0) return;
+    snapshot(true);
+    setBlocks((bs) =>
+      bs.map((b) => {
+        const d = deltas.get(b.id);
+        if (!d) return b;
+        const p = clampPlacement(b.placement);
+        return { ...b, placement: clampPlacement({ ...p, col: p.col + d.dCol, row: p.row + d.dRow }) };
+      }),
+    );
+  };
+
   const onBlockKey = (e: React.KeyboardEvent, block: Block) => {
     if (editingId === block.id) return;
     if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
@@ -1767,6 +1854,26 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
             <p className="ed-empty" style={{ padding: '0 0 4px' }}>
               Drag any one to move them together. Shift-click to add or remove.
             </p>
+            <div className="ed-field">
+              <span className="ed-field-label">Align</span>
+              <div className="ed-arrange">
+                <button type="button" className="ed-arrange-btn" title="Align left" aria-label="Align left" onClick={() => arrangeSelection('left')}>⇤</button>
+                <button type="button" className="ed-arrange-btn" title="Align horizontal centres" aria-label="Align horizontal centres" onClick={() => arrangeSelection('centerX')}>⇔</button>
+                <button type="button" className="ed-arrange-btn" title="Align right" aria-label="Align right" onClick={() => arrangeSelection('right')}>⇥</button>
+                <button type="button" className="ed-arrange-btn" title="Align top" aria-label="Align top" onClick={() => arrangeSelection('top')}>⤒</button>
+                <button type="button" className="ed-arrange-btn" title="Align vertical centres" aria-label="Align vertical centres" onClick={() => arrangeSelection('middleY')}>⇕</button>
+                <button type="button" className="ed-arrange-btn" title="Align bottom" aria-label="Align bottom" onClick={() => arrangeSelection('bottom')}>⤓</button>
+              </div>
+            </div>
+            {selection.length > 2 ? (
+              <div className="ed-field">
+                <span className="ed-field-label">Distribute</span>
+                <div className="ed-arrange">
+                  <button type="button" className="ed-arrange-btn" title="Distribute horizontally" aria-label="Distribute horizontally" onClick={() => arrangeSelection('distX')}>↔</button>
+                  <button type="button" className="ed-arrange-btn" title="Distribute vertically" aria-label="Distribute vertically" onClick={() => arrangeSelection('distY')}>↕</button>
+                </div>
+              </div>
+            ) : null}
             <div className="ed-props-actions">
               <button type="button" className="ed-btn" onClick={() => duplicateSelection()}>
                 Duplicate all

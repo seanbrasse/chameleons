@@ -750,6 +750,34 @@
   border-color: var(--sel);
 }
 
+/* Align / distribute buttons for a multi-selection: a compact row of icon keys. */
+.ed-arrange {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.ed-arrange-btn {
+  flex: 1 1 0;
+  min-width: 34px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink-soft);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.ed-arrange-btn:hover {
+  border-color: var(--sel);
+  color: var(--sel);
+  background: var(--sel-soft);
+}
+
 /* A text block bound to a multi-line source (education, experience) keeps its
    line breaks. */
 .pv-text-bound {
