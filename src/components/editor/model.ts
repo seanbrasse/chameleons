@@ -16,6 +16,7 @@
 
 export type BlockKind =
   // primitives
+  | 'container'
   | 'heading'
   | 'text'
   | 'image'
@@ -34,6 +35,7 @@ export type BlockKind =
 
 /** Every block kind, in palette order — the source of truth for validation. */
 export const BLOCK_KINDS: readonly BlockKind[] = [
+  'container',
   'heading',
   'text',
   'image',
@@ -49,6 +51,12 @@ export const BLOCK_KINDS: readonly BlockKind[] = [
   'metrics',
   'contact',
 ];
+
+/** Whether a kind is a container — a box that holds other blocks as children,
+ *  the base other components (cards, and later inputs) compose from. */
+export function isContainer(kind: BlockKind): boolean {
+  return kind === 'container';
+}
 
 /** Whether an arbitrary value is a known block kind — for parsing stored data. */
 export function isBlockKind(value: unknown): value is BlockKind {
@@ -130,8 +138,70 @@ export type Block = {
   /** Content zoom. 1 (or absent) is natural size; a corner-resize scales the
    *  element and everything inside it by this factor. */
   scale?: number;
+  /** The container this block nests inside, if any. A block with a `parentId`
+   *  renders inside that container — clipped to it, and carried when it moves or
+   *  scales. Placement stays in absolute artboard cells regardless of nesting;
+   *  the tree is a render-and-behaviour concern, not a coordinate one. */
+  parentId?: string;
   placement: Placement;
 };
+
+/** The direct children of `parentId` (its roots when `null`), in list order. */
+export function childrenOf(blocks: Block[], parentId: string | null): Block[] {
+  return blocks.filter((b) => (b.parentId ?? null) === parentId);
+}
+
+/** Every descendant id of `id`, guarding against a malformed cycle so the walk
+ *  always terminates. */
+export function descendantIds(blocks: Block[], id: string): Set<string> {
+  const byParent = new Map<string, Block[]>();
+  for (const b of blocks) {
+    if (b.parentId === undefined) continue;
+    const arr = byParent.get(b.parentId);
+    if (arr) arr.push(b);
+    else byParent.set(b.parentId, [b]);
+  }
+  const out = new Set<string>();
+  const walk = (pid: string) => {
+    for (const child of byParent.get(pid) ?? []) {
+      if (out.has(child.id)) continue; // already visited — a cycle; stop
+      out.add(child.id);
+      walk(child.id);
+    }
+  };
+  walk(id);
+  return out;
+}
+
+/** Whether re-parenting `childId` under `newParentId` would form a cycle —
+ *  the new parent is the block itself or one of its own descendants. */
+export function wouldCycle(blocks: Block[], childId: string, newParentId: string): boolean {
+  return childId === newParentId || descendantIds(blocks, childId).has(newParentId);
+}
+
+/** Return `block` without its parent link. */
+export function withoutParent(block: Block): Block {
+  if (block.parentId === undefined) return block;
+  const rest = { ...block };
+  delete rest.parentId;
+  return rest;
+}
+
+/**
+ * Drop parent links that don't point to a real container, then break any
+ * cycles — so a document written by an older build, or hand-edited into a loop,
+ * can never nest the canvas into an impossible tree. This is the containment
+ * counterpart to `clampPlacement`: it makes the tree break-proof.
+ */
+export function sanitizeParents(blocks: Block[]): Block[] {
+  const containers = new Set(blocks.filter((b) => isContainer(b.kind)).map((b) => b.id));
+  const linked = blocks.map((b) =>
+    b.parentId !== undefined && containers.has(b.parentId) ? b : withoutParent(b),
+  );
+  return linked.map((b) =>
+    b.parentId !== undefined && wouldCycle(linked, b.id, b.parentId) ? withoutParent(b) : b,
+  );
+}
 
 /**
  * The Issue fields a Text/Heading block can bind to, so the palette needn't ship
@@ -237,6 +307,7 @@ export const PALETTE: { group: string; items: PaletteItem[] }[] = [
   {
     group: 'Basic',
     items: [
+      { kind: 'container', label: 'Container', hint: 'A box that holds other elements' },
       { kind: 'heading', label: 'Heading', hint: 'A title' },
       { kind: 'text', label: 'Text', hint: 'A paragraph' },
       { kind: 'image', label: 'Image', hint: 'A picture' },
@@ -266,6 +337,7 @@ export const PALETTE: { group: string; items: PaletteItem[] }[] = [
  * columns of the square grid.
  */
 const SPAN_FRACTION: Record<BlockKind, number> = {
+  container: 0.5,
   heading: 1,
   text: 0.5,
   image: 1 / 3,
@@ -290,6 +362,10 @@ export function defaultColSpan(kind: BlockKind): number {
 /** The minimum vertical gap kept between blocks, in cells — a spacing rule. */
 export const MIN_GAP_ROWS = 1;
 
+/** A new container opens with an explicit height so it reads as a real box to
+ *  drop things into, rather than collapsing to its (empty) contents. */
+export const DEFAULT_CONTAINER_ROWS = 12;
+
 let counter = 0;
 /** A client-only id for a new block. Not the persisted id; good enough for keys. */
 export function newBlockId(kind: BlockKind): string {
@@ -299,12 +375,14 @@ export function newBlockId(kind: BlockKind): string {
 
 /** A fresh block for a palette drop, sized for its kind and placed at `row`. */
 export function makeBlock(kind: BlockKind, label: string, row = 1): Block {
+  const placement: Placement = { col: 1, colSpan: defaultColSpan(kind), row };
+  if (isContainer(kind)) placement.rowSpan = DEFAULT_CONTAINER_ROWS;
   return {
     id: newBlockId(kind),
     kind,
     label,
     text: isContentBlock(kind) ? undefined : defaultText(kind),
-    placement: { col: 1, colSpan: defaultColSpan(kind), row },
+    placement,
   };
 }
 

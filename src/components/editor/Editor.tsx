@@ -21,12 +21,15 @@ import {
   MIN_GAP_ROWS,
   PALETTE,
   clampPlacement,
+  descendantIds,
+  isContainer,
   isFreeText,
   isGuide,
   isGutter,
   makeBlock,
   maxCol,
   newBlockId,
+  withoutParent,
   type Block,
   type BlockKind,
   type ContentSource,
@@ -116,6 +119,20 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const gutterPx = Math.min(GUTTER_PX[gutter], CELL - 2);
   const selected = useMemo(() => blocks.find((b) => b.id === selectedId) ?? null, [blocks, selectedId]);
 
+  /** Blocks grouped by their parent (the roots keyed under `null`) — the tree
+   *  the canvas renders from. Placement stays absolute; this only decides who
+   *  nests inside whom. */
+  const childMap = useMemo(() => {
+    const m = new Map<string | null, Block[]>();
+    for (const b of blocks) {
+      const key = b.parentId ?? null;
+      const arr = m.get(key);
+      if (arr) arr.push(b);
+      else m.set(key, [b]);
+    }
+    return m;
+  }, [blocks]);
+
   // Persist layout + grid style. Writes to localStorage only, no setState.
   useEffect(() => {
     if (!storageKey) return;
@@ -182,19 +199,39 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const duplicate = (id: string) => {
     const src = blocks.find((b) => b.id === id);
     if (!src) return;
-    const copy: Block = {
+    // The copy lands as a free root, not hidden inside the original's container.
+    const copy: Block = withoutParent({
       ...src,
       id: newBlockId(src.kind),
       placement: clampPlacement({ ...src.placement, row: nextRow() }),
-    };
+    });
     setBlocks((bs) => [...bs, copy]);
     setSelectedId(copy.id);
   };
 
   const remove = (id: string) => {
-    setBlocks((bs) => bs.filter((b) => b.id !== id));
+    // Deleting a container promotes its children to its own parent, so nested
+    // content is detached rather than silently lost with the box.
+    setBlocks((bs) => {
+      const target = bs.find((b) => b.id === id);
+      const grandparent = target?.parentId;
+      return bs
+        .filter((b) => b.id !== id)
+        .map((b) =>
+          b.parentId === id
+            ? grandparent === undefined
+              ? withoutParent(b)
+              : { ...b, parentId: grandparent }
+            : b,
+        );
+    });
     setSelectedId((cur) => (cur === id ? null : cur));
     setEditingId((cur) => (cur === id ? null : cur));
+  };
+
+  /** Detach a block from its container, leaving it where it sits on the page. */
+  const detach = (id: string) => {
+    setBlocks((bs) => bs.map((b) => (b.id === id ? withoutParent(b) : b)));
   };
 
   // ── geometry ────────────────────────────────────────────────────────
@@ -218,11 +255,13 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     return clampPlacement({ col, colSpan, row });
   };
 
-  /** After a drop, push the block clear of any it overlaps — the spacing rule. */
+  /** After a drop, push the block clear of any it overlaps — the spacing rule.
+   *  Nesting is exempt: a child inside a container, and the blocks it shares a
+   *  container with, are not shoved — containment is deliberate overlap. */
   const resolveOverlap = (id: string) => {
     setBlocks((bs) => {
       const me = bs.find((b) => b.id === id);
-      if (!me) return bs;
+      if (!me || me.parentId !== undefined) return bs;
       const heights = heightsRef.current;
       const rect = (b: Block) => {
         const box = boxOf(b.placement);
@@ -232,7 +271,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       const gap = MIN_GAP_ROWS * CELL;
       let pushTo: number | null = null;
       for (const b of bs) {
-        if (b.id === id) continue;
+        if (b.id === id || b.parentId !== undefined) continue;
         const o = rect(b);
         const overlapsX = mine.left < o.right - 0.5 && mine.right > o.left + 0.5;
         const overlapsY = mine.top < o.bottom - 0.5 && mine.bottom > o.top + 0.5;
@@ -245,6 +284,26 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       const row = Math.max(1, Math.round((pushTo - ARTBOARD.margin) / CELL) + 1);
       return bs.map((b) => (b.id === id ? { ...b, placement: clampPlacement({ ...b.placement, row }) } : b));
     });
+  };
+
+  /** The innermost container whose box holds the dropped block's centre — where
+   *  it should nest. Excludes the block itself and its own descendants (a box
+   *  can't go inside what it contains). Null means it lands free on the page. */
+  const findDropContainer = (block: Block, snap: Placement, excluded: Set<string>): string | null => {
+    const box = boxOf(snap);
+    const cx = box.left + box.width / 2;
+    const cy = box.top + (box.height ?? heightsRef.current[block.id] ?? CELL) / 2;
+    let best: { id: string; area: number } | null = null;
+    for (const b of blocks) {
+      if (!isContainer(b.kind) || b.id === block.id || excluded.has(b.id)) continue;
+      const cb = boxOf(clampPlacement(b.placement));
+      const h = cb.height ?? heightsRef.current[b.id] ?? CELL;
+      if (cx >= cb.left && cx <= cb.left + cb.width && cy >= cb.top && cy <= cb.top + h) {
+        const area = cb.width * h;
+        if (!best || area < best.area) best = { id: b.id, area }; // innermost wins
+      }
+    }
+    return best?.id ?? null;
   };
 
   // ── drag (anywhere on the block) ────────────────────────────────────
@@ -303,10 +362,31 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     setArranging(false);
     setDraggingId(null);
     setDragFree(null);
-    if (moved && snap) {
-      setPlacement(block.id, snap); // magnetic snap to the nearest slot
-      resolveOverlap(block.id);
-    }
+    if (!(moved && snap)) return;
+
+    // Snap to the nearest slot, carry any descendants by the same delta, and
+    // re-parent into (or out of) whatever container the drop landed in.
+    const oldP = clampPlacement(block.placement);
+    const dCol = snap.col - oldP.col;
+    const dRow = snap.row - oldP.row;
+    const kin = descendantIds(blocks, block.id);
+    const newParent = findDropContainer(block, snap, kin);
+    setBlocks((bs) =>
+      bs.map((b) => {
+        if (b.id === block.id) {
+          const moved: Block = { ...b, placement: clampPlacement(snap) };
+          return newParent === null ? withoutParent(moved) : { ...moved, parentId: newParent };
+        }
+        if (kin.has(b.id)) {
+          const p = clampPlacement(b.placement);
+          return { ...b, placement: clampPlacement({ ...p, col: p.col + dCol, row: p.row + dRow }) };
+        }
+        return b;
+      }),
+    );
+    // Only a free, non-container block joins the spacing shuffle; a box or a
+    // nested block keeps exactly where it was dropped.
+    if (newParent === null && !isContainer(block.kind)) resolveOverlap(block.id);
   };
 
   // ── resize (drag a side or corner handle) ───────────────────────────
@@ -429,6 +509,98 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
 
   const sel = selected ? clampPlacement(selected.placement) : null;
 
+  /**
+   * Render one block and, if it is a container, its children nested inside it.
+   * `origin` is the parent's absolute top-left; a child is positioned relative
+   * to it, so the whole subtree is carried when the container moves. Children
+   * live inside `.ed-block-body`, so a container's scale and clip apply to them.
+   * A dragged child stays a child throughout the drag — the container just stops
+   * clipping while arranging (see CSS), so it can visually leave the box without
+   * being re-mounted into a new DOM parent (which would drop its pointer capture
+   * and break the drag). It only changes parents once, on drop.
+   */
+  const renderBlock = (block: Block, origin: { left: number; top: number }): React.ReactNode => {
+    const box = boxOf(clampPlacement(block.placement));
+    const dragging = draggingId === block.id;
+    const free = dragging && dragFree?.id === block.id ? dragFree : null;
+    const cont = isContainer(block.kind);
+    const kids = cont ? childMap.get(block.id) ?? [] : [];
+    const editProps = isEditMode
+      ? {
+          role: 'button',
+          tabIndex: 0,
+          'aria-pressed': block.id === selectedId,
+          onPointerDown: (e: React.PointerEvent) => onBlockDown(e, block),
+          onPointerMove: (e: React.PointerEvent) => onBlockMove(e, block),
+          onPointerUp: (e: React.PointerEvent) => onBlockUp(e, block),
+          onFocus: () => setSelectedId(block.id),
+          onKeyDown: (e: React.KeyboardEvent) => onBlockKey(e, block),
+          onDoubleClick: () => {
+            if (isFreeText(block)) {
+              setSelectedId(block.id);
+              setEditingId(block.id);
+            }
+          },
+        }
+      : {};
+    const bodyScale =
+      block.scale && block.scale !== 1
+        ? {
+            transform: `scale(${block.scale})`,
+            width: `${100 / block.scale}%`,
+            height: `${100 / block.scale}%`,
+          }
+        : undefined;
+    return (
+      <div
+        key={block.id}
+        data-block-id={block.id}
+        aria-label={`${block.label} block`}
+        className={`ed-block${cont ? ' is-container' : ''}${block.id === selectedId ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
+        style={{
+          left: (free ? free.left : box.left) - origin.left,
+          top: (free ? free.top : box.top) - origin.top,
+          width: box.width,
+          height: box.height,
+        }}
+        {...editProps}
+      >
+        {isEditMode ? <span className="ed-block-tag">{block.label}</span> : null}
+        <div className="ed-block-body" style={bodyScale}>
+          {cont ? (
+            kids.map((child) => renderBlock(child, { left: box.left, top: box.top }))
+          ) : (
+            <BlockPreview
+              block={block}
+              issue={issue}
+              editing={isEditMode && editingId === block.id}
+              interactive={!isEditMode}
+              activeIndex={activeIndex}
+              onActive={setActiveIndex}
+              onText={(text) => update(block.id, { text })}
+              onEditEnd={() => setEditingId(null)}
+              onOpenProject={setModalProject}
+            />
+          )}
+        </div>
+        {isEditMode && block.id === selectedId && editingId !== block.id ? (
+          <>
+            {RESIZE_DIRS.map((dir) => (
+              <span
+                key={dir}
+                className={`ed-handle ed-handle-${dir}`}
+                aria-hidden="true"
+                onPointerDown={(e) => onHandleDown(e, block, dir)}
+                onPointerMove={(e) => onHandleMove(e, block)}
+                onPointerUp={(e) => onHandleUp(e, block)}
+              />
+            ))}
+          </>
+        ) : null}
+      </div>
+    );
+  };
+
   return (
     <div className="ed">
       {/* ── left: elements ─────────────────────────────────────────── */}
@@ -540,84 +712,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               }}
               onPointerDown={isEditMode ? () => setSelectedId(null) : undefined}
             >
-              {blocks.map((block) => {
-                const box = boxOf(clampPlacement(block.placement));
-                const dragging = draggingId === block.id;
-                const free = dragging && dragFree?.id === block.id ? dragFree : null;
-                const editProps = isEditMode
-                  ? {
-                      role: 'button',
-                      tabIndex: 0,
-                      'aria-pressed': block.id === selectedId,
-                      onPointerDown: (e: React.PointerEvent) => onBlockDown(e, block),
-                      onPointerMove: (e: React.PointerEvent) => onBlockMove(e, block),
-                      onPointerUp: (e: React.PointerEvent) => onBlockUp(e, block),
-                      onFocus: () => setSelectedId(block.id),
-                      onKeyDown: (e: React.KeyboardEvent) => onBlockKey(e, block),
-                      onDoubleClick: () => {
-                        if (isFreeText(block)) {
-                          setSelectedId(block.id);
-                          setEditingId(block.id);
-                        }
-                      },
-                    }
-                  : {};
-                return (
-                  <div
-                    key={block.id}
-                    data-block-id={block.id}
-                    aria-label={`${block.label} block`}
-                    className={`ed-block${block.id === selectedId ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height ? ' has-height' : ''}`}
-                    style={{
-                      left: free ? free.left : box.left,
-                      top: free ? free.top : box.top,
-                      width: box.width,
-                      height: box.height,
-                    }}
-                    {...editProps}
-                  >
-                    {isEditMode ? <span className="ed-block-tag">{block.label}</span> : null}
-                    <div
-                      className="ed-block-body"
-                      style={
-                        block.scale && block.scale !== 1
-                          ? {
-                              transform: `scale(${block.scale})`,
-                              width: `${100 / block.scale}%`,
-                              height: `${100 / block.scale}%`,
-                            }
-                          : undefined
-                      }
-                    >
-                      <BlockPreview
-                        block={block}
-                        issue={issue}
-                        editing={isEditMode && editingId === block.id}
-                        interactive={!isEditMode}
-                        activeIndex={activeIndex}
-                        onActive={setActiveIndex}
-                        onText={(text) => update(block.id, { text })}
-                        onEditEnd={() => setEditingId(null)}
-                        onOpenProject={setModalProject}
-                      />
-                    </div>
-                    {isEditMode && block.id === selectedId && editingId !== block.id ? (
-                      <>
-                        {RESIZE_DIRS.map((dir) => (
-                          <span
-                            key={dir}
-                            className={`ed-handle ed-handle-${dir}`}
-                            aria-hidden="true"
-                            onPointerDown={(e) => onHandleDown(e, block, dir)}
-                            onPointerMove={(e) => onHandleMove(e, block)}
-                            onPointerUp={(e) => onHandleUp(e, block)}
-                          />
-                        ))}
-                      </>
-                    ) : null}
-                  </div>
-                );
-              })}
+              {(childMap.get(null) ?? []).map((block) => renderBlock(block, { left: 0, top: 0 }))}
               {dragFree
                 ? (() => {
                     const g = boxOf(dragFree.snap);
@@ -719,6 +814,25 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               />
             </label>
 
+            {isContainer(selected.kind) ? (
+              <label className="ed-field">
+                <span className="ed-field-label">Height — {sel.rowSpan ?? 1}</span>
+                <input
+                  type="range"
+                  min={1}
+                  max={GRID_ROWS}
+                  value={sel.rowSpan ?? 1}
+                  onChange={(e) => setPlacement(selected.id, { ...sel, rowSpan: Number(e.target.value) })}
+                />
+              </label>
+            ) : null}
+
+            {selected.parentId !== undefined ? (
+              <button type="button" className="ed-btn ed-field" onClick={() => detach(selected.id)}>
+                Detach from container
+              </button>
+            ) : null}
+
             <label className="ed-check">
               <input
                 type="checkbox"
@@ -767,6 +881,7 @@ type ResizeDir = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
 const RESIZE_DIRS: ResizeDir[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 
 const GLYPH: Record<BlockKind, string> = {
+  container: '▢',
   heading: 'H',
   text: '¶',
   image: '▦',
