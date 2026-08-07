@@ -1539,6 +1539,9 @@ function ProjectGallery({
   if (n === 0) return <div className="pv-carousel" />;
   const idx = ((activeIndex % n) + n) % n;
   const active = sorted[idx]!;
+  const prev = sorted[((idx - 1) % n + n) % n]!;
+  const next = sorted[(idx + 1) % n]!;
+  const peeks = n > 1; // neighbouring cards peek in at the edges, like a reel
 
   return (
     <div className="pv-carousel">
@@ -1551,11 +1554,35 @@ function ProjectGallery({
         >
           ‹
         </button>
-        <button type="button" className="pv-card pv-card-active" onClick={() => onOpen(active)}>
-          <MediaWell cover={active.images[0]} className="pv-card-media pv-card-media-lg" />
-          <div className="pv-card-source">{projectSource(active, experiences)}</div>
-          <div className="pv-card-title pv-card-title-lg">{active.title}</div>
-        </button>
+        <div className="pv-carousel-track">
+          {peeks ? (
+            <button
+              type="button"
+              className="pv-card pv-card-peek pv-card-peek-prev"
+              aria-label={`Show ${prev.title}`}
+              onClick={() => onActive(idx - 1)}
+            >
+              <MediaWell cover={prev.images[0]} className="pv-card-media pv-card-media-lg" />
+              <div className="pv-card-title pv-card-title-lg">{prev.title}</div>
+            </button>
+          ) : null}
+          <button type="button" className="pv-card pv-card-active" onClick={() => onOpen(active)}>
+            <MediaWell cover={active.images[0]} className="pv-card-media pv-card-media-lg" />
+            <div className="pv-card-source">{projectSource(active, experiences)}</div>
+            <div className="pv-card-title pv-card-title-lg">{active.title}</div>
+          </button>
+          {peeks ? (
+            <button
+              type="button"
+              className="pv-card pv-card-peek pv-card-peek-next"
+              aria-label={`Show ${next.title}`}
+              onClick={() => onActive(idx + 1)}
+            >
+              <MediaWell cover={next.images[0]} className="pv-card-media pv-card-media-lg" />
+              <div className="pv-card-title pv-card-title-lg">{next.title}</div>
+            </button>
+          ) : null}
+        </div>
         <button
           type="button"
           className="pv-carousel-nav"

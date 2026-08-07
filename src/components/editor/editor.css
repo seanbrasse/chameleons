@@ -1004,6 +1004,59 @@
   white-space: normal;
 }
 
+/* Peeking carousel: the previous and next cards sit part-visible at the edges,
+   behind the active card, so the projects read as a reel. */
+.pv-carousel-stage {
+  position: relative;
+  overflow: hidden;
+}
+
+.pv-carousel-track {
+  position: relative;
+  flex: 0 1 400px;
+  display: flex;
+  justify-content: center;
+}
+
+.pv-card-active {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 100%;
+}
+
+.pv-carousel-nav {
+  position: relative;
+  z-index: 3;
+}
+
+.pv-card-peek {
+  position: absolute;
+  top: 50%;
+  width: 82%;
+  transform: translateY(-50%) scale(0.92);
+  opacity: 0.4;
+  z-index: 1;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.pv-card-peek:hover {
+  opacity: 0.7;
+}
+
+.pv-card-peek-prev {
+  right: 66%;
+}
+
+.pv-card-peek-next {
+  left: 66%;
+}
+
 .pv-carousel-foot {
   display: flex;
   align-items: center;
