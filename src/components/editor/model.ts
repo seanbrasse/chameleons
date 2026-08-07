@@ -71,8 +71,9 @@ export const ARTBOARD = {
   margin: 48,
 } as const;
 
-/** The square grid cell, in artboard px — the single snap unit for both axes. */
-export const CELL = 69;
+/** The square grid cell, in artboard px — the single snap unit for both axes.
+ *  A tight, pixel-scale grid so placement is fine-grained. */
+export const CELL = 16;
 const CONTENT_W = ARTBOARD.width - ARTBOARD.margin * 2;
 const CONTENT_H = ARTBOARD.height - ARTBOARD.margin * 2;
 

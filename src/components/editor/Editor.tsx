@@ -100,7 +100,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   /** Measured block heights in artboard px, by id — for spacing/placement. */
   const heightsRef = useRef<Record<string, number>>({});
 
-  const gutterPx = GUTTER_PX[gutter];
+  // The gutter, capped so a one-cell block on the tight grid can't go to zero.
+  const gutterPx = Math.min(GUTTER_PX[gutter], CELL - 2);
   const selected = useMemo(() => blocks.find((b) => b.id === selectedId) ?? null, [blocks, selectedId]);
 
   // Persist layout + grid style. Writes to localStorage only, no setState.
@@ -800,18 +801,18 @@ function starterBlocks(): Block[] {
   const half = Math.max(1, Math.round(GRID_COLS / 2));
   return [
     { id: 'identity-0', kind: 'identity', label: 'Identity', placement: { col: 1, colSpan: GRID_COLS, row: 1 } },
-    { id: 'projects-0', kind: 'projects', label: 'Projects', placement: { col: 1, colSpan: GRID_COLS, row: 4 } },
+    { id: 'projects-0', kind: 'projects', label: 'Projects', placement: { col: 1, colSpan: GRID_COLS, row: 12 } },
     {
       id: 'experience-0',
       kind: 'experience',
       label: 'Experience',
-      placement: { col: 1, colSpan: half, row: 9 },
+      placement: { col: 1, colSpan: half, row: 28 },
     },
     {
       id: 'metrics-0',
       kind: 'metrics',
       label: 'Metrics',
-      placement: { col: half + 1, colSpan: Math.max(1, GRID_COLS - half), row: 9 },
+      placement: { col: half + 1, colSpan: Math.max(1, GRID_COLS - half), row: 28 },
     },
   ];
 }
