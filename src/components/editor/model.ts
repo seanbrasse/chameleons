@@ -155,6 +155,8 @@ export type Block = {
    *  scales. Placement stays in absolute artboard cells regardless of nesting;
    *  the tree is a render-and-behaviour concern, not a coordinate one. */
   parentId?: string;
+  /** An entrance/interaction effect played in Preview. Absent means none. */
+  animation?: Animation;
   placement: Placement;
 };
 
@@ -213,6 +215,36 @@ export function sanitizeParents(blocks: Block[]): Block[] {
   return linked.map((b) =>
     b.parentId !== undefined && wouldCycle(linked, b.id, b.parentId) ? withoutParent(b) : b,
   );
+}
+
+/**
+ * An entrance/interaction effect on a block, played in Preview. Purely a
+ * presentation layer — it never changes placement or the tree. Because it rides
+ * on the block wrapper, putting it on a container or card animates the whole
+ * subtree, so a "complex element" moves as one.
+ */
+export type AnimEffect = 'fade' | 'rise' | 'zoom';
+export type AnimTrigger = 'load' | 'scroll' | 'hover';
+export type Animation = { effect: AnimEffect; trigger: AnimTrigger };
+
+export const ANIM_EFFECTS: { value: AnimEffect; label: string }[] = [
+  { value: 'fade', label: 'Fade' },
+  { value: 'rise', label: 'Rise' },
+  { value: 'zoom', label: 'Zoom' },
+];
+
+export const ANIM_TRIGGERS: { value: AnimTrigger; label: string }[] = [
+  { value: 'load', label: 'On load' },
+  { value: 'scroll', label: 'On scroll into view' },
+  { value: 'hover', label: 'On hover' },
+];
+
+export function isAnimEffect(value: unknown): value is AnimEffect {
+  return typeof value === 'string' && ANIM_EFFECTS.some((e) => e.value === value);
+}
+
+export function isAnimTrigger(value: unknown): value is AnimTrigger {
+  return typeof value === 'string' && ANIM_TRIGGERS.some((t) => t.value === value);
 }
 
 /**

@@ -20,7 +20,14 @@
 import type { LayoutDocument, LayoutNode } from '@/templates/layout';
 
 import { LAYOUT_VERSION } from '@/templates/layout';
-import { isBlockKind, isContentSource, sanitizeParents, type Block } from './model';
+import {
+  isAnimEffect,
+  isAnimTrigger,
+  isBlockKind,
+  isContentSource,
+  sanitizeParents,
+  type Block,
+} from './model';
 
 /** Serialise the canvas to a storable document. */
 export function toLayoutDocument(blocks: Block[]): LayoutDocument {
@@ -38,6 +45,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           ...(block.placement.rowSpan !== undefined ? { rowSpan: block.placement.rowSpan } : {}),
           ...(block.source ? { source: block.source } : {}),
           ...(block.parentId !== undefined ? { parentId: block.parentId } : {}),
+          ...(block.animation ? { animation: block.animation } : {}),
           ...(block.scale !== undefined && block.scale !== 1 ? { scale: block.scale } : {}),
           ...(block.text !== undefined ? { text: block.text } : {}),
         },
@@ -77,6 +85,7 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     if (node.hidden) block.hidden = true;
     if (isContentSource(props.source)) block.source = props.source;
     if (typeof props.parentId === 'string') block.parentId = props.parentId;
+    if (isAnimation(props.animation)) block.animation = props.animation;
     if (typeof props.scale === 'number' && Number.isFinite(props.scale) && props.scale > 0) {
       block.scale = props.scale;
     }
@@ -87,6 +96,13 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
   // Nesting is validated as a whole once every block is known: a parent link
   // that points nowhere real, or would form a cycle, is dropped.
   return sanitizeParents(blocks);
+}
+
+/** Whether a stored value is a well-formed animation (both parts valid). */
+function isAnimation(value: unknown): value is Block['animation'] {
+  if (typeof value !== 'object' || value === null) return false;
+  const a = value as { effect?: unknown; trigger?: unknown };
+  return isAnimEffect(a.effect) && isAnimTrigger(a.trigger);
 }
 
 /** A positive integer from an unknown value, else the fallback. */

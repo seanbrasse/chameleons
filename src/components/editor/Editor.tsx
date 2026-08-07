@@ -8,6 +8,8 @@ import type { LayoutDocument } from '@/templates/layout';
 import './editor.css';
 import { fromLayoutDocument, toLayoutDocument } from './serialise';
 import {
+  ANIM_EFFECTS,
+  ANIM_TRIGGERS,
   ARTBOARD,
   CELL,
   GRID_COLS,
@@ -31,6 +33,7 @@ import {
   maxCol,
   newBlockId,
   withoutParent,
+  type Animation,
   type Block,
   type BlockKind,
   type ContentSource,
@@ -144,6 +147,28 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       // Storage full or blocked — the layout simply isn't remembered.
     }
   }, [blocks, gutter, guide, storageKey]);
+
+  // In Preview, play scroll-triggered entrances: a block reveals itself the
+  // first time it scrolls into view. Load/hover triggers are pure CSS; only
+  // this one needs to watch the viewport.
+  useEffect(() => {
+    if (isEditMode || typeof IntersectionObserver === 'undefined') return;
+    const els = artboardRef.current?.querySelectorAll('[data-anim-trigger="scroll"]');
+    if (!els || els.length === 0) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-in');
+            io.unobserve(entry.target); // reveal once, then stop watching
+          }
+        }
+      },
+      { threshold: 0.15 },
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [isEditMode, blocks]);
 
   // Scale the artboard to fit the canvas width, so the page shrinks/grows with
   // the window. Capped so it never gets microscopic or absurdly large.
@@ -552,12 +577,17 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
             height: `${100 / block.scale}%`,
           }
         : undefined;
+    // Animation is a Preview-only presentation layer; the scroll trigger is
+    // marked so the observer above can reveal it in view.
+    const anim = !isEditMode && block.animation ? block.animation : null;
+    const animClass = anim ? ` pv-anim pv-anim-${anim.effect} pv-anim-${anim.trigger}` : '';
     return (
       <div
         key={block.id}
         data-block-id={block.id}
         aria-label={`${block.label} block`}
-        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${block.id === selectedId ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
+        data-anim-trigger={anim?.trigger === 'scroll' ? 'scroll' : undefined}
+        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${animClass}${block.id === selectedId ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
         style={{
           left: (free ? free.left : box.left) - origin.left,
           top: (free ? free.top : box.top) - origin.top,
@@ -842,6 +872,54 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               <button type="button" className="ed-btn ed-field" onClick={() => detach(selected.id)}>
                 Detach from container
               </button>
+            ) : null}
+
+            <label className="ed-field">
+              <span className="ed-field-label">Animation</span>
+              <select
+                value={selected.animation?.effect ?? 'none'}
+                onChange={(e) =>
+                  update(selected.id, {
+                    animation:
+                      e.target.value === 'none'
+                        ? undefined
+                        : {
+                            effect: e.target.value as Animation['effect'],
+                            trigger: selected.animation?.trigger ?? 'load',
+                          },
+                  })
+                }
+              >
+                <option value="none">None</option>
+                {ANIM_EFFECTS.map((a) => (
+                  <option key={a.value} value={a.value}>
+                    {a.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {selected.animation ? (
+              <label className="ed-field">
+                <span className="ed-field-label">Plays</span>
+                <select
+                  value={selected.animation.trigger}
+                  onChange={(e) =>
+                    update(selected.id, {
+                      animation: {
+                        effect: selected.animation!.effect,
+                        trigger: e.target.value as Animation['trigger'],
+                      },
+                    })
+                  }
+                >
+                  {ANIM_TRIGGERS.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
             ) : null}
 
             <label className="ed-check">
