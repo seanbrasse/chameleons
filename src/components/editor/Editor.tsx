@@ -93,6 +93,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     top: number;
     height: number;
     snap: Placement;
+    guides: AlignGuide[];
   } | null>(null);
   /** How much the artboard is scaled to fit the window. */
   const [scale, setScale] = useState(0.75);
@@ -609,6 +610,87 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     return clampPlacement({ col, colSpan, row });
   };
 
+  const colFromLeft = (left: number) => Math.round((left - ARTBOARD.margin - gutterPx / 2) / CELL) + 1;
+  const rowFromTop = (top: number) => Math.round((top - ARTBOARD.margin) / CELL) + 1;
+
+  /** Figma-style smart guides: compare the freely-dragged block's edges and
+   *  centres to every other root block's, and where one lands within ALIGN_TOL,
+   *  pull the placement onto it and emit a guide line spanning both. Returns the
+   *  grid snap unchanged when nothing lines up. */
+  const alignToNeighbours = (
+    target: Block,
+    gridSnap: Placement,
+    freeLeft: number,
+    freeTop: number,
+    excluded: Set<string>,
+  ): { snap: Placement; guides: AlignGuide[] } => {
+    const self = boxOf(gridSnap);
+    const w = self.width;
+    const h = self.height ?? heightsRef.current[target.id] ?? CELL;
+    const dx = { left: freeLeft, mid: freeLeft + w / 2, right: freeLeft + w };
+    const dy = { top: freeTop, mid: freeTop + h / 2, bottom: freeTop + h };
+
+    let bestX: { pos: number; targetLeft: number; start: number; end: number; delta: number } | null = null;
+    let bestY: { pos: number; targetTop: number; start: number; end: number; delta: number } | null = null;
+
+    for (const b of blocks) {
+      if (b.id === target.id || b.parentId !== undefined || excluded.has(b.id)) continue;
+      const nb = boxOf(clampPlacement(b.placement));
+      const nh = nb.height ?? heightsRef.current[b.id] ?? CELL;
+      // [dragged edge, neighbour edge, resulting box-left that keeps them on the line]
+      const xPairs: [number, number, number][] = [
+        [dx.left, nb.left, nb.left],
+        [dx.left, nb.left + nb.width, nb.left + nb.width],
+        [dx.mid, nb.left + nb.width / 2, nb.left + nb.width / 2 - w / 2],
+        [dx.right, nb.left + nb.width, nb.left + nb.width - w],
+        [dx.right, nb.left, nb.left - w],
+      ];
+      for (const [d, n, targetLeft] of xPairs) {
+        const delta = Math.abs(d - n);
+        if (delta <= ALIGN_TOL && (!bestX || delta < bestX.delta)) {
+          bestX = {
+            pos: n,
+            targetLeft,
+            start: Math.min(freeTop, nb.top),
+            end: Math.max(freeTop + h, nb.top + nh),
+            delta,
+          };
+        }
+      }
+      const yPairs: [number, number, number][] = [
+        [dy.top, nb.top, nb.top],
+        [dy.top, nb.top + nh, nb.top + nh],
+        [dy.mid, nb.top + nh / 2, nb.top + nh / 2 - h / 2],
+        [dy.bottom, nb.top + nh, nb.top + nh - h],
+        [dy.bottom, nb.top, nb.top - h],
+      ];
+      for (const [d, n, targetTop] of yPairs) {
+        const delta = Math.abs(d - n);
+        if (delta <= ALIGN_TOL && (!bestY || delta < bestY.delta)) {
+          bestY = {
+            pos: n,
+            targetTop,
+            start: Math.min(freeLeft, nb.left),
+            end: Math.max(freeLeft + w, nb.left + nb.width),
+            delta,
+          };
+        }
+      }
+    }
+
+    const snap: Placement = { ...gridSnap };
+    const guides: AlignGuide[] = [];
+    if (bestX) {
+      snap.col = colFromLeft(bestX.targetLeft);
+      guides.push({ orient: 'v', pos: bestX.pos, start: bestX.start, end: bestX.end });
+    }
+    if (bestY) {
+      snap.row = rowFromTop(bestY.targetTop);
+      guides.push({ orient: 'h', pos: bestY.pos, start: bestY.start, end: bestY.end });
+    }
+    return { snap: clampPlacement(snap), guides };
+  };
+
   /** After a drop, push the block clear of any it overlaps — the spacing rule.
    *  Nesting is exempt: a child inside a container, and the blocks it shares a
    *  container with, are not shoved — containment is deliberate overlap. */
@@ -718,9 +800,14 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     if (!rect) return;
     const left = (e.clientX - rect.left) / scale - d.grabDx;
     const top = (e.clientY - rect.top) / scale - d.grabDy;
-    const snap = placementAt(e.clientX, e.clientY, d.grabDx, d.grabDy, target.placement.colSpan);
+    const gridSnap = placementAt(e.clientX, e.clientY, d.grabDx, d.grabDy, target.placement.colSpan);
     const height = heightsRef.current[target.id] ?? CELL;
-    setDragFree({ id: target.id, left, top, height, snap });
+    // A lone drag snaps to neighbours' edges/centres; a group drag moves rigidly.
+    const aligned =
+      d.group.length === 0
+        ? alignToNeighbours(target, gridSnap, left, top, new Set(descendantIds(blocks, target.id)))
+        : { snap: gridSnap, guides: [] as AlignGuide[] };
+    setDragFree({ id: target.id, left, top, height, snap: aligned.snap, guides: aligned.guides });
   };
 
   const onBlockUp = (e: React.PointerEvent) => {
@@ -1384,6 +1471,18 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                     );
                   })()
                 : null}
+              {dragFree?.guides.map((gd, i) => (
+                <div
+                  key={i}
+                  className={`ed-align-guide ed-align-guide-${gd.orient}`}
+                  style={
+                    gd.orient === 'v'
+                      ? { left: gd.pos, top: gd.start, height: gd.end - gd.start }
+                      : { top: gd.pos, left: gd.start, width: gd.end - gd.start }
+                  }
+                  aria-hidden="true"
+                />
+              ))}
               {marquee ? (
                 <div
                   className="ed-marquee"
@@ -1669,6 +1768,11 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
 
 /** Screen px the pointer must travel before a click becomes a drag. */
 const DRAG_THRESHOLD = 4;
+/** Artboard px within which a dragged edge/centre snaps to a neighbour's. */
+const ALIGN_TOL = 9;
+/** A live alignment line: `pos` is its fixed coordinate, `start`..`end` the
+ *  extent it spans across the two aligned blocks (all in artboard px). */
+type AlignGuide = { orient: 'v' | 'h'; pos: number; start: number; end: number };
 /** Padding around the artboard inside the scroll area, in screen px. */
 const CANVAS_PAD = 40;
 /** Cells of breathing room a container keeps around its contents when it fits. */

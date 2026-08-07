@@ -16,6 +16,7 @@
   --sel-soft: #e8efff;
   --grid-line: #c3d7fb;
   --guide-edge: #b9cdf6;
+  --align-guide: #f2489b;
   --danger: #c0392b;
 
   height: 100dvh;
@@ -449,6 +450,24 @@
   background: var(--sel-soft);
   opacity: 0.7;
   pointer-events: none;
+}
+
+/* Smart alignment guides: a thin line drawn while dragging when the block's
+   edge or centre lines up with a neighbour's, spanning both blocks. */
+.ed-align-guide {
+  position: absolute;
+  z-index: 30;
+  pointer-events: none;
+}
+.ed-align-guide-v {
+  width: 0;
+  border-left: 1px solid var(--align-guide);
+  transform: translateX(-0.5px);
+}
+.ed-align-guide-h {
+  height: 0;
+  border-top: 1px solid var(--align-guide);
+  transform: translateY(-0.5px);
 }
 
 /* A block with an explicit height clips to it. */
