@@ -8,20 +8,24 @@ import type { LayoutDocument } from '@/templates/layout';
 import './editor.css';
 import { fromLayoutDocument, toLayoutDocument } from './serialise';
 import {
+  GRID_KINDS,
   GRID_LABEL,
   GRID_TRACKS,
+  GUTTER_LABEL,
+  GUTTER_PX,
+  GUTTERS,
   PALETTE,
   clampPlacement,
   isContentBlock,
+  isGridKind,
+  isGutter,
   makeBlock,
   maxCol,
   type Block,
   type BlockKind,
   type GridKind,
+  type Gutter,
 } from './model';
-
-/** The grid's inter-track gap, in px — mirrors `--gap` / `gap` in editor.css. */
-const GRID_GAP = 12;
 
 /**
  * The canvas builder — first pass.
@@ -43,9 +47,13 @@ const GRID_GAP = 12;
  * template-agnostic record — and, on /try, is remembered in localStorage.
  */
 export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: string }) {
-  const [grid, setGrid] = useState<GridKind>('columns');
-  const [blocks, setBlocks] = useState<Block[]>(() => loadBlocks(storageKey, GRID_TRACKS.columns));
-  const [selectedId, setSelectedId] = useState<string | null>(blocks[0]?.id ?? null);
+  // Read the remembered layout and grid style once, synchronously (client-only;
+  // see the /try wrapper). Everything downstream initialises from it.
+  const [initial] = useState(() => loadInitial(storageKey));
+  const [grid, setGrid] = useState<GridKind>(initial.grid);
+  const [gutter, setGutter] = useState<Gutter>(initial.gutter);
+  const [blocks, setBlocks] = useState<Block[]>(initial.blocks);
+  const [selectedId, setSelectedId] = useState<string | null>(initial.blocks[0]?.id ?? null);
   /** The block being dragged and the column it is snapping to, live. */
   const [drag, setDrag] = useState<{ id: string; col: number } | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -58,11 +66,12 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   useEffect(() => {
     if (!storageKey) return;
     try {
-      window.localStorage.setItem(storageKey, JSON.stringify(toLayoutDocument(blocks)));
+      const payload = { layout: toLayoutDocument(blocks), grid, gutter };
+      window.localStorage.setItem(storageKey, JSON.stringify(payload));
     } catch {
       // Storage full or blocked — the layout simply isn't remembered.
     }
-  }, [blocks, storageKey]);
+  }, [blocks, grid, gutter, storageKey]);
 
   const reset = () => {
     if (storageKey) {
@@ -72,9 +81,11 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         // ignore — nothing to clear
       }
     }
-    const fresh = starterBlocks(GRID_TRACKS[grid]);
+    const fresh = starterBlocks(GRID_TRACKS.columns);
     setBlocks(fresh);
     setSelectedId(fresh[0]?.id ?? null);
+    setGrid('columns');
+    setGutter('cozy');
   };
 
   const tracks = GRID_TRACKS[grid];
@@ -110,7 +121,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     if (!el) return 1;
     const rect = el.getBoundingClientRect();
     // width = tracks·track + (tracks−1)·gap ⟹ track+gap = (width+gap)/tracks.
-    const step = (rect.width + GRID_GAP) / tracks;
+    const gap = GUTTER_PX[gutter];
+    const step = (rect.width + gap) / tracks;
     const col = Math.floor((clientX - rect.left) / step) + 1;
     return Math.max(1, Math.min(col, maxCol(span, tracks)));
   };
@@ -225,20 +237,40 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       {/* ── centre: canvas ─────────────────────────────────────────── */}
       <main className="ed-stage">
         <div className="ed-toolbar">
-          <div className="ed-grid-switch" role="group" aria-label="Grid type">
-            {(Object.keys(GRID_TRACKS) as GridKind[]).map((g) => (
-              <button
-                key={g}
-                type="button"
-                className="ed-chip"
-                aria-pressed={grid === g}
-                onClick={() => setGrid(g)}
-              >
-                {GRID_LABEL[g]}
-              </button>
-            ))}
+          <div className="ed-toolbar-field">
+            <span className="ed-toolbar-label">Grid</span>
+            <div className="ed-grid-switch" role="group" aria-label="Grid columns">
+              {GRID_KINDS.map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  className="ed-chip"
+                  aria-pressed={grid === g}
+                  title={`${GRID_TRACKS[g]} column${GRID_TRACKS[g] === 1 ? '' : 's'}`}
+                  onClick={() => setGrid(g)}
+                >
+                  {GRID_LABEL[g]}
+                </button>
+              ))}
+            </div>
           </div>
-          <span className="ed-toolbar-note">{tracks}-column grid</span>
+          <div className="ed-toolbar-field">
+            <span className="ed-toolbar-label">Gutter</span>
+            <div className="ed-grid-switch" role="group" aria-label="Gutter">
+              {GUTTERS.map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  className="ed-chip"
+                  aria-pressed={gutter === g}
+                  title={`${GUTTER_PX[g]}px`}
+                  onClick={() => setGutter(g)}
+                >
+                  {GUTTER_LABEL[g]}
+                </button>
+              ))}
+            </div>
+          </div>
           <button type="button" className="ed-btn ed-toolbar-reset" onClick={reset}>
             Reset
           </button>
@@ -250,7 +282,10 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
             <div
               ref={gridRef}
               className={`ed-grid ed-grid-${grid}`}
-              style={{ ['--tracks' as string]: String(tracks) }}
+              style={{
+                ['--tracks' as string]: String(tracks),
+                ['--gap' as string]: `${GUTTER_PX[gutter]}px`,
+              }}
             >
               {blocks.map((block) => {
                 const { col, span } = clampPlacement(block.placement, tracks);
@@ -407,25 +442,49 @@ const GLYPH: Record<BlockKind, string> = {
   contact: '✦',
 };
 
+type EditorInit = { blocks: Block[]; grid: GridKind; gutter: Gutter };
+
 /**
- * The blocks to open with: a stored layout if one is remembered under
- * `storageKey`, else the starter. Reads synchronously and only makes sense on
- * the client — the editor is mounted client-only so this never runs on the
- * server or disagrees with a hydrated render.
+ * The blocks and grid style to open with: a remembered session if one is stored
+ * under `storageKey`, else the defaults. Reads synchronously and only makes
+ * sense on the client — the editor is mounted client-only, so this never runs
+ * on the server or disagrees with a hydrated render.
+ *
+ * Forgiving of shape: an older payload that is a bare `LayoutDocument` (with a
+ * `nodes` array) is still read as the layout, and an unknown grid or gutter
+ * falls back to its default.
  */
-function loadBlocks(storageKey: string | undefined, tracks: number): Block[] {
+function loadInitial(storageKey: string | undefined): EditorInit {
+  const fallback: EditorInit = {
+    blocks: starterBlocks(GRID_TRACKS.columns),
+    grid: 'columns',
+    gutter: 'cozy',
+  };
   if (storageKey && typeof window !== 'undefined') {
     try {
       const raw = window.localStorage.getItem(storageKey);
       if (raw) {
-        const restored = fromLayoutDocument(JSON.parse(raw) as LayoutDocument);
-        if (restored.length > 0) return restored;
+        const parsed = JSON.parse(raw) as {
+          layout?: LayoutDocument;
+          nodes?: unknown;
+          grid?: unknown;
+          gutter?: unknown;
+        };
+        const layout = Array.isArray(parsed.nodes)
+          ? (parsed as LayoutDocument) // legacy: the payload was the document itself
+          : (parsed.layout ?? null);
+        const blocks = fromLayoutDocument(layout);
+        return {
+          blocks: blocks.length > 0 ? blocks : fallback.blocks,
+          grid: isGridKind(parsed.grid) ? parsed.grid : fallback.grid,
+          gutter: isGutter(parsed.gutter) ? parsed.gutter : fallback.gutter,
+        };
       }
     } catch {
-      // Malformed or unavailable storage: fall through to the starter.
+      // Malformed or unavailable storage: fall through to the defaults.
     }
   }
-  return starterBlocks(tracks);
+  return fallback;
 }
 
 function starterBlocks(tracks: number): Block[] {

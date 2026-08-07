@@ -82,24 +82,79 @@ export type Block = {
 };
 
 /**
- * The grid the canvas snaps to. More columns = finer control, which is the
- * "different grid types for different levels of customizability" idea: `stack`
- * is one lane (reorder only, hardest to break), `columns` is a 12-track editorial
- * grid, `fine` is a 24-track grid for close work.
+ * The grid the canvas snaps to — a ramp from coarse and hard-to-break to fine
+ * and freely arrangeable, the "different grid types for different levels of
+ * customizability" idea. `stack` is one lane (reorder only); `halves`, `thirds`
+ * and `quarters` are the everyday editorial splits; `grid` is a comfortable
+ * 6-track; `columns` is the classic 12; `fine` is 24 tracks for close work.
+ *
+ * Because placement re-settles against whatever grid is active (`clampPlacement`),
+ * switching between these never breaks a layout — a block just re-fits.
  */
-export type GridKind = 'stack' | 'columns' | 'fine';
+export type GridKind = 'stack' | 'halves' | 'thirds' | 'quarters' | 'grid' | 'columns' | 'fine';
 
 export const GRID_TRACKS: Record<GridKind, number> = {
   stack: 1,
+  halves: 2,
+  thirds: 3,
+  quarters: 4,
+  grid: 6,
   columns: 12,
   fine: 24,
 };
 
 export const GRID_LABEL: Record<GridKind, string> = {
   stack: 'Stack',
+  halves: 'Halves',
+  thirds: 'Thirds',
+  quarters: 'Quarters',
+  grid: 'Grid',
   columns: 'Columns',
   fine: 'Fine',
 };
+
+/** The order the grid presets appear in the toolbar, coarse → fine. */
+export const GRID_KINDS: readonly GridKind[] = [
+  'stack',
+  'halves',
+  'thirds',
+  'quarters',
+  'grid',
+  'columns',
+  'fine',
+];
+
+export function isGridKind(value: unknown): value is GridKind {
+  return typeof value === 'string' && (GRID_KINDS as readonly string[]).includes(value);
+}
+
+/**
+ * The gutter — the space between tracks and rows — is the other half of a grid's
+ * style. The same columns read very differently tight versus roomy, so it is its
+ * own control rather than a fixed constant.
+ */
+export type Gutter = 'flush' | 'tight' | 'cozy' | 'roomy';
+
+/** Gutter widths in pixels. Geometry, so it lives here as data, not in a component. */
+export const GUTTER_PX: Record<Gutter, number> = {
+  flush: 0,
+  tight: 6,
+  cozy: 12,
+  roomy: 24,
+};
+
+export const GUTTER_LABEL: Record<Gutter, string> = {
+  flush: 'Flush',
+  tight: 'Tight',
+  cozy: 'Cozy',
+  roomy: 'Roomy',
+};
+
+export const GUTTERS: readonly Gutter[] = ['flush', 'tight', 'cozy', 'roomy'];
+
+export function isGutter(value: unknown): value is Gutter {
+  return typeof value === 'string' && (GUTTERS as readonly string[]).includes(value);
+}
 
 /** Whether a block draws its own content from the Issue rather than free text. */
 export function isContentBlock(kind: BlockKind): boolean {
