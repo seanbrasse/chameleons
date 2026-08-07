@@ -137,6 +137,15 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(block && 'font' in block).toBe(false);
   });
 
+  it('round-trips a text colour, and drops a non-string one', () => {
+    const coloured: Block[] = [
+      { id: 'h', kind: 'heading', label: 'Heading', color: 'tomato', placement: { col: 1, colSpan: 8, row: 1 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(coloured))).toEqual(coloured);
+    const [block] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'text', color: 123 } }]));
+    expect(block && 'color' in block).toBe(false);
+  });
+
   it('round-trips a well-formed animation', () => {
     const animated: Block[] = [
       { id: 'c', kind: 'card', label: 'Card', animation: { effect: 'rise', trigger: 'scroll' }, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },

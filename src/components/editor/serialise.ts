@@ -54,6 +54,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           ...(block.scale !== undefined && block.scale !== 1 ? { scale: block.scale } : {}),
           ...(block.align !== undefined ? { align: block.align } : {}),
           ...(block.font !== undefined ? { font: block.font } : {}),
+          ...(block.color !== undefined ? { color: block.color } : {}),
           ...(block.text !== undefined ? { text: block.text } : {}),
         },
       };
@@ -101,6 +102,7 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     }
     if (isTextAlign(props.align)) block.align = props.align;
     if (isFontChoice(props.font)) block.font = props.font;
+    if (typeof props.color === 'string') block.color = props.color;
     if (typeof props.text === 'string') block.text = props.text;
     blocks.push(block);
   }
