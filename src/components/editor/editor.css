@@ -422,6 +422,29 @@
   width: 100%;
 }
 
+.ed-field select {
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  width: 100%;
+  cursor: pointer;
+}
+
+.ed-field select:focus {
+  outline: 2px solid var(--sel-soft);
+  border-color: var(--sel);
+}
+
+/* A text block bound to a multi-line source (education, experience) keeps its
+   line breaks. */
+.pv-text-bound {
+  white-space: pre-line;
+}
+
 .ed-field-static {
   font-size: 13px;
   color: var(--ink-soft);

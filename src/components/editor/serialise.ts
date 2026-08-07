@@ -20,7 +20,7 @@
 import type { LayoutDocument, LayoutNode } from '@/templates/layout';
 
 import { LAYOUT_VERSION } from '@/templates/layout';
-import { isBlockKind, type Block } from './model';
+import { isBlockKind, isContentSource, type Block } from './model';
 
 /** Serialise the canvas to a storable document. */
 export function toLayoutDocument(blocks: Block[]): LayoutDocument {
@@ -36,6 +36,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           colSpan: block.placement.colSpan,
           row: block.placement.row,
           ...(block.placement.rowSpan !== undefined ? { rowSpan: block.placement.rowSpan } : {}),
+          ...(block.source ? { source: block.source } : {}),
           ...(block.text !== undefined ? { text: block.text } : {}),
         },
       };
@@ -72,6 +73,7 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
       block.placement.rowSpan = Math.floor(props.rowSpan);
     }
     if (node.hidden) block.hidden = true;
+    if (isContentSource(props.source)) block.source = props.source;
     if (typeof props.text === 'string') block.text = props.text;
     blocks.push(block);
   }
