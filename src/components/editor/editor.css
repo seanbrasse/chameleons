@@ -540,6 +540,97 @@
   color: var(--ink-soft);
 }
 
+/* ── interactive timeline scrubber (Preview) ──────────────────────── */
+
+.pv-scrub {
+  position: relative;
+  padding: 6px 0 4px;
+}
+
+.pv-scrub-stops {
+  position: relative;
+  height: 40px;
+}
+
+.pv-scrub-stop {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.pv-scrub-logo {
+  height: 28px;
+  width: auto;
+  max-width: 68px;
+  object-fit: contain;
+}
+
+.pv-scrub-co {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.pv-scrub-track {
+  position: relative;
+  height: 20px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.pv-scrub-track::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--line);
+}
+
+.pv-scrub-tick {
+  position: absolute;
+  top: 50%;
+  width: 1px;
+  height: 8px;
+  transform: translate(-50%, -50%);
+  background: var(--line);
+}
+
+.pv-scrub-head {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--danger);
+  box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.18);
+  transition: left 0.12s ease;
+}
+
+.pv-scrub-years {
+  position: relative;
+  height: 16px;
+  margin-top: 3px;
+}
+
+.pv-scrub-year {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
 .pv-list {
   margin: 0;
   padding-left: 16px;
