@@ -17,3 +17,4 @@ blob-report/
 .DS_Store
 *.pem
 npm-debug.log*
+prototypes/**/out.html

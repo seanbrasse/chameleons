@@ -158,6 +158,39 @@ media pipeline, and images are the most requested customization. The upload
 *gate* and EXIF stripping already exist (`server/domain/upload.ts`,
 `image-metadata.ts`); what remains is storage + service + UI.
 
+## Stage 0 result — the re-skin assumption, tested
+
+Run: `prototypes/stage0/` renders one content set three ways — the Dossier tree
+under the Dossier skin, the *same tree* under the Byline skin, and the Byline
+tree under the Byline skin.
+
+**Finding, two halves:**
+
+- **The component model works.** Both designs are expressible from the same four
+  primitives (`stack`/`grid`/`text`/`section` + tokens) and each reads as
+  intentional. Green light for the kit and the constraint canvas (Stage 1).
+- **A re-skin does not become another template.** The re-skinned Dossier tree
+  keeps Dossier's structural signature (margin sidenotes, metrics wall) and just
+  repaints it — it looks like *Dossier in Byline's colours*, not like Byline.
+  Byline's identity is its structure, which no token swap reaches.
+
+**So pure C does not hold, and the recorded decision refines to a hybrid** (still
+most of what C wanted):
+
+- A template is a **tree + a skin**; different templates are different *trees*,
+  not one tree repainted.
+- **Skin customization** (colour/font/spacing) is the always-portable,
+  low-risk layer — it re-skins cleanly every time and is a large surface on its
+  own.
+- **Structural customization** ports **within a family** (designs that share a
+  tree/slots) and **falls back to content** across families. Content ports
+  everywhere.
+- In one line: **C within a family, B across families, content everywhere.**
+
+This refinement awaits Sean's ratification; the staged plan above is unchanged
+(Stage 1 still builds the kit + canvas), only the portability claim is corrected
+from "any template re-skins any layout" to the family model.
+
 ## Open questions
 
 - Can the IR express the current designs' character (Timeline's no-scroll frame,
