@@ -4,30 +4,38 @@ _A design decision, recorded so the next person can tell a faithful build from a
 drift. Complements `DIRECTION.md` (the PRD) — this is the "how the editor works
 and why" that §7's customization line points at._
 
-## The decision
+## The decision (ratified — Sean, 2026-08-07)
 
-Templates become **skins over a shared component tree**. A portfolio is a tree
-of components the user owns; a template is a *skin* — tokens plus per-component
-styling — that renders that tree. True, pixel-pushing-*feel* customization is
-delivered through a **constraint-based canvas** (grid + spacing, never
-coordinates), and because an edit changes the shared tree rather than one
-template's markup, **switching template re-skins the same layout** instead of
-throwing it away.
+**Pixel-pushing customization, per template, with only the data portable.**
 
-This is option **C** of the three we weighed. The other two are the fallback if
-C's one load-bearing assumption fails (below):
+- The user can genuinely re-lay-out their portfolio — move, add, remove, resize
+  and restyle components — on the template they chose. Real structural
+  customization, not a fixed design with a few knobs.
+- **Templates serve categories.** Each is its own design for its own kind of
+  person (engineer, designer, writer, student…); they do not share one component
+  tree and are not required to converge.
+- **Data ports; structure does not.** The `Issue` — the person's words,
+  projects, dates, links — travels between templates as it always has. A custom
+  *layout* stays with the template it was built on. Switching template keeps your
+  content and gives you the new template's structure; your old custom layout does
+  not come along, and that is accepted.
 
-- **A — customization forks the template.** Deep edits make *your* design;
-  content still ports, layout does not. Simple and cheap; loses one-click
-  restyle the moment someone customizes.
-- **B — "template-agnostic" is a stage, not a permanent guarantee.**
-  Portability sells the *start* (résumé → try every design); customization sells
-  the *depth* ("now make it yours"). They stop competing by being sequential.
+The promise, in one line: **your words are portable; your layout is
+yours-on-this-template.**
 
-C is the ambitious form of the product vision (real customization *and* real
-portability). We build toward it, but we **prove its assumption in a Stage-0
-prototype before committing** — and if the prototype disproves it, we ship B,
-with A's semantics for the deeply-customized, and lose nothing already built.
+### How we got here (superseded framings)
+
+The earlier draft of this doc proposed option **C** — "templates are skins over
+one shared component tree, so switching template re-skins the same layout." The
+Stage-0 prototype (below) disproved its load-bearing assumption: a re-skin varies
+paint, not structure, so one tree cannot become a different template. Two
+fallbacks were on the table — **A** (customization forks the template) and **B**
+("template-agnostic" is a *stage*: portability sells the start, customization the
+depth). The ratified decision is essentially **B for portability + full
+structural (pixel-pushing) customization per template**: don't try to port
+structure at all, keep the data promise absolute, and let each template be as
+bespoke as its category needs. This is simpler and more honest than C, and it is
+what the Stage-0 evidence actually supports.
 
 ## Why this shape and not a free-form canvas
 
@@ -97,66 +105,69 @@ auto-layout's lesson, and Webflow's, and Framer's.
   already does for `manifest.options`: an override the target skin understands is
   applied; one it does not is kept inert and restored if you switch back.
 
-## Portability rules (concrete)
+## Portability rules (concrete, ratified)
 
-- **Content (`Issue`) always ports.** Unchanged from today.
-- **The layout tree ports.** A skin that lacks a given composite falls back to a
-  **foundational rendering of the same bound content** — never a blank. (A skin
-  with no `TimelineRail` still renders the experiences as a `Stack` of entries.)
-- **Per-node skin overrides port by semantic slot** where the target understands
-  them (accent, font role, "compact", "hidden"), inert otherwise.
-- **"Switch template"** keeps the tree and swaps the skin. **"Reset to template"**
-  discards overrides and returns to the skin's default composition.
+- **Content (`Issue`) always ports.** Unchanged from today, and now the *only*
+  portability guarantee — which is why content export (download your `Issue`)
+  matters and shipped.
+- **A custom layout does not port.** It belongs to the template it was built on.
+- **"Switch template"** keeps your content and renders it in the target
+  template's **default** layout; any customization you made on the previous
+  template is set aside (kept against a later return, not carried across).
+- **"Reset"** on a template returns it to that template's default layout.
 
-## What this changes — the honest cost
+So there is no cross-template layout mapping to build or get subtly wrong. The
+data is the contract; the layout is the template's, made yours by editing it.
 
-§6 shifts. Today: *"templates share a floor, not a design system."* Under C:
-**"templates share a component system *and* a floor; the design lives in the
-skin."** That is a philosophical change, not a refactor, and it has a price:
+## What this changes — §6
 
-- **Templates converge somewhat.** Today's designs differ in *structure*, not
-  just paint — Timeline is one screen that does not scroll, Folio is full-bleed
-  plates, Curriculum is citation lines. A shared tree pushes range toward *tokens
-  + composition* and away from bespoke DOM. We keep a lot of range, but not all
-  of it for free.
-- **The load-bearing assumption:** *the same component tree, re-skinned, looks
-  intentional rather than "the same page repainted."* If that is false, C
-  produces mush. **This is why Stage 0 exists — to test exactly this before we
-  commit.**
-- **Some designs may stay bespoke.** It is legitimate to keep a class of
-  **"classic" templates** that are hand-built and *not* canvas-editable
-  (you can still swap your content into them, B-style), alongside **"editable"
-  templates** on the component system. The line is a product call, made after the
-  prototype.
+Today: *"templates share a floor, not a design system."* Ratified: **templates
+share a floor and a content contract (`Issue`); the design and its layout are the
+template's own, and the user edits that layout directly.** The anti-slop lint
+(§20.3) that forbids a shared UI library still stands *between templates* — they
+stay independent — but a template may now expose its **own** components as
+editable units. The floor stays the hard invariant, enforced live in the editor
+rather than only in CI.
 
-## The escape hatch (unchanged)
+Two honest consequences:
 
-For the person who genuinely wants out of the system — real pixel-pushing, custom
-code — the answer is `DIRECTION.md` §7's ownership tier: **custom CSS
-(floor-gated) → sandboxed blocks → unrestricted code on your own domain.** There,
-the floor and portability are waived *by explicit choice*, on the user's own
-domain. This keeps the core clean and portable while giving power users a clearly
-marked door.
+- **The editor is per-template.** Each template defines which of its components
+  are movable/editable and how; there is no universal canvas that magically edits
+  every design. More work per template, but each stays true to its category.
+- **"It'll always look good" is now the floor's job, not the layout's.**
+  Grid-snapping and spacing tokens keep a custom layout *tidy*; the live floor
+  (contrast, size, heading order, reading order) and the advisor keep it
+  *usable*. A user can still make choices we would not — that is the point of
+  pixel-pushing — but they cannot cross the floor.
 
-## Staged plan (each stage ships or teaches on its own)
+## The escape hatch (still there, further out)
 
-0. **Foundation + proof.** Define the foundational component set and the
-   grid/spacing token scale. Rebuild **one** existing template on it — Dossier,
-   the simplest (text-only, no images) — and **skin the same tree two ways**
-   (Dossier tokens vs Byline tokens). Decisive and cheap: it answers "can the
-   component model even express our current designs?" and "does a re-skin hold
-   up?" before any editor exists.
-1. **Constraint canvas on one template.** Move / add / remove / restyle within
-   the grid; the floor enforced live; the advisor warning in place. Deep
-   customization *forks* at this stage (no portability claim yet). Ships real
-   customization value immediately.
-2. **Portable IR + re-skin** across two or three templates — the C payoff. Only
-   if Stage 0 earned it.
+Beyond even per-template pixel-pushing, `DIRECTION.md` §7's ownership tier —
+**custom CSS (floor-gated) → sandboxed blocks → unrestricted code on your own
+domain** — remains for people who want out of the system entirely. Same
+principle: the floor is waived only by explicit choice, on the user's own domain.
 
-Throughout, **uploads (#32) come first**: the canvas's "add an image" needs the
-media pipeline, and images are the most requested customization. The upload
-*gate* and EXIF stripping already exist (`server/domain/upload.ts`,
-`image-metadata.ts`); what remains is storage + service + UI.
+## Staged plan (ratified)
+
+0. **Foundation proof — done.** `prototypes/stage0/` showed the component model
+   can express our designs and that a re-skin does not become another template.
+   That is what pointed us at "data portable, structure not."
+1. **The layout document + render-from-layout, on one template.** Give a template
+   a serialisable **layout** (a tree of its components, their arrangement and
+   per-node props) stored per-site, and have the template render *from* that
+   layout when present, its hardcoded default otherwise. This is the spine
+   everything else hangs on, and it ships value on day one as a set of structured
+   controls (reorder sections, show/hide, pick a component variant) before any
+   drag exists.
+2. **The constraint canvas.** Select a component on the live preview, move it on
+   the grid, resize/restyle it, add/remove — grid-snapped, spacing-token-bound,
+   floor enforced live, advisor in place. Editing the same layout document.
+3. **Widen.** More editable templates; a component palette; per-node style
+   controls (the always-safe skin layer — colour, font, spacing).
+
+Uploads (#32) are **done**, so the canvas's "add an image" already has its
+pipeline. Content export is **done**, so the data-portability promise is real
+before the structural editing that leans on it.
 
 ## Stage 0 result — the re-skin assumption, tested
 
@@ -174,30 +185,29 @@ tree under the Byline skin.
   repaints it — it looks like *Dossier in Byline's colours*, not like Byline.
   Byline's identity is its structure, which no token swap reaches.
 
-**So pure C does not hold, and the recorded decision refines to a hybrid** (still
-most of what C wanted):
+**So pure C does not hold.** A token re-skin varies paint, not structure, and a
+design's identity is its structure — so one tree cannot be made into a different
+template by swapping tokens.
 
-- A template is a **tree + a skin**; different templates are different *trees*,
-  not one tree repainted.
-- **Skin customization** (colour/font/spacing) is the always-portable,
-  low-risk layer — it re-skins cleanly every time and is a large surface on its
-  own.
-- **Structural customization** ports **within a family** (designs that share a
-  tree/slots) and **falls back to content** across families. Content ports
-  everywhere.
-- In one line: **C within a family, B across families, content everywhere.**
-
-This refinement awaits Sean's ratification; the staged plan above is unchanged
-(Stage 1 still builds the kit + canvas), only the portability claim is corrected
-from "any template re-skins any layout" to the family model.
+Sean's ratified call (see "The decision", above) takes the simplest thing the
+evidence supports: **don't port structure at all.** Each template is its own
+category design, the user pixel-pushes it, and only the data (`Issue`) travels
+between templates. A brief "families" idea — structure porting within a group of
+related templates — was considered and dropped as more machinery than it earns;
+if two templates ever *do* want to share editable structure, that is an
+optimisation to add later, not a guarantee to design around now.
 
 ## Open questions
 
-- Can the IR express the current designs' character (Timeline's no-scroll frame,
-  Folio's plate rhythm), or do those become "classic" non-editable templates?
-- **Motion/animation** as a portable, floor-safe, token-driven property rather
-  than a per-node effect that breaks on re-skin or reduced-motion.
-- Live WYSIWYG re-skin **performance** with a real tree.
+- **Where the layout document lives.** A new column on `sites` vs an extension of
+  `customization`; how it versions independently of `template_version`; how a
+  published snapshot captures it (publishing already snapshots the whole render).
+- **Which components each template exposes as editable**, and at what
+  granularity — a section, a card, a text run. Start coarse (sections), refine.
+- **Motion/animation** as a floor-safe, token-driven, reduced-motion-respecting
+  property, editable without letting a user make something that fails the floor.
+- **Live-editor performance** re-rendering a real tree on every drag.
 - **Migration** of already-published sites: `template_version` pinning exists
-  (§22.2), but a move from bespoke templates to the component system is a schema
-  step that needs its own plan and its own changelog.
+  (§22.2); a template gaining a layout document is additive (absent ⇒ its
+  hardcoded default), so existing sites need no migration — but this wants its
+  own changelog note when it lands.
