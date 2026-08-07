@@ -270,6 +270,30 @@
   z-index: 5;
 }
 
+/* Side handles for resizing a selected block's width. */
+.ed-handle {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 36px;
+  transform: translateY(-50%);
+  background: var(--sel);
+  border: 2px solid #fff;
+  border-radius: 5px;
+  cursor: ew-resize;
+  touch-action: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  z-index: 6;
+}
+
+.ed-handle-w {
+  left: -6px;
+}
+
+.ed-handle-e {
+  right: -6px;
+}
+
 .ed-block-tag {
   position: absolute;
   top: -9px;

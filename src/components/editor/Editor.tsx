@@ -81,6 +81,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     startX: number;
     startY: number;
   } | null>(null);
+  /** The live resize session: which block edge is being dragged. */
+  const resizeRef = useRef<{ id: string; edge: 'w' | 'e'; pointerId: number } | null>(null);
   /** Measured block heights in artboard px, by id — for spacing/placement. */
   const heightsRef = useRef<Record<string, number>>({});
 
@@ -268,6 +270,48 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     if (moved) resolveOverlap(block.id);
   };
 
+  // ── resize (drag a side handle to change width) ─────────────────────
+  const onHandleDown = (e: React.PointerEvent, block: Block, edge: 'w' | 'e') => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    setSelectedId(block.id);
+    resizeRef.current = { id: block.id, edge, pointerId: e.pointerId };
+    setArranging(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onHandleMove = (e: React.PointerEvent, block: Block) => {
+    const r = resizeRef.current;
+    if (!r || r.id !== block.id) return;
+    const rect = artboardRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const ax = (e.clientX - rect.left) / scale;
+    // The grid line nearest the pointer, counted in columns from the content
+    // edge (0-based). A block on col..col+colSpan meets lines col-1 and col-1+colSpan.
+    const line = Math.round((ax - ARTBOARD.margin) / colStep);
+    const p = clampPlacement(block.placement, tracks);
+    if (r.edge === 'e') {
+      const colSpan = Math.max(1, Math.min(tracks - p.col + 1, line - (p.col - 1)));
+      setPlacement(block.id, { ...p, colSpan });
+    } else {
+      const right = p.col + p.colSpan; // fixed right edge, as a 1-based line
+      const col = Math.max(1, Math.min(right - 1, line + 1));
+      setPlacement(block.id, { ...p, col, colSpan: right - col });
+    }
+  };
+
+  const onHandleUp = (e: React.PointerEvent, block: Block) => {
+    const r = resizeRef.current;
+    if (!r || r.id !== block.id) return;
+    try {
+      e.currentTarget.releasePointerCapture(r.pointerId);
+    } catch {
+      // capture may already be gone
+    }
+    resizeRef.current = null;
+    setArranging(false);
+  };
+
   // ── keyboard ────────────────────────────────────────────────────────
   const onBlockKey = (e: React.KeyboardEvent, block: Block) => {
     if (editingId === block.id) return;
@@ -443,6 +487,24 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                       onText={(text) => update(block.id, { text })}
                       onEditEnd={() => setEditingId(null)}
                     />
+                    {block.id === selectedId && editingId !== block.id && tracks > 1 ? (
+                      <>
+                        <span
+                          className="ed-handle ed-handle-w"
+                          aria-hidden="true"
+                          onPointerDown={(e) => onHandleDown(e, block, 'w')}
+                          onPointerMove={(e) => onHandleMove(e, block)}
+                          onPointerUp={(e) => onHandleUp(e, block)}
+                        />
+                        <span
+                          className="ed-handle ed-handle-e"
+                          aria-hidden="true"
+                          onPointerDown={(e) => onHandleDown(e, block, 'e')}
+                          onPointerMove={(e) => onHandleMove(e, block)}
+                          onPointerUp={(e) => onHandleUp(e, block)}
+                        />
+                      </>
+                    ) : null}
                   </div>
                 );
               })}
