@@ -629,6 +629,19 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     setBlocks((bs) => bs.map((b) => (b.id === id ? withoutParent(b) : b)));
   };
 
+  /** Restack a block (and its subtree) to the front or back — top-level paint
+   *  order is the array order among roots, so moving the subtree changes which
+   *  overlapping block wins. The subtree keeps its own internal order. */
+  const restack = (id: string, toFront: boolean) => {
+    snapshot(true);
+    setBlocks((bs) => {
+      const kin = descendantIds(bs, id);
+      const moving = bs.filter((b) => b.id === id || kin.has(b.id));
+      const rest = bs.filter((b) => !(b.id === id || kin.has(b.id)));
+      return toFront ? [...rest, ...moving] : [...moving, ...rest];
+    });
+  };
+
   // ── geometry ────────────────────────────────────────────────────────
   /** A placement's on-artboard box in artboard px. `height` is set only when the
    *  block has an explicit `rowSpan`; otherwise it sizes to its content. */
@@ -1975,6 +1988,14 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               />
               <span>Visible</span>
             </label>
+
+            <div className="ed-field">
+              <span className="ed-field-label">Layer</span>
+              <div className="ed-arrange">
+                <button type="button" className="ed-arrange-btn" title="Bring to front" aria-label="Bring to front" onClick={() => restack(selected.id, true)}>⤒</button>
+                <button type="button" className="ed-arrange-btn" title="Send to back" aria-label="Send to back" onClick={() => restack(selected.id, false)}>⤓</button>
+              </div>
+            </div>
 
             <div className="ed-props-actions">
               <button type="button" className="ed-btn" onClick={() => duplicateSelection()}>
