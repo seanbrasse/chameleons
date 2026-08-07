@@ -36,6 +36,15 @@ describe('clampPlacement', () => {
   it('never returns a column, span or row below 1', () => {
     expect(clampPlacement({ col: 0, colSpan: 0, row: -3 }, 12)).toEqual({ col: 1, colSpan: 1, row: 1 });
   });
+
+  it('leaves rowSpan absent when the placement has none (auto height)', () => {
+    expect('rowSpan' in clampPlacement({ col: 1, colSpan: 4, row: 2 }, 12)).toBe(false);
+  });
+
+  it('keeps an explicit rowSpan and clamps it to the remaining rows', () => {
+    expect(clampPlacement({ col: 1, colSpan: 4, row: 3, rowSpan: 5 }, 12)).toMatchObject({ rowSpan: 5 });
+    expect(clampPlacement({ col: 1, colSpan: 4, row: 3, rowSpan: 0 }, 12).rowSpan).toBe(1);
+  });
 });
 
 describe('maxCol', () => {

@@ -74,10 +74,11 @@ export const GRID_ROWS = Math.floor((ARTBOARD.height - ARTBOARD.margin * 2) / AR
 
 /**
  * Placement on the canvas: a column band (`col`..`col+colSpan`) across the
- * active grid, and a `row` for the top edge on the vertical snap grid. Height is
- * the block's own content — a block is placed, not sized to a cell.
+ * active grid and a `row` for the top edge on the vertical snap grid. Height is
+ * the block's own content by default; an explicit `rowSpan` (in row units) is
+ * set only once the owner resizes it vertically or from a corner.
  */
-export type Placement = { col: number; colSpan: number; row: number };
+export type Placement = { col: number; colSpan: number; row: number; rowSpan?: number };
 
 function clamp(min: number, max: number, value: number): number {
   return Math.max(min, Math.min(max, value));
@@ -86,15 +87,20 @@ function clamp(min: number, max: number, value: number): number {
 /**
  * Settle a placement onto a grid of `tracks` columns so it can never fall out
  * of bounds: the span is clamped to the grid, the start column is pulled back so
- * the block ends on or before the last track, and the row is kept on the page.
- * This is what makes the canvas break-proof — a placement saved against a finer
- * grid, or dragged past an edge, resolves to something that still fits.
+ * the block ends on or before the last track, the row is kept on the page, and
+ * an explicit height (`rowSpan`) is kept within the remaining rows. This is what
+ * makes the canvas break-proof — a placement saved against a finer grid, or
+ * dragged past an edge, resolves to something that still fits.
  */
 export function clampPlacement(placement: Placement, tracks: number): Placement {
   const colSpan = clamp(1, tracks, Math.round(placement.colSpan));
   const col = clamp(1, tracks - colSpan + 1, Math.round(placement.col));
   const row = clamp(1, GRID_ROWS, Math.round(placement.row));
-  return { col, colSpan, row };
+  const out: Placement = { col, colSpan, row };
+  if (placement.rowSpan !== undefined) {
+    out.rowSpan = clamp(1, GRID_ROWS - row + 1, Math.round(placement.rowSpan));
+  }
+  return out;
 }
 
 /** The last column a block of `span` may start on within `tracks` columns. */

@@ -58,6 +58,17 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(block?.placement).toEqual({ col: 2, colSpan: 4, row: 1 });
   });
 
+  it('round-trips an explicit rowSpan, and omits it when absent', () => {
+    const withHeight: Block = {
+      id: 'h', kind: 'image', label: 'Image', placement: { col: 1, colSpan: 4, row: 2, rowSpan: 6 },
+    };
+    expect(fromLayoutDocument(toLayoutDocument([withHeight]))[0]?.placement).toEqual({
+      col: 1, colSpan: 4, row: 2, rowSpan: 6,
+    });
+    const [auto] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'text', col: 1, colSpan: 2, row: 1 } }]));
+    expect(auto && 'rowSpan' in auto.placement).toBe(false);
+  });
+
   it('coerces malformed placement values back into bounds', () => {
     const [block] = fromLayoutDocument(
       doc([{ id: 'a', props: { kind: 'text', col: 0, colSpan: -4, row: 0 } }]),
