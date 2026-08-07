@@ -156,6 +156,25 @@ export function isGutter(value: unknown): value is Gutter {
   return typeof value === 'string' && (GUTTERS as readonly string[]).includes(value);
 }
 
+/**
+ * How the grid itself is drawn behind the blocks — the same columns feel
+ * different under a ruled grid, a dotted one, or none at all. Purely a guide;
+ * it changes nothing about placement.
+ */
+export type Guide = 'lines' | 'dots' | 'off';
+
+export const GUIDE_LABEL: Record<Guide, string> = {
+  lines: 'Lines',
+  dots: 'Dots',
+  off: 'Off',
+};
+
+export const GUIDES: readonly Guide[] = ['lines', 'dots', 'off'];
+
+export function isGuide(value: unknown): value is Guide {
+  return typeof value === 'string' && (GUIDES as readonly string[]).includes(value);
+}
+
 /** Whether a block draws its own content from the Issue rather than free text. */
 export function isContentBlock(kind: BlockKind): boolean {
   return (

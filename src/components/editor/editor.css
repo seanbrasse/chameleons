@@ -199,8 +199,11 @@
   display: grid;
   grid-template-columns: repeat(var(--tracks), minmax(0, 1fr));
   gap: var(--gap, 12px);
-  /* The grid the blocks snap to, drawn faintly behind them. The period accounts
-     for the gutter so the lines sit on the track starts at any spacing. */
+}
+
+/* How the grid is drawn behind the blocks. The horizontal period accounts for
+   the gutter so a mark sits on each track start at any spacing. */
+.ed-guide-lines {
   background-image: repeating-linear-gradient(
     to right,
     var(--grid-line) 0,
@@ -210,7 +213,13 @@
   );
 }
 
-.ed-grid-stack {
+.ed-guide-dots {
+  background-image: radial-gradient(var(--grid-line) 1.2px, transparent 1.2px);
+  background-size: calc((100% + var(--gap, 12px)) / var(--tracks)) 26px;
+  background-position: 0 13px;
+}
+
+.ed-guide-off {
   background-image: none;
 }
 

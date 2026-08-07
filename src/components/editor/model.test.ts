@@ -4,6 +4,7 @@ import {
   clampPlacement,
   isBlockKind,
   isGridKind,
+  isGuide,
   isGutter,
   maxCol,
 } from './model';
@@ -57,5 +58,12 @@ describe('validation guards', () => {
     expect(isGutter('roomy')).toBe(true);
     expect(isGutter('flush')).toBe(true);
     expect(isGutter('huge')).toBe(false);
+  });
+
+  it('isGuide', () => {
+    expect(isGuide('lines')).toBe(true);
+    expect(isGuide('dots')).toBe(true);
+    expect(isGuide('off')).toBe(true);
+    expect(isGuide('grid')).toBe(false);
   });
 });
