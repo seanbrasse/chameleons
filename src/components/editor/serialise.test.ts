@@ -112,6 +112,13 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(blocks.find((b) => b.id === 't') && 'parentId' in blocks[1]!).toBe(false);
   });
 
+  it('round-trips a locked component flag', () => {
+    const locked: Block[] = [
+      { id: 'box', kind: 'container', label: 'Box', locked: true, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(locked))).toEqual(locked);
+  });
+
   it('round-trips a well-formed animation', () => {
     const animated: Block[] = [
       { id: 'c', kind: 'card', label: 'Card', animation: { effect: 'rise', trigger: 'scroll' }, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },
