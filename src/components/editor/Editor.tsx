@@ -678,6 +678,36 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       }
     }
 
+    // Page guides: the artboard's own left margin, centre and right margin (and
+    // top / centre / bottom), so a block can be centred on the page or set flush
+    // to a margin. These span the whole artboard, reading as page-level lines.
+    const contentLeft = ARTBOARD.margin + gutterPx / 2;
+    const contentRight = ARTBOARD.width - ARTBOARD.margin - gutterPx / 2;
+    const contentTop = ARTBOARD.margin;
+    const contentBottom = ARTBOARD.height - ARTBOARD.margin;
+    const pageX: [number, number, number][] = [
+      [dx.left, contentLeft, contentLeft],
+      [dx.mid, ARTBOARD.width / 2, ARTBOARD.width / 2 - w / 2],
+      [dx.right, contentRight, contentRight - w],
+    ];
+    for (const [d, n, targetLeft] of pageX) {
+      const delta = Math.abs(d - n);
+      if (delta <= ALIGN_TOL && (!bestX || delta < bestX.delta)) {
+        bestX = { pos: n, targetLeft, start: 0, end: ARTBOARD.height, delta };
+      }
+    }
+    const pageY: [number, number, number][] = [
+      [dy.top, contentTop, contentTop],
+      [dy.mid, ARTBOARD.height / 2, ARTBOARD.height / 2 - h / 2],
+      [dy.bottom, contentBottom, contentBottom - h],
+    ];
+    for (const [d, n, targetTop] of pageY) {
+      const delta = Math.abs(d - n);
+      if (delta <= ALIGN_TOL && (!bestY || delta < bestY.delta)) {
+        bestY = { pos: n, targetTop, start: 0, end: ARTBOARD.width, delta };
+      }
+    }
+
     const snap: Placement = { ...gridSnap };
     const guides: AlignGuide[] = [];
     if (bestX) {
