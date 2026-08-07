@@ -46,6 +46,8 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           ...(block.source ? { source: block.source } : {}),
           ...(block.parentId !== undefined ? { parentId: block.parentId } : {}),
           ...(block.animation ? { animation: block.animation } : {}),
+          ...(block.asModal ? { asModal: true } : {}),
+          ...(block.opensModal !== undefined ? { opensModal: block.opensModal } : {}),
           ...(block.scale !== undefined && block.scale !== 1 ? { scale: block.scale } : {}),
           ...(block.text !== undefined ? { text: block.text } : {}),
         },
@@ -86,6 +88,8 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     if (isContentSource(props.source)) block.source = props.source;
     if (typeof props.parentId === 'string') block.parentId = props.parentId;
     if (isAnimation(props.animation)) block.animation = props.animation;
+    if (props.asModal === true) block.asModal = true;
+    if (typeof props.opensModal === 'string') block.opensModal = props.opensModal;
     if (typeof props.scale === 'number' && Number.isFinite(props.scale) && props.scale > 0) {
       block.scale = props.scale;
     }

@@ -125,4 +125,12 @@ describe('fromLayoutDocument is forgiving', () => {
     );
     expect(block && 'animation' in block).toBe(false);
   });
+
+  it('round-trips modal role and trigger wiring', () => {
+    const wired: Block[] = [
+      { id: 'panel', kind: 'card', label: 'Panel', asModal: true, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },
+      { id: 'btn', kind: 'button', label: 'Open', text: 'Open', opensModal: 'panel', placement: { col: 1, colSpan: 3, row: 12 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(wired))).toEqual(wired);
+  });
 });
