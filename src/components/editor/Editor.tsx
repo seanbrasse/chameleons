@@ -2095,13 +2095,13 @@ function starterBlocks(): Block[] {
       id: 'experience-0',
       kind: 'experience',
       label: 'Experience',
-      placement: { col: 1, colSpan: half, row: 28 },
+      placement: { col: 1, colSpan: half, row: 36 },
     },
     {
       id: 'metrics-0',
       kind: 'metrics',
       label: 'Metrics',
-      placement: { col: half + 1, colSpan: Math.max(1, GRID_COLS - half), row: 28 },
+      placement: { col: half + 1, colSpan: Math.max(1, GRID_COLS - half), row: 36 },
     },
   ];
 }
