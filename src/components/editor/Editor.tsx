@@ -732,6 +732,33 @@ function InlineText({
   );
 }
 
+/** The page footer — avatar, contact links, and a copyright line. */
+function ContactFooter({ settings }: { settings: Issue['settings'] }) {
+  const initial = (settings.displayName || '?').trim().charAt(0).toUpperCase();
+  const links = [
+    ...(settings.contactEmail ? [settings.contactEmail.toUpperCase()] : []),
+    ...settings.links.map((l) => l.label.toUpperCase()),
+    ...(settings.resumeHref ? ['RESUME'] : []),
+  ];
+  const year = new Date().getFullYear();
+  return (
+    <div className="pv-footer">
+      <span className="pv-avatar" aria-hidden="true">
+        {initial}
+      </span>
+      <div className="pv-footer-links">
+        {links.map((l) => (
+          <span key={l}>{l}</span>
+        ))}
+      </div>
+      <div className="pv-footer-copy">
+        © {year} {settings.displayName}
+        {settings.location ? ` · ${settings.location}` : ''}
+      </div>
+    </div>
+  );
+}
+
 /** A row of project cards — a media well, its source, title and summary. */
 function ProjectGallery({
   projects,
@@ -873,14 +900,7 @@ function BlockPreview({
         </div>
       );
     case 'contact':
-      return (
-        <div className="pv-contact">
-          {settings.contactEmail ? <span>{settings.contactEmail}</span> : null}
-          {settings.links.map((l) => (
-            <span key={l.url}>{l.label}</span>
-          ))}
-        </div>
-      );
+      return <ContactFooter settings={settings} />;
     case 'heading':
       return <div className="pv-heading">{block.text}</div>;
     case 'text':
