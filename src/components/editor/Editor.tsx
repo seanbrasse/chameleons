@@ -68,6 +68,11 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const [draggingId, setDraggingId] = useState<string | null>(null);
   /** How much the artboard is scaled to fit the window. */
   const [scale, setScale] = useState(0.75);
+  /** Edit arranges the blocks; Preview makes them interactive, like the page. */
+  const [mode, setMode] = useState<'edit' | 'preview'>('edit');
+  /** The project opened in the detail modal (Preview only). */
+  const [modalProject, setModalProject] = useState<Project | null>(null);
+  const isEditMode = mode === 'edit';
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const artboardRef = useRef<HTMLDivElement>(null);
@@ -431,7 +436,26 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               ))}
             </div>
           </div>
-          <button type="button" className="ed-btn ed-toolbar-reset" onClick={reset}>
+          <div className="ed-toolbar-field ed-toolbar-mode">
+            <div className="ed-grid-switch" role="group" aria-label="Mode">
+              {(['edit', 'preview'] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  className="ed-chip"
+                  aria-pressed={mode === m}
+                  onClick={() => {
+                    setMode(m);
+                    setModalProject(null);
+                    if (m === 'preview') setSelectedId(null);
+                  }}
+                >
+                  {m === 'edit' ? 'Edit' : 'Preview'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button type="button" className="ed-btn" onClick={reset}>
             Reset
           </button>
         </div>
@@ -443,7 +467,9 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
           >
             <div
               ref={artboardRef}
-              className={`ed-artboard${arranging ? ` is-arranging ed-guide-${guide}` : ''}`}
+              className={`ed-artboard${isEditMode ? '' : ' is-preview'}${
+                arranging ? ` is-arranging ed-guide-${guide}` : ''
+              }`}
               style={{
                 width: ARTBOARD.width,
                 height: ARTBOARD.height,
@@ -452,42 +478,49 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                 ['--rowunit' as string]: `${ARTBOARD.rowUnit}px`,
                 ['--pad' as string]: `${ARTBOARD.margin}px`,
               }}
-              onPointerDown={() => setSelectedId(null)}
+              onPointerDown={isEditMode ? () => setSelectedId(null) : undefined}
             >
               {blocks.map((block) => {
                 const box = boxOf(clampPlacement(block.placement, tracks));
                 const dragging = draggingId === block.id;
+                const editProps = isEditMode
+                  ? {
+                      role: 'button',
+                      tabIndex: 0,
+                      'aria-pressed': block.id === selectedId,
+                      onPointerDown: (e: React.PointerEvent) => onBlockDown(e, block),
+                      onPointerMove: (e: React.PointerEvent) => onBlockMove(e, block),
+                      onPointerUp: (e: React.PointerEvent) => onBlockUp(e, block),
+                      onFocus: () => setSelectedId(block.id),
+                      onKeyDown: (e: React.KeyboardEvent) => onBlockKey(e, block),
+                      onDoubleClick: () => {
+                        if (isEditable(block.kind)) {
+                          setSelectedId(block.id);
+                          setEditingId(block.id);
+                        }
+                      },
+                    }
+                  : {};
                 return (
                   <div
                     key={block.id}
                     data-block-id={block.id}
-                    role="button"
-                    tabIndex={0}
-                    aria-pressed={block.id === selectedId}
                     aria-label={`${block.label} block`}
                     className={`ed-block${block.id === selectedId ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}`}
                     style={{ left: box.left, top: box.top, width: box.width }}
-                    onPointerDown={(e) => onBlockDown(e, block)}
-                    onPointerMove={(e) => onBlockMove(e, block)}
-                    onPointerUp={(e) => onBlockUp(e, block)}
-                    onFocus={() => setSelectedId(block.id)}
-                    onKeyDown={(e) => onBlockKey(e, block)}
-                    onDoubleClick={() => {
-                      if (isEditable(block.kind)) {
-                        setSelectedId(block.id);
-                        setEditingId(block.id);
-                      }
-                    }}
+                    {...editProps}
                   >
-                    <span className="ed-block-tag">{block.label}</span>
+                    {isEditMode ? <span className="ed-block-tag">{block.label}</span> : null}
                     <BlockPreview
                       block={block}
                       issue={issue}
-                      editing={editingId === block.id}
+                      editing={isEditMode && editingId === block.id}
+                      interactive={!isEditMode}
                       onText={(text) => update(block.id, { text })}
                       onEditEnd={() => setEditingId(null)}
+                      onOpenProject={setModalProject}
                     />
-                    {block.id === selectedId && editingId !== block.id && tracks > 1 ? (
+                    {isEditMode && block.id === selectedId && editingId !== block.id && tracks > 1 ? (
                       <>
                         <span
                           className="ed-handle ed-handle-w"
@@ -596,9 +629,21 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
             </div>
           </div>
         ) : (
-          <p className="ed-empty">Select an element on the canvas to edit it. Double-click a heading, text or button to edit its words.</p>
+          <p className="ed-empty">
+            {isEditMode
+              ? 'Select an element on the canvas to edit it. Double-click a heading, text or button to edit its words.'
+              : 'Previewing — the page is live: cycle the project cards and click one to open it. Switch to Edit to rearrange.'}
+          </p>
         )}
       </aside>
+
+      {modalProject ? (
+        <ProjectModal
+          project={modalProject}
+          experiences={issue.experiences}
+          onClose={() => setModalProject(null)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -760,36 +805,158 @@ function ContactFooter({ settings }: { settings: Issue['settings'] }) {
   );
 }
 
-/** A row of project cards — a media well, its source, title and summary. */
+/** Where a project came from: the employer for professional work, else Personal. */
+function projectSource(p: Project, experiences: Experience[]): string {
+  if (p.context === 'personal') return 'Personal';
+  return experiences.find((e) => e.id === p.experienceId)?.company ?? 'Work';
+}
+
+/** A media well: the cover image if there is one, else a "no screenshot" note. */
+function MediaWell({ cover, className }: { cover: Project['images'][number] | undefined; className: string }) {
+  return (
+    <div
+      className={className}
+      style={cover ? { backgroundImage: `url(${cover.src})` } : undefined}
+    >
+      {cover ? null : <span className="pv-noshot">No screenshot yet</span>}
+    </div>
+  );
+}
+
+/**
+ * The project section. In Edit it is a static row of cards so it can be
+ * arranged; in Preview it becomes a real carousel — the active card is
+ * clickable to open the detail modal, dots and arrows cycle the deck.
+ */
 function ProjectGallery({
   projects,
   experiences,
+  interactive,
+  onOpen,
 }: {
   projects: Project[];
   experiences: Experience[];
+  interactive: boolean;
+  onOpen: (p: Project) => void;
 }) {
-  const source = (p: Project): string => {
-    if (p.context === 'personal') return 'Personal';
-    return experiences.find((e) => e.id === p.experienceId)?.company ?? 'Work';
-  };
-  return (
-    <div className="pv-gallery">
-      {projects.slice(0, 4).map((p) => {
-        const cover = p.images[0];
-        return (
+  const [i, setI] = useState(0);
+
+  if (!interactive) {
+    return (
+      <div className="pv-gallery">
+        {projects.slice(0, 4).map((p) => (
           <div key={p.id} className="pv-card">
-            <div
-              className="pv-card-media"
-              style={cover ? { backgroundImage: `url(${cover.src})` } : undefined}
-            >
-              {cover ? null : <span aria-hidden="true">▦</span>}
-            </div>
-            <div className="pv-card-source">{source(p)}</div>
+            <MediaWell cover={p.images[0]} className="pv-card-media" />
+            <div className="pv-card-source">{projectSource(p, experiences)}</div>
             <div className="pv-card-title">{p.title}</div>
             <div className="pv-card-summary">{p.summary}</div>
           </div>
-        );
-      })}
+        ))}
+      </div>
+    );
+  }
+
+  const n = projects.length;
+  if (n === 0) return <div className="pv-carousel" />;
+  const idx = ((i % n) + n) % n;
+  const active = projects[idx]!;
+
+  return (
+    <div className="pv-carousel">
+      <div className="pv-carousel-stage">
+        <button
+          type="button"
+          className="pv-carousel-nav"
+          aria-label="Previous project"
+          onClick={() => setI(idx - 1)}
+        >
+          ‹
+        </button>
+        <button type="button" className="pv-card pv-card-active" onClick={() => onOpen(active)}>
+          <MediaWell cover={active.images[0]} className="pv-card-media pv-card-media-lg" />
+          <div className="pv-card-source">{projectSource(active, experiences)}</div>
+          <div className="pv-card-title pv-card-title-lg">{active.title}</div>
+        </button>
+        <button
+          type="button"
+          className="pv-carousel-nav"
+          aria-label="Next project"
+          onClick={() => setI(idx + 1)}
+        >
+          ›
+        </button>
+      </div>
+      <div className="pv-carousel-foot">
+        <div className="pv-carousel-dots">
+          {projects.map((p, k) => (
+            <button
+              key={p.id}
+              type="button"
+              className={`pv-dot${k === idx ? ' is-on' : ''}`}
+              aria-label={`Show ${p.title}`}
+              onClick={() => setI(k)}
+            />
+          ))}
+        </div>
+        <span className="pv-allprojects">All projects</span>
+      </div>
+    </div>
+  );
+}
+
+/** The project detail modal, opened from a card in Preview. Esc or backdrop closes. */
+function ProjectModal({
+  project,
+  experiences,
+  onClose,
+}: {
+  project: Project;
+  experiences: Experience[];
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="ed-modal-backdrop" onClick={onClose}>
+      <div
+        className="ed-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={project.title}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button type="button" className="ed-modal-close" aria-label="Close" onClick={onClose}>
+          ×
+        </button>
+        <MediaWell cover={project.images[0]} className="ed-modal-media" />
+        <div className="ed-modal-body">
+          <div className="pv-card-source">{projectSource(project, experiences)}</div>
+          <h3 className="ed-modal-title">{project.title}</h3>
+          <p className="ed-modal-summary">{project.story || project.summary}</p>
+          {project.tech.length > 0 ? (
+            <div className="ed-modal-tech">
+              {project.tech.map((t) => (
+                <span key={t} className="pv-chip">
+                  {t}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          {project.links.length > 0 ? (
+            <div className="ed-modal-links">
+              {project.links.map((l) => (
+                <span key={l.url}>{l.label}</span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }
@@ -830,14 +997,18 @@ function BlockPreview({
   block,
   issue,
   editing,
+  interactive,
   onText,
   onEditEnd,
+  onOpenProject,
 }: {
   block: Block;
   issue: Issue;
   editing: boolean;
+  interactive: boolean;
   onText: (text: string) => void;
   onEditEnd: () => void;
+  onOpenProject: (p: Project) => void;
 }) {
   const { settings, projects, experiences, education, metrics } = issue;
 
@@ -877,7 +1048,14 @@ function BlockPreview({
     case 'timeline':
       return <TimelinePreview experiences={experiences} education={education} />;
     case 'projects':
-      return <ProjectGallery projects={projects} experiences={experiences} />;
+      return (
+        <ProjectGallery
+          projects={projects}
+          experiences={experiences}
+          interactive={interactive}
+          onOpen={onOpenProject}
+        />
+      );
     case 'experience':
       return (
         <ul className="pv-list">
