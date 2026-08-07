@@ -857,6 +857,10 @@
   border-color: #c9c8c3;
 }
 
+.ed-btn-wide {
+  width: 100%;
+}
+
 .ed-btn:disabled {
   opacity: 0.4;
   cursor: default;
