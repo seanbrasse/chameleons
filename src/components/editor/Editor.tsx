@@ -2188,10 +2188,12 @@ function yearFloat(date: string): number {
 }
 
 /**
- * The project section. In Edit it is a static row of cards so it can be
- * arranged; in Preview it becomes a real carousel driven by the shared
- * `activeIndex` — the active card is clickable to open the detail modal, dots
- * and arrows move through the deck (and the timeline playhead with it).
+ * The project section, rendered as the same carousel in both modes so its
+ * footprint matches between Edit and Preview. In Edit it shows the carousel's
+ * initial state and is inert (a whole-component `pointer-events: none`, so a
+ * click drives block selection/drag, not the deck). In Preview it comes alive:
+ * the active card opens the detail modal, and dots and arrows move through the
+ * deck (and the timeline playhead with it).
  */
 function ProjectGallery({
   projects,
@@ -2208,21 +2210,6 @@ function ProjectGallery({
   onActive: (i: number) => void;
   onOpen: (p: Project) => void;
 }) {
-  if (!interactive) {
-    return (
-      <div className="pv-gallery">
-        {projects.slice(0, 4).map((p) => (
-          <div key={p.id} className="pv-card">
-            <MediaWell cover={p.images[0]} className="pv-card-media" />
-            <div className="pv-card-source">{projectSource(p, experiences)}</div>
-            <div className="pv-card-title">{p.title}</div>
-            <div className="pv-card-summary">{p.summary}</div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
   const sorted = projectsByDate(projects);
   const n = sorted.length;
   if (n === 0) return <div className="pv-carousel" />;
@@ -2233,13 +2220,14 @@ function ProjectGallery({
   const peeks = n > 1; // neighbouring cards peek in at the edges, like a reel
 
   return (
-    <div className="pv-carousel">
+    <div className={`pv-carousel${interactive ? '' : ' is-static'}`} aria-hidden={!interactive}>
       <div className="pv-carousel-stage">
         <button
           type="button"
           className="pv-carousel-nav"
           aria-label="Previous project"
-          onClick={() => onActive(idx - 1)}
+          tabIndex={interactive ? 0 : -1}
+          onClick={interactive ? () => onActive(idx - 1) : undefined}
         >
           ‹
         </button>
@@ -2249,13 +2237,19 @@ function ProjectGallery({
               type="button"
               className="pv-card pv-card-peek pv-card-peek-prev"
               aria-label={`Show ${prev.title}`}
-              onClick={() => onActive(idx - 1)}
+              tabIndex={interactive ? 0 : -1}
+              onClick={interactive ? () => onActive(idx - 1) : undefined}
             >
               <MediaWell cover={prev.images[0]} className="pv-card-media pv-card-media-lg" />
               <div className="pv-card-title pv-card-title-lg">{prev.title}</div>
             </button>
           ) : null}
-          <button type="button" className="pv-card pv-card-active" onClick={() => onOpen(active)}>
+          <button
+            type="button"
+            className="pv-card pv-card-active"
+            tabIndex={interactive ? 0 : -1}
+            onClick={interactive ? () => onOpen(active) : undefined}
+          >
             <MediaWell cover={active.images[0]} className="pv-card-media pv-card-media-lg" />
             <div className="pv-card-source">{projectSource(active, experiences)}</div>
             <div className="pv-card-title pv-card-title-lg">{active.title}</div>
@@ -2265,7 +2259,8 @@ function ProjectGallery({
               type="button"
               className="pv-card pv-card-peek pv-card-peek-next"
               aria-label={`Show ${next.title}`}
-              onClick={() => onActive(idx + 1)}
+              tabIndex={interactive ? 0 : -1}
+              onClick={interactive ? () => onActive(idx + 1) : undefined}
             >
               <MediaWell cover={next.images[0]} className="pv-card-media pv-card-media-lg" />
               <div className="pv-card-title pv-card-title-lg">{next.title}</div>
@@ -2276,7 +2271,8 @@ function ProjectGallery({
           type="button"
           className="pv-carousel-nav"
           aria-label="Next project"
-          onClick={() => onActive(idx + 1)}
+          tabIndex={interactive ? 0 : -1}
+          onClick={interactive ? () => onActive(idx + 1) : undefined}
         >
           ›
         </button>
@@ -2289,7 +2285,8 @@ function ProjectGallery({
               type="button"
               className={`pv-dot${k === idx ? ' is-on' : ''}`}
               aria-label={`Show ${p.title}`}
-              onClick={() => onActive(k)}
+              tabIndex={interactive ? 0 : -1}
+              onClick={interactive ? () => onActive(k) : undefined}
             />
           ))}
         </div>
