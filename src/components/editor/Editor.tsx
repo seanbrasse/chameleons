@@ -545,6 +545,43 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blocks, arranging]);
 
+  // Keep every non-container block hugging its content too: a resized or scaled
+  // leaf carries an explicit height, and if its text later re-wraps (a width
+  // change, an edit) that height can clip or fall short of the content. After a
+  // gesture, re-fit each such leaf's height to its measured content so the box
+  // always wraps what's inside. A plain auto-height block is already exact and
+  // is left alone. Measured off the content element, so it's independent of the
+  // current box and settles in one pass.
+  useLayoutEffect(() => {
+    if (arranging) return;
+    const el = artboardRef.current;
+    if (!el) return;
+    let changed = false;
+    const next = blocks.map((b) => {
+      if (isContainer(b.kind)) return b;
+      const s = b.scale && b.scale !== 1 ? b.scale : 1;
+      if (b.placement.rowSpan === undefined && s === 1) return b; // plain block wraps already
+      const node = el.querySelector<HTMLElement>(`[data-block-id="${b.id}"]`);
+      const content = node?.querySelector<HTMLElement>(':scope > .ed-block-body > *');
+      if (!content) return b;
+      // The box must hold the (scaled) content plus the block's own padding and
+      // border — box-sizing is border-box, so its height includes both.
+      const cs = getComputedStyle(node!);
+      const chromeY =
+        parseFloat(cs.paddingTop) +
+        parseFloat(cs.paddingBottom) +
+        parseFloat(cs.borderTopWidth) +
+        parseFloat(cs.borderBottomWidth);
+      const visualH = content.offsetHeight * s + chromeY;
+      const rowSpan = Math.max(1, Math.ceil((visualH + gutterPx) / CELL));
+      if (rowSpan === b.placement.rowSpan) return b;
+      changed = true;
+      return { ...b, placement: { ...b.placement, rowSpan } };
+    });
+    if (changed) setBlocks(next);
+    // Reads block DOM heights and gutterPx; idempotent, settles in one pass.
+  }, [blocks, arranging, gutterPx]);
+
   const remove = (id: string) => {
     snapshot(true);
     setBlocks((bs) => {
