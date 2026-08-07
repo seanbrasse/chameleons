@@ -137,6 +137,13 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     startScale: number;
     right: number;
     bottom: number;
+    /** For a container: the fixed corner (cells) and the base placement/scale of
+     *  every descendant, so a corner-drag scales the whole subtree around it. */
+    subtree?: {
+      anchorCol: number;
+      anchorRow: number;
+      kids: { id: string; col: number; row: number; colSpan: number; rowSpanCells: number; scale: number }[];
+    };
   } | null>(null);
   /** Measured block heights in artboard px, by id — for spacing/placement. */
   const heightsRef = useRef<Record<string, number>>({});
@@ -460,17 +467,10 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     };
   };
 
-  /**
-   * Resize a container to its children. `grow` unions the contents with the
-   * current box — inserting an element expands the box to fit it. `shrink` sets
-   * the box to exactly the contents — removing an element pulls the box in to
-   * just contain what's left. An empty container is left as it is.
-   */
-  const fitContainer = (list: Block[], containerId: string, mode: 'grow' | 'shrink'): Block[] => {
-    const container = list.find((b) => b.id === containerId);
-    if (!container || !isContainer(container.kind)) return list;
-    const kids = list.filter((b) => b.parentId === containerId);
-    if (kids.length === 0) return list;
+  /** The tight box (in cells) that exactly wraps a container's children, with a
+   *  small padding — or null for an empty container. */
+  const contentFit = (kids: Block[]): Placement | null => {
+    if (kids.length === 0) return null;
     let left = Infinity;
     let right = -Infinity;
     let top = Infinity;
@@ -482,20 +482,66 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       top = Math.min(top, c.top);
       bottom = Math.max(bottom, c.bottom);
     }
-    let bl = left - FIT_PAD;
-    let bt = top - FIT_PAD;
-    let br = right + FIT_PAD;
-    let bb = bottom + FIT_PAD;
-    if (mode === 'grow') {
-      const cur = container.placement;
-      bl = Math.min(bl, cur.col);
-      bt = Math.min(bt, cur.row);
-      br = Math.max(br, cur.col + cur.colSpan);
-      bb = Math.max(bb, cur.row + (cur.rowSpan ?? 1));
-    }
-    const fitted = clampPlacement({ col: bl, colSpan: br - bl, row: bt, rowSpan: bb - bt });
-    return list.map((b) => (b.id === containerId ? { ...b, placement: fitted } : b));
+    return clampPlacement({
+      col: left - FIT_PAD,
+      colSpan: right - left + FIT_PAD * 2,
+      row: top - FIT_PAD,
+      rowSpan: bottom - top + FIT_PAD * 2,
+    });
   };
+
+  /**
+   * Make every container hug its content: its box becomes the tight wrap of its
+   * children (deepest first, so a parent sees its just-fitted child). Idempotent
+   * — fitting an already-hugged tree returns the same list — so it can run after
+   * every change without looping. An empty container is left alone.
+   */
+  const hugContainers = (list: Block[]): Block[] => {
+    const byId = new Map(list.map((b) => [b.id, b] as const));
+    const depthOf = (b: Block): number => {
+      let d = 0;
+      let n: Block | undefined = b;
+      const seen = new Set<string>();
+      while (n?.parentId && !seen.has(n.id)) {
+        seen.add(n.id);
+        n = byId.get(n.parentId);
+        d += 1;
+      }
+      return d;
+    };
+    const containers = list.filter((b) => isContainer(b.kind)).sort((a, b) => depthOf(b) - depthOf(a));
+    let out = list;
+    let changed = false;
+    for (const c of containers) {
+      const cur = out.find((x) => x.id === c.id);
+      if (!cur) continue;
+      const fitted = contentFit(out.filter((k) => k.parentId === c.id));
+      if (!fitted) continue;
+      const p = cur.placement;
+      if (p.col === fitted.col && p.colSpan === fitted.colSpan && p.row === fitted.row && (p.rowSpan ?? -1) === fitted.rowSpan) {
+        continue;
+      }
+      out = out.map((x) => (x.id === c.id ? { ...x, placement: fitted } : x));
+      changed = true;
+    }
+    return changed ? out : list;
+  };
+
+  // Keep every container hugging its content: after any change (heights now
+  // measured), fit each container to what it holds. Skipped mid-gesture so it
+  // doesn't fight a drag/resize; idempotent, so it settles without looping.
+  useLayoutEffect(() => {
+    if (arranging) return;
+    const hugged = hugContainers(blocks);
+    // Deriving container size from just-measured child heights needs a
+    // post-layout setState; it's idempotent, so it settles in one extra pass.
+    if (hugged !== blocks) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setBlocks(hugged);
+    }
+    // hugContainers reads only its argument and heightsRef.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blocks, arranging]);
 
   const remove = (id: string) => {
     snapshot(true);
@@ -506,11 +552,10 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       // container promotes its children so nested content isn't lost with it.
       if (target && isContainer(target.kind) && target.locked) {
         const doomed = descendantIds(bs, id);
-        let next = bs.filter((b) => b.id !== id && !doomed.has(b.id));
-        if (parentId !== undefined) next = fitContainer(next, parentId, 'shrink');
-        return next;
+        // The parent then re-hugs its remaining content (see the hug effect).
+        return bs.filter((b) => b.id !== id && !doomed.has(b.id));
       }
-      let next = bs
+      return bs
         .filter((b) => b.id !== id)
         .map((b) =>
           b.parentId === id
@@ -519,9 +564,6 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               : { ...b, parentId }
             : b,
         );
-      // The block's own container loses it — pull that box in to fit the rest.
-      if (parentId !== undefined) next = fitContainer(next, parentId, 'shrink');
-      return next;
     });
     setSelection((cur) => cur.filter((x) => x !== id));
     setEditingId((cur) => (cur === id ? null : cur));
@@ -539,15 +581,11 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     }
   };
 
-  /** Detach a block from its container, leaving it where it sits on the page. */
+  /** Detach a block from its container, leaving it where it sits on the page.
+   *  The old container then re-hugs its remaining content (see the hug effect). */
   const detach = (id: string) => {
     snapshot(true);
-    setBlocks((bs) => {
-      const oldParent = bs.find((b) => b.id === id)?.parentId;
-      let next = bs.map((b) => (b.id === id ? withoutParent(b) : b));
-      if (oldParent !== undefined) next = fitContainer(next, oldParent, 'shrink');
-      return next;
-    });
+    setBlocks((bs) => bs.map((b) => (b.id === id ? withoutParent(b) : b)));
   };
 
   // ── geometry ────────────────────────────────────────────────────────
@@ -728,10 +766,11 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     // Single drag: snap, carry descendants by the same delta, and re-parent into
     // (or out of) whatever container the drop landed in.
     const kin = descendantIds(blocks, target.id);
-    const oldParent = target.parentId;
     const newParent = findDropContainer(target, snap, kin);
-    setBlocks((bs) => {
-      let next = bs.map((b) => {
+    // Whatever container the block joined or left re-hugs its content via the
+    // hug effect after this commit.
+    setBlocks((bs) =>
+      bs.map((b) => {
         if (b.id === target.id) {
           const movedBlock: Block = { ...b, placement: clampPlacement(snap) };
           return newParent === null ? withoutParent(movedBlock) : { ...movedBlock, parentId: newParent };
@@ -741,13 +780,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
           return { ...b, placement: clampPlacement({ ...p, col: p.col + dCol, row: p.row + dRow }) };
         }
         return b;
-      });
-      // Dropped into a container: grow it to fit the new element. Dropped out of
-      // (or moved between) containers: shrink the one it left to fit the rest.
-      if (newParent !== null) next = fitContainer(next, newParent, 'grow');
-      if (oldParent !== undefined && oldParent !== newParent) next = fitContainer(next, oldParent, 'shrink');
-      return next;
-    });
+      }),
+    );
     // Only a free, non-container block joins the spacing shuffle; a box or a
     // nested block keeps exactly where it was dropped.
     if (newParent === null && !isContainer(target.kind)) resolveOverlap(target.id);
@@ -818,6 +852,23 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       startScale: block.scale ?? 1,
       right: p.col + p.colSpan,
       bottom: p.row + Math.max(1, Math.round(h / CELL)),
+      // A container scales its whole subtree around the fixed corner.
+      subtree: isContainer(block.kind)
+        ? {
+            anchorCol: edge.includes('w') ? p.col + p.colSpan : p.col,
+            anchorRow: edge.includes('n') ? p.row + (p.rowSpan ?? 1) : p.row,
+            kids: blocks
+              .filter((b) => descendantIds(blocks, block.id).has(b.id))
+              .map((b) => ({
+                id: b.id,
+                col: b.placement.col,
+                row: b.placement.row,
+                colSpan: b.placement.colSpan,
+                rowSpanCells: b.placement.rowSpan ?? Math.max(1, Math.ceil((heightsRef.current[b.id] ?? CELL) / CELL)),
+                scale: b.scale ?? 1,
+              })),
+          }
+        : undefined,
     };
     setArranging(true);
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -832,11 +883,48 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     const ay = (e.clientY - rect.top) / scale;
     const p = clampPlacement(block.placement);
     const edge = r.edge;
-
-    // A corner scales the element and its contents uniformly: the ratio from the
-    // anchored (opposite) corner grows the footprint and the content zoom
-    // together. There is no side/top resize — resize is corner-only.
     const ratio = Math.max(0.2, Math.abs(ax - r.anchorX) / r.baseW, Math.abs(ay - r.anchorY) / r.baseH);
+
+    // An empty container just resizes its own footprint (nothing to scale).
+    if (r.subtree && r.subtree.kids.length === 0) {
+      const colSpan = Math.max(1, Math.min(GRID_COLS, Math.round((r.baseW * ratio) / CELL)));
+      const rowSpan = Math.max(1, Math.min(GRID_ROWS, Math.round((r.baseH * ratio) / CELL)));
+      const col = edge.includes('w') ? Math.max(1, r.right - colSpan) : p.col;
+      const row = edge.includes('n') ? Math.max(1, r.bottom - rowSpan) : p.row;
+      update(block.id, { placement: clampPlacement({ col, colSpan, row, rowSpan }) });
+      return;
+    }
+
+    // A container scales its whole subtree around the anchored corner — every
+    // descendant's position, size and content zoom grow together — and then the
+    // container hugs the scaled content (no blank space, no overflow).
+    if (r.subtree) {
+      const { anchorCol, anchorRow, kids } = r.subtree;
+      const base = new Map(kids.map((k) => [k.id, k] as const));
+      setBlocks((bs) => {
+        const scaled = bs.map((b) => {
+          const k = base.get(b.id);
+          if (!k) return b;
+          return {
+            ...b,
+            // Leaves carry the content zoom; a nested container hugs its own
+            // scaled children instead of transforming.
+            scale: isContainer(b.kind) ? b.scale : k.scale * ratio,
+            placement: clampPlacement({
+              col: Math.round(anchorCol + (k.col - anchorCol) * ratio),
+              row: Math.round(anchorRow + (k.row - anchorRow) * ratio),
+              colSpan: Math.max(1, Math.round(k.colSpan * ratio)),
+              rowSpan: Math.max(1, Math.round(k.rowSpanCells * ratio)),
+            }),
+          };
+        });
+        return hugContainers(scaled);
+      });
+      return;
+    }
+
+    // A leaf corner scales the element and its contents uniformly: the ratio from
+    // the anchored corner grows the footprint and the content zoom together.
     const colSpan = Math.max(1, Math.min(GRID_COLS, Math.round((r.baseW * ratio) / CELL)));
     const rowSpan = Math.max(1, Math.min(GRID_ROWS, Math.round((r.baseH * ratio) / CELL)));
     const col = edge.includes('w') ? Math.max(1, r.right - colSpan) : p.col;
@@ -1370,55 +1458,12 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               </label>
             ) : null}
 
-            <label className="ed-field">
-              <span className="ed-field-label">
-                Width — {sel.colSpan} of {GRID_COLS}
-              </span>
-              <input
-                type="range"
-                min={1}
-                max={GRID_COLS}
-                value={sel.colSpan}
-                onChange={(e) => setPlacement(selected.id, { ...sel, colSpan: Number(e.target.value) })}
-              />
-            </label>
-
-            {maxCol(sel.colSpan) > 1 ? (
-              <label className="ed-field">
-                <span className="ed-field-label">Column — starts at {sel.col}</span>
-                <input
-                  type="range"
-                  min={1}
-                  max={maxCol(sel.colSpan)}
-                  value={sel.col}
-                  onChange={(e) => setPlacement(selected.id, { ...sel, col: Number(e.target.value) })}
-                />
-              </label>
-            ) : null}
-
-            <label className="ed-field">
-              <span className="ed-field-label">Row — {sel.row}</span>
-              <input
-                type="range"
-                min={1}
-                max={GRID_ROWS}
-                value={sel.row}
-                onChange={(e) => setPlacement(selected.id, { ...sel, row: Number(e.target.value) })}
-              />
-            </label>
-
             {isContainer(selected.kind) ? (
               <>
-                <label className="ed-field">
-                  <span className="ed-field-label">Height — {sel.rowSpan ?? 1}</span>
-                  <input
-                    type="range"
-                    min={1}
-                    max={GRID_ROWS}
-                    value={sel.rowSpan ?? 1}
-                    onChange={(e) => setPlacement(selected.id, { ...sel, rowSpan: Number(e.target.value) })}
-                  />
-                </label>
+                <div className="ed-field">
+                  <span className="ed-field-label">Size</span>
+                  <div className="ed-field-static">Wraps its content — drag a corner to scale it</div>
+                </div>
                 <label className="ed-check">
                   <input
                     type="checkbox"
@@ -1428,7 +1473,46 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                   <span>Lock as a component (move &amp; edit as one)</span>
                 </label>
               </>
-            ) : null}
+            ) : (
+              <>
+                <label className="ed-field">
+                  <span className="ed-field-label">
+                    Width — {sel.colSpan} of {GRID_COLS}
+                  </span>
+                  <input
+                    type="range"
+                    min={1}
+                    max={GRID_COLS}
+                    value={sel.colSpan}
+                    onChange={(e) => setPlacement(selected.id, { ...sel, colSpan: Number(e.target.value) })}
+                  />
+                </label>
+
+                {maxCol(sel.colSpan) > 1 ? (
+                  <label className="ed-field">
+                    <span className="ed-field-label">Column — starts at {sel.col}</span>
+                    <input
+                      type="range"
+                      min={1}
+                      max={maxCol(sel.colSpan)}
+                      value={sel.col}
+                      onChange={(e) => setPlacement(selected.id, { ...sel, col: Number(e.target.value) })}
+                    />
+                  </label>
+                ) : null}
+
+                <label className="ed-field">
+                  <span className="ed-field-label">Row — {sel.row}</span>
+                  <input
+                    type="range"
+                    min={1}
+                    max={GRID_ROWS}
+                    value={sel.row}
+                    onChange={(e) => setPlacement(selected.id, { ...sel, row: Number(e.target.value) })}
+                  />
+                </label>
+              </>
+            )}
 
             {selected.parentId !== undefined ? (
               <button type="button" className="ed-btn ed-field" onClick={() => detach(selected.id)}>
