@@ -9,7 +9,9 @@ import {
   isBlockKind,
   isContainer,
   isInput,
+  isPresetKind,
   isContentSource,
+  makePreset,
   isGuide,
   isGutter,
   makeBlock,
@@ -152,6 +154,23 @@ describe('containers and the tree', () => {
     ];
     const out = sanitizeParents(blocks);
     expect(out.every((b) => b.parentId === undefined)).toBe(true);
+  });
+
+  it('makePreset composes a card with its children nested and wired', () => {
+    const group = makePreset('animatedCard', 5);
+    const [card, ...children] = group;
+    expect(card?.kind).toBe('card');
+    expect(card?.animation).toEqual({ effect: 'zoom', trigger: 'hover' });
+    // every other block nests inside the card
+    expect(children.length).toBeGreaterThan(0);
+    expect(children.every((c) => c.parentId === card!.id)).toBe(true);
+    // the card really is the parent of all of them
+    expect(descendantIds(group, card!.id).size).toBe(children.length);
+  });
+
+  it('isPresetKind validates preset names', () => {
+    expect(isPresetKind('animatedCard')).toBe(true);
+    expect(isPresetKind('nope')).toBe(false);
   });
 
   it('sanitizeParents breaks a cycle between two containers', () => {

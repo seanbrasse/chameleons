@@ -455,3 +455,53 @@ function defaultText(kind: BlockKind): string {
   if (kind === 'textarea') return 'Your message';
   return '';
 }
+
+/**
+ * A preset is a ready-made *composition* of base components dropped as one — the
+ * proof that components build from components. It returns several blocks (a
+ * parent and its nested children), already wired, so the palette can offer a
+ * finished piece next to the raw primitives.
+ */
+export type PresetKind = 'animatedCard';
+
+export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
+  { preset: 'animatedCard', label: 'Animated card', hint: 'A card that lifts on hover, holding a title, text and button' },
+];
+
+export function isPresetKind(value: unknown): value is PresetKind {
+  return typeof value === 'string' && PRESETS.some((p) => p.preset === value);
+}
+
+/**
+ * Build a preset's blocks, laid out from `row`. The first returned block is the
+ * container the rest nest inside — the caller selects it — and every child's
+ * `parentId` already points at it, so the drop lands as one composed unit.
+ */
+export function makePreset(preset: PresetKind, row: number): Block[] {
+  // Only one preset today; the switch keeps room for more without a shape change.
+  const width = Math.min(GRID_COLS, Math.max(20, Math.round(GRID_COLS * 0.5)));
+  const inset = 2;
+  const innerCol = 1 + inset;
+  const innerSpan = Math.max(1, width - inset * 2);
+
+  const card = makeBlock('card', 'Card', row);
+  card.placement = clampPlacement({ col: 1, colSpan: width, row, rowSpan: 16 });
+  card.animation = { effect: 'zoom', trigger: 'hover' };
+
+  const heading = makeBlock('heading', 'Title', row + 2);
+  heading.text = 'Project title';
+  heading.parentId = card.id;
+  heading.placement = clampPlacement({ col: innerCol, colSpan: innerSpan, row: row + 2 });
+
+  const text = makeBlock('text', 'Text', row + 5);
+  text.text = 'A short description of what this is and why it matters.';
+  text.parentId = card.id;
+  text.placement = clampPlacement({ col: innerCol, colSpan: innerSpan, row: row + 5, rowSpan: 5 });
+
+  const button = makeBlock('button', 'Button', row + 12);
+  button.text = 'View details';
+  button.parentId = card.id;
+  button.placement = clampPlacement({ col: innerCol, colSpan: 8, row: row + 12 });
+
+  return [card, heading, text, button];
+}
