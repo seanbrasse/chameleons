@@ -430,22 +430,74 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     setSelectedId(copy.id);
   };
 
+  /** Cell bounds of a block, using its measured height when it has no explicit
+   *  rowSpan — so fit reasons about how tall the block actually is. */
+  const cellBounds = (b: Block) => {
+    const rows = b.placement.rowSpan ?? Math.max(1, Math.ceil((heightsRef.current[b.id] ?? CELL) / CELL));
+    return {
+      left: b.placement.col,
+      right: b.placement.col + b.placement.colSpan,
+      top: b.placement.row,
+      bottom: b.placement.row + rows,
+    };
+  };
+
+  /**
+   * Resize a container to its children. `grow` unions the contents with the
+   * current box — inserting an element expands the box to fit it. `shrink` sets
+   * the box to exactly the contents — removing an element pulls the box in to
+   * just contain what's left. An empty container is left as it is.
+   */
+  const fitContainer = (list: Block[], containerId: string, mode: 'grow' | 'shrink'): Block[] => {
+    const container = list.find((b) => b.id === containerId);
+    if (!container || !isContainer(container.kind)) return list;
+    const kids = list.filter((b) => b.parentId === containerId);
+    if (kids.length === 0) return list;
+    let left = Infinity;
+    let right = -Infinity;
+    let top = Infinity;
+    let bottom = -Infinity;
+    for (const k of kids) {
+      const c = cellBounds(k);
+      left = Math.min(left, c.left);
+      right = Math.max(right, c.right);
+      top = Math.min(top, c.top);
+      bottom = Math.max(bottom, c.bottom);
+    }
+    let bl = left - FIT_PAD;
+    let bt = top - FIT_PAD;
+    let br = right + FIT_PAD;
+    let bb = bottom + FIT_PAD;
+    if (mode === 'grow') {
+      const cur = container.placement;
+      bl = Math.min(bl, cur.col);
+      bt = Math.min(bt, cur.row);
+      br = Math.max(br, cur.col + cur.colSpan);
+      bb = Math.max(bb, cur.row + (cur.rowSpan ?? 1));
+    }
+    const fitted = clampPlacement({ col: bl, colSpan: br - bl, row: bt, rowSpan: bb - bt });
+    return list.map((b) => (b.id === containerId ? { ...b, placement: fitted } : b));
+  };
+
   const remove = (id: string) => {
     snapshot(true);
     // Deleting a container promotes its children to its own parent, so nested
     // content is detached rather than silently lost with the box.
     setBlocks((bs) => {
       const target = bs.find((b) => b.id === id);
-      const grandparent = target?.parentId;
-      return bs
+      const parentId = target?.parentId;
+      let next = bs
         .filter((b) => b.id !== id)
         .map((b) =>
           b.parentId === id
-            ? grandparent === undefined
+            ? parentId === undefined
               ? withoutParent(b)
-              : { ...b, parentId: grandparent }
+              : { ...b, parentId }
             : b,
         );
+      // The block's own container loses it — pull that box in to fit the rest.
+      if (parentId !== undefined) next = fitContainer(next, parentId, 'shrink');
+      return next;
     });
     setSelectedId((cur) => (cur === id ? null : cur));
     setEditingId((cur) => (cur === id ? null : cur));
@@ -454,7 +506,12 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   /** Detach a block from its container, leaving it where it sits on the page. */
   const detach = (id: string) => {
     snapshot(true);
-    setBlocks((bs) => bs.map((b) => (b.id === id ? withoutParent(b) : b)));
+    setBlocks((bs) => {
+      const oldParent = bs.find((b) => b.id === id)?.parentId;
+      let next = bs.map((b) => (b.id === id ? withoutParent(b) : b));
+      if (oldParent !== undefined) next = fitContainer(next, oldParent, 'shrink');
+      return next;
+    });
   };
 
   // ── geometry ────────────────────────────────────────────────────────
@@ -595,9 +652,10 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     const dCol = snap.col - oldP.col;
     const dRow = snap.row - oldP.row;
     const kin = descendantIds(blocks, block.id);
+    const oldParent = block.parentId;
     const newParent = findDropContainer(block, snap, kin);
-    setBlocks((bs) =>
-      bs.map((b) => {
+    setBlocks((bs) => {
+      let next = bs.map((b) => {
         if (b.id === block.id) {
           const moved: Block = { ...b, placement: clampPlacement(snap) };
           return newParent === null ? withoutParent(moved) : { ...moved, parentId: newParent };
@@ -607,8 +665,13 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
           return { ...b, placement: clampPlacement({ ...p, col: p.col + dCol, row: p.row + dRow }) };
         }
         return b;
-      }),
-    );
+      });
+      // Dropped into a container: grow it to fit the new element. Dropped out of
+      // (or moved between) containers: shrink the one it left to fit the rest.
+      if (newParent !== null) next = fitContainer(next, newParent, 'grow');
+      if (oldParent !== undefined && oldParent !== newParent) next = fitContainer(next, oldParent, 'shrink');
+      return next;
+    });
     // Only a free, non-container block joins the spacing shuffle; a box or a
     // nested block keeps exactly where it was dropped.
     if (newParent === null && !isContainer(block.kind)) resolveOverlap(block.id);
@@ -651,43 +714,17 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     const edge = r.edge;
 
     // A corner scales the element and its contents uniformly: the ratio from the
-    // anchored corner grows the footprint and the content zoom together.
-    if (edge.length === 2) {
-      const ratio = Math.max(0.2, Math.abs(ax - r.anchorX) / r.baseW, Math.abs(ay - r.anchorY) / r.baseH);
-      const colSpan = Math.max(1, Math.min(GRID_COLS, Math.round((r.baseW * ratio) / CELL)));
-      const rowSpan = Math.max(1, Math.min(GRID_ROWS, Math.round((r.baseH * ratio) / CELL)));
-      const col = edge.includes('w') ? Math.max(1, r.right - colSpan) : p.col;
-      const row = edge.includes('n') ? Math.max(1, r.bottom - rowSpan) : p.row;
-      update(block.id, {
-        scale: r.startScale * ratio,
-        placement: clampPlacement({ col, colSpan, row, rowSpan }),
-      });
-      return;
-    }
-
-    // A side reflows one edge: width (E/W) or height (N/S), content unchanged.
-    const colLine = Math.round((ax - ARTBOARD.margin) / CELL);
-    const rowLine = Math.round((ay - ARTBOARD.margin) / CELL);
-    let { col, colSpan, row } = p;
-    let rowSpan = p.rowSpan ?? Math.max(1, Math.round((heightsRef.current[block.id] ?? CELL) / CELL));
-    if (edge === 'e') {
-      colSpan = Math.max(1, Math.min(GRID_COLS - col + 1, colLine - (col - 1)));
-    }
-    if (edge === 'w') {
-      const right = p.col + p.colSpan;
-      col = Math.max(1, Math.min(right - 1, colLine + 1));
-      colSpan = right - col;
-    }
-    if (edge === 's') {
-      rowSpan = Math.max(1, rowLine - (row - 1));
-    }
-    if (edge === 'n') {
-      const bottom = row - 1 + rowSpan;
-      const top = Math.max(0, Math.min(bottom - 1, rowLine));
-      row = top + 1;
-      rowSpan = bottom - top;
-    }
-    setPlacement(block.id, { col, colSpan, row, rowSpan });
+    // anchored (opposite) corner grows the footprint and the content zoom
+    // together. There is no side/top resize — resize is corner-only.
+    const ratio = Math.max(0.2, Math.abs(ax - r.anchorX) / r.baseW, Math.abs(ay - r.anchorY) / r.baseH);
+    const colSpan = Math.max(1, Math.min(GRID_COLS, Math.round((r.baseW * ratio) / CELL)));
+    const rowSpan = Math.max(1, Math.min(GRID_ROWS, Math.round((r.baseH * ratio) / CELL)));
+    const col = edge.includes('w') ? Math.max(1, r.right - colSpan) : p.col;
+    const row = edge.includes('n') ? Math.max(1, r.bottom - rowSpan) : p.row;
+    update(block.id, {
+      scale: r.startScale * ratio,
+      placement: clampPlacement({ col, colSpan, row, rowSpan }),
+    });
   };
 
   const onHandleUp = (e: React.PointerEvent, block: Block) => {
@@ -1352,10 +1389,14 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
 const DRAG_THRESHOLD = 4;
 /** Padding around the artboard inside the scroll area, in screen px. */
 const CANVAS_PAD = 40;
+/** Cells of breathing room a container keeps around its contents when it fits. */
+const FIT_PAD = 1;
 
 /** The eight resize handles: four sides and four corners. */
-type ResizeDir = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
-const RESIZE_DIRS: ResizeDir[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
+// Resize is corner-only: a corner scales the element (and its contents); there
+// is no side/top resizing.
+type ResizeDir = 'ne' | 'nw' | 'se' | 'sw';
+const RESIZE_DIRS: ResizeDir[] = ['ne', 'nw', 'se', 'sw'];
 
 const GLYPH: Record<BlockKind, string> = {
   container: '▢',
