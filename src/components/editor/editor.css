@@ -225,12 +225,12 @@
   pointer-events: none;
 }
 
-/* The snap grid, drawn only while arranging. Lines are confined to the content
-   area (no-repeat, sized to it); the period is one column / one row. */
+/* The snap grid, drawn only while arranging — square cells (graph paper), one
+   `--cell` in both axes, confined to the content area. */
 .ed-artboard.is-arranging.ed-guide-lines {
   background-image:
-    repeating-linear-gradient(to right, var(--grid-line) 0 1px, transparent 1px var(--colstep)),
-    repeating-linear-gradient(to bottom, var(--grid-line) 0 1px, transparent 1px var(--rowunit));
+    repeating-linear-gradient(to right, var(--grid-line) 0 1px, transparent 1px var(--cell)),
+    repeating-linear-gradient(to bottom, var(--grid-line) 0 1px, transparent 1px var(--cell));
   background-repeat: no-repeat;
   background-position: var(--pad) var(--pad);
   background-size: calc(100% - 2 * var(--pad)) calc(100% - 2 * var(--pad));
@@ -239,7 +239,7 @@
 .ed-artboard.is-arranging.ed-guide-dots {
   background-image: radial-gradient(var(--grid-line) 1.2px, transparent 1.2px);
   background-position: var(--pad) var(--pad);
-  background-size: var(--colstep) var(--rowunit);
+  background-size: var(--cell) var(--cell);
 }
 
 .ed-block {
