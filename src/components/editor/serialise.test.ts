@@ -128,6 +128,15 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(block && 'align' in block).toBe(false);
   });
 
+  it('round-trips a font choice, and drops a bad one', () => {
+    const fonted: Block[] = [
+      { id: 'h', kind: 'heading', label: 'Heading', font: 'serif', placement: { col: 1, colSpan: 8, row: 1 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(fonted))).toEqual(fonted);
+    const [block] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'text', font: 'comic' } }]));
+    expect(block && 'font' in block).toBe(false);
+  });
+
   it('round-trips a well-formed animation', () => {
     const animated: Block[] = [
       { id: 'c', kind: 'card', label: 'Card', animation: { effect: 'rise', trigger: 'scroll' }, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },

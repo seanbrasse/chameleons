@@ -38,6 +38,7 @@ import {
   makeBlock,
   maxCol,
   newBlockId,
+  FONT_CHOICES,
   TEXT_ALIGNS,
   withoutParent,
   type Animation,
@@ -1539,7 +1540,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       >
         {isEditMode ? <span className="ed-block-tag">{block.label}</span> : null}
         <div
-          className="ed-block-body"
+          className={`ed-block-body${canAlign(block) && block.font ? ` ed-font-${block.font}` : ''}`}
           style={{ ...bodyScale, textAlign: canAlign(block) ? block.align : undefined }}
         >
           {cont ? (
@@ -1958,24 +1959,44 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
             ) : null}
 
             {canAlign(selected) ? (
-              <div className="ed-field">
-                <span className="ed-field-label">Align</span>
-                <div className="ed-arrange">
-                  {TEXT_ALIGNS.map((a) => (
-                    <button
-                      key={a}
-                      type="button"
-                      className={`ed-arrange-btn${(selected.align ?? 'left') === a ? ' is-on' : ''}`}
-                      title={`Align ${a}`}
-                      aria-label={`Align ${a}`}
-                      aria-pressed={(selected.align ?? 'left') === a}
-                      onClick={() => update(selected.id, { align: a === 'left' ? undefined : a })}
-                    >
-                      {a === 'left' ? '⇤' : a === 'center' ? '⇔' : '⇥'}
-                    </button>
-                  ))}
+              <>
+                <div className="ed-field">
+                  <span className="ed-field-label">Align</span>
+                  <div className="ed-arrange">
+                    {TEXT_ALIGNS.map((a) => (
+                      <button
+                        key={a}
+                        type="button"
+                        className={`ed-arrange-btn${(selected.align ?? 'left') === a ? ' is-on' : ''}`}
+                        title={`Align ${a}`}
+                        aria-label={`Align ${a}`}
+                        aria-pressed={(selected.align ?? 'left') === a}
+                        onClick={() => update(selected.id, { align: a === 'left' ? undefined : a })}
+                      >
+                        {a === 'left' ? '⇤' : a === 'center' ? '⇔' : '⇥'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+                <div className="ed-field">
+                  <span className="ed-field-label">Font</span>
+                  <div className="ed-arrange">
+                    {FONT_CHOICES.map((f) => (
+                      <button
+                        key={f}
+                        type="button"
+                        className={`ed-arrange-btn ed-font-${f}${(selected.font ?? 'sans') === f ? ' is-on' : ''}`}
+                        title={`${f[0]!.toUpperCase()}${f.slice(1)} type`}
+                        aria-label={`${f} font`}
+                        aria-pressed={(selected.font ?? 'sans') === f}
+                        onClick={() => update(selected.id, { font: f === 'sans' ? undefined : f })}
+                      >
+                        Ag
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
             ) : null}
 
             {isInput(selected.kind) ? (
