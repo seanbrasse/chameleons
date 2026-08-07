@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 import { issue as demoIssue } from '@/content/demo';
-import { Editor } from '@/components/editor/Editor';
+import { TryClient } from './TryClient';
 
 /**
  * A place to run the canvas builder against demo content while it is being
@@ -17,5 +17,8 @@ export const metadata: Metadata = {
 };
 
 export default function Try() {
-  return <Editor issue={demoIssue} />;
+  // A layout built on /try is remembered across reloads, in the browser only.
+  // The real editor will persist to the site's stored LayoutDocument instead;
+  // here it is localStorage, via the client-only wrapper.
+  return <TryClient issue={demoIssue} />;
 }

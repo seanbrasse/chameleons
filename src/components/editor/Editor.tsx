@@ -1,10 +1,12 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { Issue } from '@/content/types';
+import type { LayoutDocument } from '@/templates/layout';
 
 import './editor.css';
+import { fromLayoutDocument, toLayoutDocument } from './serialise';
 import {
   GRID_LABEL,
   GRID_TRACKS,
@@ -41,13 +43,40 @@ const GRID_GAP = 12;
  * Persistence to the `LayoutDocument` is the next loop; the model is already
  * shaped for it.
  */
-export function Editor({ issue }: { issue: Issue }) {
+export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: string }) {
   const [grid, setGrid] = useState<GridKind>('columns');
-  const [blocks, setBlocks] = useState<Block[]>(() => starterBlocks(GRID_TRACKS.columns));
+  const [blocks, setBlocks] = useState<Block[]>(() => loadBlocks(storageKey, GRID_TRACKS.columns));
   const [selectedId, setSelectedId] = useState<string | null>(blocks[0]?.id ?? null);
   /** The block being dragged and the column it is snapping to, live. */
   const [drag, setDrag] = useState<{ id: string; col: number } | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+
+  // Persist on every change. This is the effect the rules endorse — it pushes
+  // React state out to an external system (localStorage) and calls no setState.
+  // The initial layout is read once, synchronously, in the state initialiser
+  // above; the editor is mounted client-only (see the /try wrapper) so that
+  // read is always safe and never disagrees with a server render.
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(toLayoutDocument(blocks)));
+    } catch {
+      // Storage full or blocked — the layout simply isn't remembered.
+    }
+  }, [blocks, storageKey]);
+
+  const reset = () => {
+    if (storageKey) {
+      try {
+        window.localStorage.removeItem(storageKey);
+      } catch {
+        // ignore — nothing to clear
+      }
+    }
+    const fresh = starterBlocks(GRID_TRACKS[grid]);
+    setBlocks(fresh);
+    setSelectedId(fresh[0]?.id ?? null);
+  };
 
   const tracks = GRID_TRACKS[grid];
   const selected = useMemo(() => blocks.find((b) => b.id === selectedId) ?? null, [blocks, selectedId]);
@@ -158,6 +187,9 @@ export function Editor({ issue }: { issue: Issue }) {
             ))}
           </div>
           <span className="ed-toolbar-note">{tracks}-column grid</span>
+          <button type="button" className="ed-btn ed-toolbar-reset" onClick={reset}>
+            Reset
+          </button>
         </div>
 
         <div className="ed-canvas-scroll">
@@ -317,6 +349,27 @@ const GLYPH: Record<BlockKind, string> = {
   metrics: '＃',
   contact: '✦',
 };
+
+/**
+ * The blocks to open with: a stored layout if one is remembered under
+ * `storageKey`, else the starter. Reads synchronously and only makes sense on
+ * the client — the editor is mounted client-only so this never runs on the
+ * server or disagrees with a hydrated render.
+ */
+function loadBlocks(storageKey: string | undefined, tracks: number): Block[] {
+  if (storageKey && typeof window !== 'undefined') {
+    try {
+      const raw = window.localStorage.getItem(storageKey);
+      if (raw) {
+        const restored = fromLayoutDocument(JSON.parse(raw) as LayoutDocument);
+        if (restored.length > 0) return restored;
+      }
+    } catch {
+      // Malformed or unavailable storage: fall through to the starter.
+    }
+  }
+  return starterBlocks(tracks);
+}
 
 function starterBlocks(tracks: number): Block[] {
   return [

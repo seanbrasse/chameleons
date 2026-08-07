@@ -29,6 +29,26 @@ export type BlockKind =
   | 'metrics'
   | 'contact';
 
+/** Every block kind, in palette order — the source of truth for validation. */
+export const BLOCK_KINDS: readonly BlockKind[] = [
+  'heading',
+  'text',
+  'image',
+  'button',
+  'divider',
+  'identity',
+  'projects',
+  'experience',
+  'education',
+  'metrics',
+  'contact',
+];
+
+/** Whether an arbitrary value is a known block kind — for parsing stored data. */
+export function isBlockKind(value: unknown): value is BlockKind {
+  return typeof value === 'string' && (BLOCK_KINDS as readonly string[]).includes(value);
+}
+
 /** Placement on the grid. `col` is 1-based; `span` is in grid columns. */
 export type Placement = { col: number; span: number };
 

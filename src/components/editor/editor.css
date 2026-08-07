@@ -161,6 +161,10 @@
   color: var(--ink-faint);
 }
 
+.ed-toolbar-reset {
+  margin-left: auto;
+}
+
 .ed-canvas-scroll {
   flex: 1;
   overflow: auto;
