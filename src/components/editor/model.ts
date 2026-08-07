@@ -23,6 +23,8 @@ export type BlockKind =
   | 'divider'
   // content, bound to the Issue
   | 'identity'
+  | 'skills'
+  | 'timeline'
   | 'projects'
   | 'experience'
   | 'education'
@@ -37,6 +39,8 @@ export const BLOCK_KINDS: readonly BlockKind[] = [
   'button',
   'divider',
   'identity',
+  'skills',
+  'timeline',
   'projects',
   'experience',
   'education',
@@ -205,6 +209,8 @@ export function isGuide(value: unknown): value is Guide {
 export function isContentBlock(kind: BlockKind): boolean {
   return (
     kind === 'identity' ||
+    kind === 'skills' ||
+    kind === 'timeline' ||
     kind === 'projects' ||
     kind === 'experience' ||
     kind === 'education' ||
@@ -231,6 +237,8 @@ export const PALETTE: { group: string; items: PaletteItem[] }[] = [
     group: 'Your content',
     items: [
       { kind: 'identity', label: 'Identity', hint: 'Name & role' },
+      { kind: 'skills', label: 'Skills', hint: 'Your stack' },
+      { kind: 'timeline', label: 'Timeline', hint: 'Career path' },
       { kind: 'projects', label: 'Projects', hint: 'Your work' },
       { kind: 'experience', label: 'Experience', hint: 'Roles' },
       { kind: 'education', label: 'Education', hint: 'Schools' },
@@ -253,6 +261,8 @@ const SPAN_FRACTION: Record<BlockKind, number> = {
   button: 0.25,
   divider: 1,
   identity: 1,
+  skills: 1,
+  timeline: 1,
   projects: 1,
   experience: 0.5,
   education: 0.5,

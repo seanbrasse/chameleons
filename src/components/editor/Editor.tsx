@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-import type { Issue } from '@/content/types';
+import type { Education, Experience, Issue } from '@/content/types';
 import type { LayoutDocument } from '@/templates/layout';
 
 import './editor.css';
@@ -615,6 +615,8 @@ const GLYPH: Record<BlockKind, string> = {
   button: '⬭',
   divider: '—',
   identity: '◈',
+  skills: '❖',
+  timeline: '⌗',
   projects: '❏',
   experience: '≣',
   education: '🎓',
@@ -730,6 +732,37 @@ function InlineText({
   );
 }
 
+/** A horizontal career timeline — experiences and schooling, earliest first. */
+function TimelinePreview({
+  experiences,
+  education,
+}: {
+  experiences: Experience[];
+  education: Education[];
+}) {
+  const stops = [
+    ...experiences.map((e) => ({ id: e.id, label: e.company, date: e.startDate })),
+    ...education.map((s) => ({ id: s.id, label: s.school, date: s.startDate })),
+  ]
+    .filter((s) => Boolean(s.date))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  return (
+    <div className="pv-timeline">
+      <div className="pv-timeline-line" />
+      <div className="pv-timeline-stops">
+        {stops.map((s) => (
+          <div key={s.id} className="pv-timeline-stop">
+            <span className="pv-timeline-co">{s.label}</span>
+            <span className="pv-timeline-dot" aria-hidden="true" />
+            <span className="pv-timeline-year">{s.date.slice(0, 4)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** A compact, representative preview of a block on the canvas. */
 function BlockPreview({
   block,
@@ -755,9 +788,26 @@ function BlockPreview({
       return (
         <div className="pv-identity">
           <div className="pv-name">{settings.displayName || 'Your name'}</div>
-          <div className="pv-role">{settings.role || settings.tagline}</div>
+          <div className="pv-role">
+            {[settings.role, settings.location].filter(Boolean).join(' · ') || settings.tagline}
+          </div>
         </div>
       );
+    case 'skills':
+      return (
+        <div className="pv-skills">
+          <div className="pv-eyebrow">Skills</div>
+          <div className="pv-chips">
+            {settings.skills.slice(0, 12).map((s) => (
+              <span key={s} className="pv-chip">
+                {s}
+              </span>
+            ))}
+          </div>
+        </div>
+      );
+    case 'timeline':
+      return <TimelinePreview experiences={experiences} education={education} />;
     case 'projects':
       return (
         <ul className="pv-list">

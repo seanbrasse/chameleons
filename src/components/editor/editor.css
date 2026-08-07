@@ -415,6 +415,93 @@
   margin-top: 2px;
 }
 
+.pv-eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 8px;
+}
+
+.pv-skills {
+  display: block;
+}
+
+.pv-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pv-chip {
+  font-size: 12px;
+  padding: 4px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  background: #fff;
+  white-space: nowrap;
+}
+
+/* ── timeline ─────────────────────────────────────────────────────── */
+
+.pv-timeline {
+  position: relative;
+  padding: 8px 0 2px;
+}
+
+.pv-timeline-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--line);
+}
+
+.pv-timeline-stops {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pv-timeline-stop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.pv-timeline-co {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.pv-timeline-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--art);
+  border: 2px solid var(--ink-soft);
+}
+
+.pv-timeline-year {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
 .pv-list {
   margin: 0;
   padding-left: 16px;
