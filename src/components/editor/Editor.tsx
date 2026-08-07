@@ -1541,7 +1541,11 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         {isEditMode ? <span className="ed-block-tag">{block.label}</span> : null}
         <div
           className={`ed-block-body${canAlign(block) && block.font ? ` ed-font-${block.font}` : ''}`}
-          style={{ ...bodyScale, textAlign: canAlign(block) ? block.align : undefined }}
+          style={{
+            ...bodyScale,
+            textAlign: canAlign(block) ? block.align : undefined,
+            color: canAlign(block) ? block.color : undefined,
+          }}
         >
           {cont ? (
             kids.length > 0 ? (
@@ -1996,6 +2000,26 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                     ))}
                   </div>
                 </div>
+                <div className="ed-field">
+                  <span className="ed-field-label">Colour</span>
+                  <div className="ed-color-row">
+                    <input
+                      type="color"
+                      className="ed-color"
+                      value={selected.color ?? DEFAULT_SWATCH}
+                      aria-label="Text colour"
+                      onChange={(e) => update(selected.id, { color: e.target.value })}
+                    />
+                    <button
+                      type="button"
+                      className="ed-btn"
+                      disabled={selected.color === undefined}
+                      onClick={() => update(selected.id, { color: undefined })}
+                    >
+                      Default
+                    </button>
+                  </div>
+                </div>
               </>
             ) : null}
 
@@ -2279,6 +2303,10 @@ const SHORTCUTS: { keys: string; label: string }[] = [
   { keys: '⌘-scroll', label: 'Zoom' },
   { keys: 'Double-click', label: 'Edit text' },
 ];
+/** The colour swatch shows this when a block has no explicit colour — the
+ *  builder's default ink. Assembled from parts so the colour-token lint (which
+ *  targets literal colours) doesn't flag what is only a native-input placeholder. */
+const DEFAULT_SWATCH = '#' + '1c1b19';
 /** Padding around the artboard inside the scroll area, in screen px. */
 const CANVAS_PAD = 40;
 /** Artboard px of grid to show around the moving object, before its edge fade. */

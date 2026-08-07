@@ -154,6 +154,8 @@ export type Block = {
   align?: TextAlign;
   /** The type family for a text primitive. Absent means the builder's sans. */
   font?: FontChoice;
+  /** A CSS colour for a text primitive's words. Absent means the default ink. */
+  color?: string;
   /** The container this block nests inside, if any. A block with a `parentId`
    *  renders inside that container — clipped to it, and carried when it moves or
    *  scales. Placement stays in absolute artboard cells regardless of nesting;
