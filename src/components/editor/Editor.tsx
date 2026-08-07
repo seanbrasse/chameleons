@@ -20,6 +20,7 @@ import {
   GUTTER_PX,
   GUTTERS,
   CONTENT_SOURCES,
+  DEFAULT_CONTAINER_ROWS,
   MIN_GAP_ROWS,
   PALETTE,
   clampPlacement,
@@ -86,6 +87,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
   /** The project opened in the detail modal (Preview only). */
   const [modalProject, setModalProject] = useState<Project | null>(null);
+  /** The id of the modal block a trigger opened (Preview only). */
+  const [openModalId, setOpenModalId] = useState<string | null>(null);
   /** The focused project index (by date) shared by the timeline and carousel. */
   const [activeIndex, setActiveIndex] = useState(0);
   const isEditMode = mode === 'edit';
@@ -137,6 +140,13 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     return m;
   }, [blocks]);
 
+  /** Blocks marked as modal panels — hidden inline in Preview, offered as
+   *  targets a trigger can open. */
+  const modalBlocks = useMemo(() => blocks.filter((b) => b.asModal), [blocks]);
+  const modalIds = useMemo(() => new Set(modalBlocks.map((b) => b.id)), [modalBlocks]);
+  const openModalBlock =
+    openModalId !== null ? blocks.find((b) => b.id === openModalId && b.asModal) ?? null : null;
+
   // Persist layout + grid style. Writes to localStorage only, no setState.
   useEffect(() => {
     if (!storageKey) return;
@@ -147,6 +157,16 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       // Storage full or blocked — the layout simply isn't remembered.
     }
   }, [blocks, gutter, guide, storageKey]);
+
+  // Esc closes an open block modal.
+  useEffect(() => {
+    if (openModalId === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpenModalId(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [openModalId]);
 
   // In Preview, play scroll-triggered entrances: a block reveals itself the
   // first time it scrolls into view. Load/hover triggers are pure CSS; only
@@ -550,7 +570,22 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     const dragging = draggingId === block.id;
     const free = dragging && dragFree?.id === block.id ? dragFree : null;
     const cont = isContainer(block.kind);
-    const kids = cont ? childMap.get(block.id) ?? [] : [];
+    const kids = cont ? (childMap.get(block.id) ?? []).filter((c) => isEditMode || !c.asModal) : [];
+    // In Preview, a block that opens an existing modal becomes a click target.
+    const opensId = !isEditMode && block.opensModal && modalIds.has(block.opensModal) ? block.opensModal : null;
+    const triggerProps = opensId
+      ? {
+          role: 'button' as const,
+          tabIndex: 0,
+          onClick: () => setOpenModalId(opensId),
+          onKeyDown: (e: React.KeyboardEvent) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setOpenModalId(opensId);
+            }
+          },
+        }
+      : {};
     const editProps = isEditMode
       ? {
           role: 'button',
@@ -587,7 +622,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         data-block-id={block.id}
         aria-label={`${block.label} block`}
         data-anim-trigger={anim?.trigger === 'scroll' ? 'scroll' : undefined}
-        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${animClass}${block.id === selectedId ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
+        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId ? ' is-trigger' : ''}${block.id === selectedId ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
         style={{
           left: (free ? free.left : box.left) - origin.left,
           top: (free ? free.top : box.top) - origin.top,
@@ -595,6 +630,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
           height: box.height,
         }}
         {...editProps}
+        {...triggerProps}
       >
         {isEditMode ? <span className="ed-block-tag">{block.label}</span> : null}
         <div className="ed-block-body" style={bodyScale}>
@@ -710,6 +746,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                   onClick={() => {
                     setMode(m);
                     setModalProject(null);
+                    setOpenModalId(null);
                     setActiveIndex(0);
                     if (m === 'preview') setSelectedId(null);
                   }}
@@ -743,7 +780,39 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               }}
               onPointerDown={isEditMode ? () => setSelectedId(null) : undefined}
             >
-              {(childMap.get(null) ?? []).map((block) => renderBlock(block, { left: 0, top: 0 }))}
+              {(childMap.get(null) ?? [])
+                .filter((block) => isEditMode || !block.asModal)
+                .map((block) => renderBlock(block, { left: 0, top: 0 }))}
+              {openModalBlock ? (
+                <div
+                  className="ed-modal-backdrop"
+                  onPointerDown={() => setOpenModalId(null)}
+                >
+                  <div
+                    className="ed-modal ed-modal-block"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={openModalBlock.label}
+                    style={{ width: boxOf(clampPlacement(openModalBlock.placement)).width }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      className="ed-modal-close"
+                      aria-label="Close"
+                      onClick={() => setOpenModalId(null)}
+                    >
+                      ×
+                    </button>
+                    <div
+                      className="ed-modal-block-stage"
+                      style={{ height: boxOf(clampPlacement(openModalBlock.placement)).height ?? undefined }}
+                    >
+                      {renderBlock(openModalBlock, boxOf(clampPlacement(openModalBlock.placement)))}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
               {dragFree
                 ? (() => {
                     const g = boxOf(dragFree.snap);
@@ -921,6 +990,49 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                 </select>
               </label>
             ) : null}
+
+            <label className="ed-check">
+              <input
+                type="checkbox"
+                checked={!!selected.asModal}
+                onChange={(e) =>
+                  update(
+                    selected.id,
+                    e.target.checked
+                      ? {
+                          asModal: true,
+                          // A modal needs a box, so give it a height if it has none.
+                          placement: sel.rowSpan
+                            ? sel
+                            : { ...sel, rowSpan: DEFAULT_CONTAINER_ROWS },
+                        }
+                      : { asModal: undefined },
+                  )
+                }
+              />
+              <span>Use as modal panel</span>
+            </label>
+
+            <label className="ed-field">
+              <span className="ed-field-label">On click, opens</span>
+              <select
+                value={selected.opensModal ?? 'none'}
+                onChange={(e) =>
+                  update(selected.id, {
+                    opensModal: e.target.value === 'none' ? undefined : e.target.value,
+                  })
+                }
+              >
+                <option value="none">Nothing</option>
+                {modalBlocks
+                  .filter((b) => b.id !== selected.id)
+                  .map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.label}
+                    </option>
+                  ))}
+              </select>
+            </label>
 
             <label className="ed-check">
               <input

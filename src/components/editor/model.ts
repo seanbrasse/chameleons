@@ -157,6 +157,12 @@ export type Block = {
   parentId?: string;
   /** An entrance/interaction effect played in Preview. Absent means none. */
   animation?: Animation;
+  /** When true, this block is a modal panel: hidden inline in Preview, shown
+   *  only when another block opens it. It is edited normally on the canvas. */
+  asModal?: boolean;
+  /** In Preview, clicking this block opens the modal block with this id — the
+   *  "turn on a modal, and control which one" wiring. */
+  opensModal?: string;
   placement: Placement;
 };
 

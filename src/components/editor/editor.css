@@ -1060,6 +1060,43 @@
   cursor: pointer;
 }
 
+/* A modal built from a canvas block: the panel sizes to the block, which
+   renders inside a positioned stage at its natural size. */
+.ed-modal-block {
+  width: auto;
+  max-width: 92vw;
+}
+
+.ed-modal-block-stage {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+/* A block marked as a modal (edit view) reads as set-aside, with a badge. */
+.ed-block.is-modal {
+  outline: 2px dashed #b9a0f0;
+  outline-offset: 3px;
+}
+
+.ed-block.is-modal::after {
+  content: 'MODAL';
+  position: absolute;
+  top: -9px;
+  right: 10px;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: #7c5cd6;
+  background: #fff;
+  padding: 0 5px;
+}
+
+/* A trigger is clickable in preview. */
+.ed-artboard.is-preview .ed-block.is-trigger {
+  cursor: pointer;
+}
+
 .ed-modal-media {
   height: 260px;
   background-color: var(--panel);
