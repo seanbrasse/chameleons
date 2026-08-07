@@ -31,6 +31,7 @@ import {
   isContainer,
   isInput,
   isFreeText,
+  lockedRootOf,
   isGuide,
   isGutter,
   makeBlock,
@@ -416,20 +417,6 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     setSelectedId(group[0]!.id);
   };
 
-  const duplicate = (id: string) => {
-    const src = blocks.find((b) => b.id === id);
-    if (!src) return;
-    snapshot(true);
-    // The copy lands beside the original, as a free root, so it's visible.
-    const copy: Block = withoutParent({
-      ...src,
-      id: newBlockId(src.kind),
-      placement: clampPlacement({ ...src.placement, col: src.placement.col + 2, row: src.placement.row + 2 }),
-    });
-    setBlocks((bs) => [...bs, copy]);
-    setSelectedId(copy.id);
-  };
-
   /** Cell bounds of a block, using its measured height when it has no explicit
    *  rowSpan — so fit reasons about how tall the block actually is. */
   const cellBounds = (b: Block) => {
@@ -481,11 +468,17 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
 
   const remove = (id: string) => {
     snapshot(true);
-    // Deleting a container promotes its children to its own parent, so nested
-    // content is detached rather than silently lost with the box.
     setBlocks((bs) => {
       const target = bs.find((b) => b.id === id);
       const parentId = target?.parentId;
+      // A locked component deletes as one — the whole subtree goes. Any other
+      // container promotes its children so nested content isn't lost with it.
+      if (target && isContainer(target.kind) && target.locked) {
+        const doomed = descendantIds(bs, id);
+        let next = bs.filter((b) => b.id !== id && !doomed.has(b.id));
+        if (parentId !== undefined) next = fitContainer(next, parentId, 'shrink');
+        return next;
+      }
       let next = bs
         .filter((b) => b.id !== id)
         .map((b) =>
@@ -587,17 +580,22 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   };
 
   // ── drag (anywhere on the block) ────────────────────────────────────
+  // A locked component drags as one: any pointer-down inside it resolves to its
+  // root, so the whole subtree moves and selects together.
+  const dragTargetOf = (block: Block): Block => lockedRootOf(blocks, block.id) ?? block;
+
   const onBlockDown = (e: React.PointerEvent, block: Block) => {
     if (editingId === block.id || e.button !== 0) return;
     e.stopPropagation();
-    setSelectedId(block.id);
+    const target = dragTargetOf(block);
+    setSelectedId(target.id);
     const rect = artboardRef.current?.getBoundingClientRect();
     if (!rect) return;
     const ax = (e.clientX - rect.left) / scale;
     const ay = (e.clientY - rect.top) / scale;
-    const box = boxOf(block.placement);
+    const box = boxOf(target.placement);
     dragRef.current = {
-      id: block.id,
+      id: target.id,
       pointerId: e.pointerId,
       grabDx: ax - box.left,
       grabDy: ay - box.top,
@@ -608,15 +606,17 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
-  const onBlockMove = (e: React.PointerEvent, block: Block) => {
+  const onBlockMove = (e: React.PointerEvent) => {
     const d = dragRef.current;
-    if (!d || d.id !== block.id) return;
+    if (!d || d.pointerId !== e.pointerId) return;
+    const target = blocks.find((b) => b.id === d.id);
+    if (!target) return;
     if (!d.moved) {
       if (Math.hypot(e.clientX - d.startX, e.clientY - d.startY) < DRAG_THRESHOLD) return;
       d.moved = true;
       beginGesture(); // the whole drag is one undo step
       setArranging(true);
-      setDraggingId(block.id);
+      setDraggingId(target.id);
     }
     // The block follows the pointer freely between slots; the slot it will snap
     // to shows as a ghost, and the placement only changes on release.
@@ -624,41 +624,42 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     if (!rect) return;
     const left = (e.clientX - rect.left) / scale - d.grabDx;
     const top = (e.clientY - rect.top) / scale - d.grabDy;
-    const snap = placementAt(e.clientX, e.clientY, d.grabDx, d.grabDy, block.placement.colSpan);
-    const height = heightsRef.current[block.id] ?? CELL;
-    setDragFree({ id: block.id, left, top, height, snap });
+    const snap = placementAt(e.clientX, e.clientY, d.grabDx, d.grabDy, target.placement.colSpan);
+    const height = heightsRef.current[target.id] ?? CELL;
+    setDragFree({ id: target.id, left, top, height, snap });
   };
 
-  const onBlockUp = (e: React.PointerEvent, block: Block) => {
+  const onBlockUp = (e: React.PointerEvent) => {
     const d = dragRef.current;
-    if (!d || d.id !== block.id) return;
+    if (!d || d.pointerId !== e.pointerId) return;
+    const target = blocks.find((b) => b.id === d.id) ?? null;
     try {
       e.currentTarget.releasePointerCapture(d.pointerId);
     } catch {
       // capture may already be gone
     }
     const moved = d.moved;
-    const snap = dragFree?.id === block.id ? dragFree.snap : null;
+    const snap = target && dragFree?.id === target.id ? dragFree.snap : null;
     dragRef.current = null;
     setArranging(false);
     setDraggingId(null);
     setDragFree(null);
     if (moved) endGesture(); // close the undo step opened on first move
-    if (!(moved && snap)) return;
+    if (!(moved && snap) || !target) return;
 
     // Snap to the nearest slot, carry any descendants by the same delta, and
     // re-parent into (or out of) whatever container the drop landed in.
-    const oldP = clampPlacement(block.placement);
+    const oldP = clampPlacement(target.placement);
     const dCol = snap.col - oldP.col;
     const dRow = snap.row - oldP.row;
-    const kin = descendantIds(blocks, block.id);
-    const oldParent = block.parentId;
-    const newParent = findDropContainer(block, snap, kin);
+    const kin = descendantIds(blocks, target.id);
+    const oldParent = target.parentId;
+    const newParent = findDropContainer(target, snap, kin);
     setBlocks((bs) => {
       let next = bs.map((b) => {
-        if (b.id === block.id) {
-          const moved: Block = { ...b, placement: clampPlacement(snap) };
-          return newParent === null ? withoutParent(moved) : { ...moved, parentId: newParent };
+        if (b.id === target.id) {
+          const movedBlock: Block = { ...b, placement: clampPlacement(snap) };
+          return newParent === null ? withoutParent(movedBlock) : { ...movedBlock, parentId: newParent };
         }
         if (kin.has(b.id)) {
           const p = clampPlacement(b.placement);
@@ -674,7 +675,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     });
     // Only a free, non-container block joins the spacing shuffle; a box or a
     // nested block keeps exactly where it was dropped.
-    if (newParent === null && !isContainer(block.kind)) resolveOverlap(block.id);
+    if (newParent === null && !isContainer(target.kind)) resolveOverlap(target.id);
   };
 
   // ── resize (drag a side or corner handle) ───────────────────────────
@@ -741,15 +742,30 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   };
 
   // ── keyboard ────────────────────────────────────────────────────────
+  /** Nudge a block and its whole subtree by a cell delta, so a container (or a
+   *  locked component) carries its contents. */
+  const moveTree = (rootId: string, dCol: number, dRow: number) => {
+    const kin = descendantIds(blocks, rootId);
+    snapshot(); // coalesced history step for a burst of arrow nudges
+    setBlocks((bs) =>
+      bs.map((b) => {
+        if (b.id === rootId || kin.has(b.id)) {
+          const p = clampPlacement(b.placement);
+          return { ...b, placement: clampPlacement({ ...p, col: p.col + dCol, row: p.row + dRow }) };
+        }
+        return b;
+      }),
+    );
+  };
+
   const onBlockKey = (e: React.KeyboardEvent, block: Block) => {
     if (editingId === block.id) return;
-    const p = clampPlacement(block.placement);
     if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
       e.preventDefault();
-      setPlacement(block.id, { ...p, col: p.col + (e.key === 'ArrowRight' ? 1 : -1) });
+      moveTree(block.id, e.key === 'ArrowRight' ? 1 : -1, 0);
     } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
-      setPlacement(block.id, { ...p, row: p.row + (e.key === 'ArrowDown' ? 1 : -1) });
+      moveTree(block.id, 0, e.key === 'ArrowDown' ? 1 : -1);
     } else if (e.key === 'Delete' || e.key === 'Backspace') {
       e.preventDefault();
       remove(block.id);
@@ -780,22 +796,36 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
    *  here, so the tree doubles as a manager. */
   const renderOutline = (block: Block, depth: number): React.ReactNode => {
     const kids = childrenOf(blocks, block.id);
+    const lockRoot = lockedRootOf(blocks, block.id);
+    const isComponent = isContainer(block.kind) && block.locked;
     return (
       <div key={block.id}>
-        <div className={`ed-outline-row${block.id === selectedId ? ' is-active' : ''}${block.hidden ? ' is-off' : ''}`}>
+        <div className={`ed-outline-row${block.id === selectedId ? ' is-active' : ''}${block.hidden ? ' is-off' : ''}${lockRoot ? ' is-in-component' : ''}`}>
           <button
             type="button"
             className="ed-outline-select"
             style={{ paddingLeft: depth * 14 }}
-            onClick={() => setSelectedId(block.id)}
+            onClick={() => setSelectedId((lockRoot ?? block).id)}
             title={block.label}
           >
             <span className="ed-outline-glyph" aria-hidden="true">
               {GLYPH[block.kind]}
             </span>
             <span className="ed-outline-name">{block.label}</span>
+            {isComponent ? <span className="ed-outline-tag">locked</span> : null}
             {block.asModal ? <span className="ed-outline-tag">modal</span> : null}
           </button>
+          {isContainer(block.kind) ? (
+            <button
+              type="button"
+              className="ed-outline-act"
+              onClick={() => update(block.id, { locked: block.locked ? undefined : true })}
+              aria-label={block.locked ? `Unlock ${block.label}` : `Lock ${block.label} as a component`}
+              title={block.locked ? 'Unlock component' : 'Lock as component'}
+            >
+              {block.locked ? '🔒' : '🔓'}
+            </button>
+          ) : null}
           <button
             type="button"
             className="ed-outline-act"
@@ -808,7 +838,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
           <button
             type="button"
             className="ed-outline-act ed-outline-del"
-            onClick={() => remove(block.id)}
+            onClick={() => remove((lockRoot ?? block).id)}
             aria-label={`Delete ${block.label}`}
             title="Delete"
           >
@@ -836,6 +866,10 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     const free = dragging && dragFree?.id === block.id ? dragFree : null;
     const cont = isContainer(block.kind);
     const kids = cont ? (childMap.get(block.id) ?? []).filter((c) => isEditMode || !c.asModal) : [];
+    const isLocked = cont && block.locked === true;
+    // A descendant of a locked component isn't individually selectable, so it
+    // shouldn't offer its own hover chrome.
+    const inLocked = isEditMode && lockedRootOf(blocks, block.id) !== null;
     // In Preview, a block that opens an existing modal becomes a click target.
     const opensId = !isEditMode && block.opensModal && modalIds.has(block.opensModal) ? block.opensModal : null;
     const triggerProps = opensId
@@ -857,12 +891,14 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
           tabIndex: 0,
           'aria-pressed': block.id === selectedId,
           onPointerDown: (e: React.PointerEvent) => onBlockDown(e, block),
-          onPointerMove: (e: React.PointerEvent) => onBlockMove(e, block),
-          onPointerUp: (e: React.PointerEvent) => onBlockUp(e, block),
-          onFocus: () => setSelectedId(block.id),
-          onKeyDown: (e: React.KeyboardEvent) => onBlockKey(e, block),
+          onPointerMove: (e: React.PointerEvent) => onBlockMove(e),
+          onPointerUp: (e: React.PointerEvent) => onBlockUp(e),
+          onFocus: () => setSelectedId((lockedRootOf(blocks, block.id) ?? block).id),
+          onKeyDown: (e: React.KeyboardEvent) => onBlockKey(e, lockedRootOf(blocks, block.id) ?? block),
           onDoubleClick: () => {
-            if (isFreeText(block)) {
+            // Inside a locked component, a double-click selects the component
+            // rather than editing a piece; unlock it to edit the pieces.
+            if (isFreeText(block) && !lockedRootOf(blocks, block.id)) {
               setSelectedId(block.id);
               setEditingId(block.id);
             }
@@ -887,7 +923,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         data-block-id={block.id}
         aria-label={`${block.label} block`}
         data-anim-trigger={anim?.trigger === 'scroll' ? 'scroll' : undefined}
-        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${block.parentId !== undefined ? ' is-nested' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId ? ' is-trigger' : ''}${block.id === selectedId ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
+        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${block.parentId !== undefined ? ' is-nested' : ''}${isLocked ? ' is-locked' : ''}${inLocked ? ' in-locked' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId ? ' is-trigger' : ''}${block.id === selectedId ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
         style={{
           left: (free ? free.left : box.left) - origin.left,
           top: (free ? free.top : box.top) - origin.top,
@@ -1238,16 +1274,26 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
             </label>
 
             {isContainer(selected.kind) ? (
-              <label className="ed-field">
-                <span className="ed-field-label">Height — {sel.rowSpan ?? 1}</span>
-                <input
-                  type="range"
-                  min={1}
-                  max={GRID_ROWS}
-                  value={sel.rowSpan ?? 1}
-                  onChange={(e) => setPlacement(selected.id, { ...sel, rowSpan: Number(e.target.value) })}
-                />
-              </label>
+              <>
+                <label className="ed-field">
+                  <span className="ed-field-label">Height — {sel.rowSpan ?? 1}</span>
+                  <input
+                    type="range"
+                    min={1}
+                    max={GRID_ROWS}
+                    value={sel.rowSpan ?? 1}
+                    onChange={(e) => setPlacement(selected.id, { ...sel, rowSpan: Number(e.target.value) })}
+                  />
+                </label>
+                <label className="ed-check">
+                  <input
+                    type="checkbox"
+                    checked={!!selected.locked}
+                    onChange={(e) => update(selected.id, { locked: e.target.checked ? true : undefined })}
+                  />
+                  <span>Lock as a component (move &amp; edit as one)</span>
+                </label>
+              </>
             ) : null}
 
             {selected.parentId !== undefined ? (
@@ -1357,7 +1403,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
             </label>
 
             <div className="ed-props-actions">
-              <button type="button" className="ed-btn" onClick={() => duplicate(selected.id)}>
+              <button type="button" className="ed-btn" onClick={() => duplicateSelection()}>
                 Duplicate
               </button>
               <button type="button" className="ed-btn ed-btn-danger" onClick={() => remove(selected.id)}>

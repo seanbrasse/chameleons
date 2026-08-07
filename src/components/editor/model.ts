@@ -163,8 +163,34 @@ export type Block = {
   /** In Preview, clicking this block opens the modal block with this id — the
    *  "turn on a modal, and control which one" wiring. */
   opensModal?: string;
+  /** A locked container is a *component*: it and its whole subtree behave as one
+   *  unit — clicking any part selects the component, and it moves, copies and
+   *  deletes together. Unlock it to edit the pieces inside. Only meaningful on a
+   *  container. */
+  locked?: boolean;
   placement: Placement;
 };
+
+/**
+ * The outermost locked container that contains `id` (walking up the parent
+ * chain), or null when nothing above it is locked. This is what makes a
+ * component act as one: a click, drag or delete on any descendant resolves to
+ * this block. Guards against a malformed cycle.
+ */
+export function lockedRootOf(blocks: Block[], id: string): Block | null {
+  const byId = new Map(blocks.map((b) => [b.id, b]));
+  let node = byId.get(id);
+  let locked: Block | null = null;
+  const seen = new Set<string>();
+  while (node && node.parentId !== undefined && !seen.has(node.id)) {
+    seen.add(node.id);
+    const parent = byId.get(node.parentId);
+    if (!parent) break;
+    if (parent.locked) locked = parent;
+    node = parent;
+  }
+  return locked;
+}
 
 /** The direct children of `parentId` (its roots when `null`), in list order. */
 export function childrenOf(blocks: Block[], parentId: string | null): Block[] {
@@ -518,6 +544,7 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
   if (preset === 'hero') {
     const box = makeBlock('container', 'Hero', row);
     box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 12 });
+    box.locked = true;
     const heading = presetChild('heading', 'Title', 'Your name, in large type', box.id, { col: 3, colSpan: GRID_COLS - 4, row: row + 2 });
     const tagline = presetChild('text', 'Tagline', 'A one-line summary of what you do and who for.', box.id, { col: 3, colSpan: Math.round(GRID_COLS * 0.6), row: row + 5, rowSpan: 3 });
     const button = presetChild('button', 'Button', 'Get in touch', box.id, { col: 3, colSpan: 8, row: row + 8 });
@@ -527,6 +554,7 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
   if (preset === 'contactForm') {
     const card = makeBlock('card', 'Contact', row);
     card.placement = clampPlacement({ col: 1, colSpan: half, row, rowSpan: 22 });
+    card.locked = true;
     return [card, ...contactFields(card.id, row)];
   }
 
@@ -537,6 +565,7 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     const base = row + 3;
     const card = makeBlock('card', 'Contact', base);
     card.asModal = true;
+    card.locked = true;
     card.placement = clampPlacement({ col: 1, colSpan: half, row: base, rowSpan: 22 });
     trigger.opensModal = card.id;
     return [trigger, card, ...contactFields(card.id, base)];
@@ -546,6 +575,7 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
   const card = makeBlock('card', 'Card', row);
   card.placement = clampPlacement({ col: 1, colSpan: half, row, rowSpan: 13 });
   card.animation = { effect: 'zoom', trigger: 'hover' };
+  card.locked = true;
   return [
     card,
     presetChild('heading', 'Title', 'Project title', card.id, { col: inner.col, colSpan: inner.span, row: row + 2 }),

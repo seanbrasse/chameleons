@@ -414,6 +414,22 @@
   display: block;
 }
 
+/* A locked component reads as one object: its parts don't offer their own hover
+   frame or label, since a click anywhere selects the whole component. */
+.ed-block.in-locked:hover {
+  border-color: transparent;
+}
+
+.ed-block.in-locked > .ed-block-tag {
+  display: none;
+}
+
+/* The locked container gets a small padlock marker on its tag. */
+.ed-block.is-locked > .ed-block-tag::after {
+  content: ' 🔒';
+  font-size: 9px;
+}
+
 /* The slot a dragged block will magnetically snap to on release. */
 .ed-snap-ghost {
   position: absolute;

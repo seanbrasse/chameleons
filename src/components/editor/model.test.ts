@@ -11,6 +11,7 @@ import {
   isInput,
   isPresetKind,
   isContentSource,
+  lockedRootOf,
   makePreset,
   isGuide,
   isGutter,
@@ -172,6 +173,30 @@ describe('containers and the tree', () => {
     expect(isPresetKind('animatedCard')).toBe(true);
     expect(isPresetKind('hero')).toBe(true);
     expect(isPresetKind('nope')).toBe(false);
+  });
+
+  it('presets arrive as locked components', () => {
+    const group = makePreset('animatedCard', 5);
+    expect(group[0]?.locked).toBe(true);
+  });
+
+  it('lockedRootOf finds the locked ancestor of a nested block', () => {
+    const blocks: Block[] = [
+      { id: 'box', kind: 'container', label: 'Box', locked: true, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },
+      { id: 'a', kind: 'text', label: 'A', parentId: 'box', placement: { col: 2, colSpan: 4, row: 2 } },
+      { id: 'free', kind: 'heading', label: 'Free', placement: { col: 1, colSpan: 6, row: 20 } },
+    ];
+    expect(lockedRootOf(blocks, 'a')?.id).toBe('box'); // child resolves to the component
+    expect(lockedRootOf(blocks, 'box')).toBeNull(); // the box itself has no locked ancestor
+    expect(lockedRootOf(blocks, 'free')).toBeNull();
+  });
+
+  it('lockedRootOf ignores an unlocked container', () => {
+    const blocks: Block[] = [
+      { id: 'box', kind: 'container', label: 'Box', placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },
+      { id: 'a', kind: 'text', label: 'A', parentId: 'box', placement: { col: 2, colSpan: 4, row: 2 } },
+    ];
+    expect(lockedRootOf(blocks, 'a')).toBeNull();
   });
 
   it('the contactModal preset wires a trigger to a hidden modal card', () => {
