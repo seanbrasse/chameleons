@@ -2297,11 +2297,12 @@ function ProjectGallery({
 }
 
 /**
- * The interactive timeline (Preview). Experience and school logos sit along a
- * year axis; a draggable playhead marks the active project's date and, when
- * moved, scrubs the carousel to the nearest project in time. Clicking a stop
- * jumps to the nearest project too — so the timeline and carousel drive each
- * other, like the live page.
+ * The timeline. Experience and school logos sit along a year axis; a playhead
+ * marks the active project's date. In Preview it's live — a draggable playhead
+ * scrubs the carousel to the nearest project in time, and clicking a stop jumps
+ * to it, so timeline and carousel drive each other like the page. In Edit it
+ * renders the same thing in its initial state but inert (`interactive=false`),
+ * so its footprint matches Preview and a click selects/drags the block.
  */
 function TimelineScrubber({
   experiences,
@@ -2309,12 +2310,14 @@ function TimelineScrubber({
   projects,
   activeIndex,
   onActive,
+  interactive = true,
 }: {
   experiences: Experience[];
   education: Education[];
   projects: Project[];
   activeIndex: number;
   onActive: (i: number) => void;
+  interactive?: boolean;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const sorted = projectsByDate(projects);
@@ -2364,7 +2367,7 @@ function TimelineScrubber({
   };
 
   return (
-    <div className="pv-scrub">
+    <div className={`pv-scrub${interactive ? '' : ' is-static'}`} aria-hidden={!interactive}>
       <div className="pv-scrub-stops">
         {stops.map((s) => (
           <button
@@ -2373,7 +2376,8 @@ function TimelineScrubber({
             className="pv-scrub-stop"
             style={{ left: `${frac(s.date) * 100}%` }}
             aria-label={`${s.label}, ${s.date.slice(0, 4)}`}
-            onClick={() => onActive(nearestByDate(s.date))}
+            tabIndex={interactive ? 0 : -1}
+            onClick={interactive ? () => onActive(nearestByDate(s.date)) : undefined}
           >
             {s.logo ? (
               // eslint-disable-next-line @next/next/no-img-element -- storage URLs are not on a next/image host; same as the templates.
@@ -2387,13 +2391,21 @@ function TimelineScrubber({
       <div
         ref={trackRef}
         className="pv-scrub-track"
-        onPointerDown={(e) => {
-          e.currentTarget.setPointerCapture(e.pointerId);
-          scrubTo(e.clientX);
-        }}
-        onPointerMove={(e) => {
-          if (e.buttons === 1) scrubTo(e.clientX);
-        }}
+        onPointerDown={
+          interactive
+            ? (e) => {
+                e.currentTarget.setPointerCapture(e.pointerId);
+                scrubTo(e.clientX);
+              }
+            : undefined
+        }
+        onPointerMove={
+          interactive
+            ? (e) => {
+                if (e.buttons === 1) scrubTo(e.clientX);
+              }
+            : undefined
+        }
       >
         {years.map((y) => (
           <span key={y} className="pv-scrub-tick" style={{ left: `${((y - min) / span) * 100}%` }} />
@@ -2469,36 +2481,6 @@ function ProjectModal({
 }
 
 /** A horizontal career timeline — experiences and schooling, earliest first. */
-function TimelinePreview({
-  experiences,
-  education,
-}: {
-  experiences: Experience[];
-  education: Education[];
-}) {
-  const stops = [
-    ...experiences.map((e) => ({ id: e.id, label: e.company, date: e.startDate })),
-    ...education.map((s) => ({ id: s.id, label: s.school, date: s.startDate })),
-  ]
-    .filter((s) => Boolean(s.date))
-    .sort((a, b) => a.date.localeCompare(b.date));
-
-  return (
-    <div className="pv-timeline">
-      <div className="pv-timeline-line" />
-      <div className="pv-timeline-stops">
-        {stops.map((s) => (
-          <div key={s.id} className="pv-timeline-stop">
-            <span className="pv-timeline-co">{s.label}</span>
-            <span className="pv-timeline-dot" aria-hidden="true" />
-            <span className="pv-timeline-year">{s.date.slice(0, 4)}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 /** A compact, representative preview of a block on the canvas. */
 function BlockPreview({
   block,
@@ -2560,16 +2542,15 @@ function BlockPreview({
         </div>
       );
     case 'timeline':
-      return interactive ? (
+      return (
         <TimelineScrubber
           experiences={experiences}
           education={education}
           projects={projects}
           activeIndex={activeIndex}
           onActive={onActive}
+          interactive={interactive}
         />
-      ) : (
-        <TimelinePreview experiences={experiences} education={education} />
       );
     case 'projects':
       return (

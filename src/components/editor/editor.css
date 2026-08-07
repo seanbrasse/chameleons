@@ -934,67 +934,17 @@
 
 /* ── timeline ─────────────────────────────────────────────────────── */
 
-.pv-timeline {
-  position: relative;
-  padding: 8px 0 2px;
-}
-
-.pv-timeline-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 1px;
-  background: var(--line);
-}
-
-.pv-timeline-stops {
-  position: relative;
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.pv-timeline-stop {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
-  min-width: 0;
-}
-
-.pv-timeline-co {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--ink);
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-.pv-timeline-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--art);
-  border: 2px solid var(--ink-soft);
-}
-
-.pv-timeline-year {
-  font-size: 11px;
-  color: var(--ink-soft);
-}
-
-/* ── interactive timeline scrubber (Preview) ──────────────────────── */
+/* ── timeline scrubber: live in Preview, inert initial state in Edit ── */
 
 .pv-scrub {
   position: relative;
   padding: 6px 0 4px;
+}
+
+/* In Edit the scrubber is a static preview: inert, so a pointer drives the
+   block (select / drag), not the playhead or its stops. */
+.pv-scrub.is-static {
+  pointer-events: none;
 }
 
 .pv-scrub-stops {
