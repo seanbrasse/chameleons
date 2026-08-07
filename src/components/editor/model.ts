@@ -544,12 +544,12 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
 
   // animatedCard (default)
   const card = makeBlock('card', 'Card', row);
-  card.placement = clampPlacement({ col: 1, colSpan: half, row, rowSpan: 16 });
+  card.placement = clampPlacement({ col: 1, colSpan: half, row, rowSpan: 13 });
   card.animation = { effect: 'zoom', trigger: 'hover' };
   return [
     card,
     presetChild('heading', 'Title', 'Project title', card.id, { col: inner.col, colSpan: inner.span, row: row + 2 }),
-    presetChild('text', 'Text', 'A short description of what this is and why it matters.', card.id, { col: inner.col, colSpan: inner.span, row: row + 5, rowSpan: 5 }),
-    presetChild('button', 'Button', 'View details', card.id, { col: inner.col, colSpan: 8, row: row + 12 }),
+    presetChild('text', 'Text', 'A short description of what this is and why it matters.', card.id, { col: inner.col, colSpan: inner.span, row: row + 5, rowSpan: 3 }),
+    presetChild('button', 'Button', 'View details', card.id, { col: inner.col, colSpan: 14, row: row + 9 }),
   ];
 }
