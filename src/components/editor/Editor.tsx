@@ -9,10 +9,9 @@ import './editor.css';
 import { fromLayoutDocument, toLayoutDocument } from './serialise';
 import {
   ARTBOARD,
-  GRID_KINDS,
-  GRID_LABEL,
+  CELL,
+  GRID_COLS,
   GRID_ROWS,
-  GRID_TRACKS,
   GUIDE_LABEL,
   GUIDES,
   GUTTER_LABEL,
@@ -23,7 +22,6 @@ import {
   PALETTE,
   clampPlacement,
   isFreeText,
-  isGridKind,
   isGuide,
   isGutter,
   makeBlock,
@@ -32,7 +30,6 @@ import {
   type Block,
   type BlockKind,
   type ContentSource,
-  type GridKind,
   type Guide,
   type Gutter,
   type Placement,
@@ -57,7 +54,6 @@ import {
  */
 export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: string }) {
   const [initial] = useState(() => loadInitial(storageKey));
-  const [grid, setGrid] = useState<GridKind>(initial.grid);
   const [gutter, setGutter] = useState<Gutter>(initial.gutter);
   const [guide, setGuide] = useState<Guide>(initial.guide);
   const [blocks, setBlocks] = useState<Block[]>(initial.blocks);
@@ -104,22 +100,19 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   /** Measured block heights in artboard px, by id — for spacing/placement. */
   const heightsRef = useRef<Record<string, number>>({});
 
-  const tracks = GRID_TRACKS[grid];
   const gutterPx = GUTTER_PX[gutter];
-  const contentW = ARTBOARD.width - ARTBOARD.margin * 2;
-  const colStep = contentW / tracks;
   const selected = useMemo(() => blocks.find((b) => b.id === selectedId) ?? null, [blocks, selectedId]);
 
   // Persist layout + grid style. Writes to localStorage only, no setState.
   useEffect(() => {
     if (!storageKey) return;
     try {
-      const payload = { layout: toLayoutDocument(blocks), grid, gutter, guide };
+      const payload = { layout: toLayoutDocument(blocks), gutter, guide };
       window.localStorage.setItem(storageKey, JSON.stringify(payload));
     } catch {
       // Storage full or blocked — the layout simply isn't remembered.
     }
-  }, [blocks, grid, gutter, guide, storageKey]);
+  }, [blocks, gutter, guide, storageKey]);
 
   // Scale the artboard to fit the canvas width, so the page shrinks/grows with
   // the window. Capped so it never gets microscopic or absurdly large.
@@ -154,21 +147,21 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     setBlocks((bs) => bs.map((b) => (b.id === id ? { ...b, ...patch } : b)));
 
   const setPlacement = (id: string, placement: Placement) =>
-    update(id, { placement: clampPlacement(placement, tracks) });
+    update(id, { placement: clampPlacement(placement) });
 
   /** The top of the lowest block, in row units — where a new block should land. */
   const nextRow = (): number => {
     let bottomPx: number = ARTBOARD.margin;
     for (const b of blocks) {
-      const top = ARTBOARD.margin + (b.placement.row - 1) * ARTBOARD.rowUnit;
-      bottomPx = Math.max(bottomPx, top + (heightsRef.current[b.id] ?? ARTBOARD.rowUnit * 4));
+      const top = ARTBOARD.margin + (b.placement.row - 1) * CELL;
+      bottomPx = Math.max(bottomPx, top + (heightsRef.current[b.id] ?? CELL));
     }
-    const gap = MIN_GAP_ROWS * ARTBOARD.rowUnit;
-    return Math.max(1, Math.round((bottomPx + gap - ARTBOARD.margin) / ARTBOARD.rowUnit) + 1);
+    const gap = MIN_GAP_ROWS * CELL;
+    return Math.max(1, Math.round((bottomPx + gap - ARTBOARD.margin) / CELL) + 1);
   };
 
   const add = (kind: BlockKind, label: string) => {
-    const block = makeBlock(kind, label, tracks, nextRow());
+    const block = makeBlock(kind, label, nextRow());
     setBlocks((bs) => [...bs, block]);
     setSelectedId(block.id);
   };
@@ -179,7 +172,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     const copy: Block = {
       ...src,
       id: newBlockId(src.kind),
-      placement: clampPlacement({ ...src.placement, row: nextRow() }, tracks),
+      placement: clampPlacement({ ...src.placement, row: nextRow() }),
     };
     setBlocks((bs) => [...bs, copy]);
     setSelectedId(copy.id);
@@ -195,10 +188,10 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   /** A placement's on-artboard box in artboard px. `height` is set only when the
    *  block has an explicit `rowSpan`; otherwise it sizes to its content. */
   const boxOf = (p: Placement) => ({
-    left: ARTBOARD.margin + (p.col - 1) * colStep + gutterPx / 2,
-    top: ARTBOARD.margin + (p.row - 1) * ARTBOARD.rowUnit,
-    width: p.colSpan * colStep - gutterPx,
-    height: p.rowSpan ? p.rowSpan * ARTBOARD.rowUnit : undefined,
+    left: ARTBOARD.margin + (p.col - 1) * CELL + gutterPx / 2,
+    top: ARTBOARD.margin + (p.row - 1) * CELL,
+    width: p.colSpan * CELL - gutterPx,
+    height: p.rowSpan ? p.rowSpan * CELL - gutterPx : undefined,
   });
 
   /** Convert a pointer position (held at grab offset) to a snapped placement. */
@@ -207,9 +200,9 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     if (!rect) return { col: 1, colSpan, row: 1 };
     const ax = (clientX - rect.left) / scale - grabDx;
     const ay = (clientY - rect.top) / scale - grabDy;
-    const col = Math.round((ax - ARTBOARD.margin - gutterPx / 2) / colStep) + 1;
-    const row = Math.round((ay - ARTBOARD.margin) / ARTBOARD.rowUnit) + 1;
-    return clampPlacement({ col, colSpan, row }, tracks);
+    const col = Math.round((ax - ARTBOARD.margin - gutterPx / 2) / CELL) + 1;
+    const row = Math.round((ay - ARTBOARD.margin) / CELL) + 1;
+    return clampPlacement({ col, colSpan, row });
   };
 
   /** After a drop, push the block clear of any it overlaps — the spacing rule. */
@@ -220,10 +213,10 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       const heights = heightsRef.current;
       const rect = (b: Block) => {
         const box = boxOf(b.placement);
-        return { left: box.left, right: box.left + box.width, top: box.top, bottom: box.top + (heights[b.id] ?? ARTBOARD.rowUnit * 4) };
+        return { left: box.left, right: box.left + box.width, top: box.top, bottom: box.top + (heights[b.id] ?? CELL) };
       };
       const mine = rect(me);
-      const gap = MIN_GAP_ROWS * ARTBOARD.rowUnit;
+      const gap = MIN_GAP_ROWS * CELL;
       let pushTo: number | null = null;
       for (const b of bs) {
         if (b.id === id) continue;
@@ -236,8 +229,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         }
       }
       if (pushTo === null) return bs;
-      const row = Math.max(1, Math.round((pushTo - ARTBOARD.margin) / ARTBOARD.rowUnit) + 1);
-      return bs.map((b) => (b.id === id ? { ...b, placement: clampPlacement({ ...b.placement, row }, tracks) } : b));
+      const row = Math.max(1, Math.round((pushTo - ARTBOARD.margin) / CELL) + 1);
+      return bs.map((b) => (b.id === id ? { ...b, placement: clampPlacement({ ...b.placement, row }) } : b));
     });
   };
 
@@ -279,7 +272,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     const left = (e.clientX - rect.left) / scale - d.grabDx;
     const top = (e.clientY - rect.top) / scale - d.grabDy;
     const snap = placementAt(e.clientX, e.clientY, d.grabDx, d.grabDy, block.placement.colSpan);
-    const height = heightsRef.current[block.id] ?? ARTBOARD.rowUnit * 4;
+    const height = heightsRef.current[block.id] ?? CELL;
     setDragFree({ id: block.id, left, top, height, snap });
   };
 
@@ -321,19 +314,19 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     const ax = (e.clientX - rect.left) / scale;
     const ay = (e.clientY - rect.top) / scale;
     // Grid lines (0-based) nearest the pointer, in columns and in rows.
-    const colLine = Math.round((ax - ARTBOARD.margin) / colStep);
-    const rowLine = Math.round((ay - ARTBOARD.margin) / ARTBOARD.rowUnit);
+    const colLine = Math.round((ax - ARTBOARD.margin) / CELL);
+    const rowLine = Math.round((ay - ARTBOARD.margin) / CELL);
 
-    const p = clampPlacement(block.placement, tracks);
+    const p = clampPlacement(block.placement);
     let { col, colSpan, row } = p;
     // Once resized vertically the height is explicit; until then, seed it from
     // the block's measured height so a corner/edge drag has something to move.
     let rowSpan =
-      p.rowSpan ?? Math.max(1, Math.round((heightsRef.current[block.id] ?? ARTBOARD.rowUnit * 4) / ARTBOARD.rowUnit));
+      p.rowSpan ?? Math.max(1, Math.round((heightsRef.current[block.id] ?? CELL) / CELL));
     const edge = r.edge;
 
     if (edge.includes('e')) {
-      colSpan = Math.max(1, Math.min(tracks - col + 1, colLine - (col - 1)));
+      colSpan = Math.max(1, Math.min(GRID_COLS - col + 1, colLine - (col - 1)));
     }
     if (edge.includes('w')) {
       const right = p.col + p.colSpan;
@@ -367,9 +360,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   // ── keyboard ────────────────────────────────────────────────────────
   const onBlockKey = (e: React.KeyboardEvent, block: Block) => {
     if (editingId === block.id) return;
-    const p = clampPlacement(block.placement, tracks);
+    const p = clampPlacement(block.placement);
     if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-      if (tracks === 1) return;
       e.preventDefault();
       setPlacement(block.id, { ...p, col: p.col + (e.key === 'ArrowRight' ? 1 : -1) });
     } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -389,15 +381,14 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         // ignore — nothing to clear
       }
     }
-    const fresh = starterBlocks(GRID_TRACKS.columns);
+    const fresh = starterBlocks();
     setBlocks(fresh);
     setSelectedId(fresh[0]?.id ?? null);
-    setGrid('columns');
     setGutter('cozy');
     setGuide('lines');
   };
 
-  const sel = selected ? clampPlacement(selected.placement, tracks) : null;
+  const sel = selected ? clampPlacement(selected.placement) : null;
 
   return (
     <div className="ed">
@@ -433,23 +424,6 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       {/* ── centre: artboard ───────────────────────────────────────── */}
       <main className="ed-stage">
         <div className="ed-toolbar">
-          <div className="ed-toolbar-field">
-            <span className="ed-toolbar-label">Grid</span>
-            <div className="ed-grid-switch" role="group" aria-label="Grid columns">
-              {GRID_KINDS.map((g) => (
-                <button
-                  key={g}
-                  type="button"
-                  className="ed-chip"
-                  aria-pressed={grid === g}
-                  title={`${GRID_TRACKS[g]} column${GRID_TRACKS[g] === 1 ? '' : 's'}`}
-                  onClick={() => setGrid(g)}
-                >
-                  {GRID_LABEL[g]}
-                </button>
-              ))}
-            </div>
-          </div>
           <div className="ed-toolbar-field">
             <span className="ed-toolbar-label">Gutter</span>
             <div className="ed-grid-switch" role="group" aria-label="Gutter">
@@ -522,14 +496,13 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                 width: ARTBOARD.width,
                 height: ARTBOARD.height,
                 transform: `scale(${scale})`,
-                ['--colstep' as string]: `${colStep}px`,
-                ['--rowunit' as string]: `${ARTBOARD.rowUnit}px`,
+                ['--cell' as string]: `${CELL}px`,
                 ['--pad' as string]: `${ARTBOARD.margin}px`,
               }}
               onPointerDown={isEditMode ? () => setSelectedId(null) : undefined}
             >
               {blocks.map((block) => {
-                const box = boxOf(clampPlacement(block.placement, tracks));
+                const box = boxOf(clampPlacement(block.placement));
                 const dragging = draggingId === block.id;
                 const free = dragging && dragFree?.id === block.id ? dragFree : null;
                 const editProps = isEditMode
@@ -659,25 +632,24 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
 
             <label className="ed-field">
               <span className="ed-field-label">
-                Width — {sel.colSpan} of {tracks}
+                Width — {sel.colSpan} of {GRID_COLS}
               </span>
               <input
                 type="range"
                 min={1}
-                max={tracks}
-                disabled={tracks === 1}
+                max={GRID_COLS}
                 value={sel.colSpan}
                 onChange={(e) => setPlacement(selected.id, { ...sel, colSpan: Number(e.target.value) })}
               />
             </label>
 
-            {tracks > 1 && maxCol(sel.colSpan, tracks) > 1 ? (
+            {maxCol(sel.colSpan) > 1 ? (
               <label className="ed-field">
                 <span className="ed-field-label">Column — starts at {sel.col}</span>
                 <input
                   type="range"
                   min={1}
-                  max={maxCol(sel.colSpan, tracks)}
+                  max={maxCol(sel.colSpan)}
                   value={sel.col}
                   onChange={(e) => setPlacement(selected.id, { ...sel, col: Number(e.target.value) })}
                 />
@@ -784,7 +756,7 @@ function resolveSource(issue: Issue, source: ContentSource): string {
   }
 }
 
-type EditorInit = { blocks: Block[]; grid: GridKind; gutter: Gutter; guide: Guide };
+type EditorInit = { blocks: Block[]; gutter: Gutter; guide: Guide };
 
 /**
  * The blocks and grid style to open with: a remembered session if one is stored
@@ -795,8 +767,7 @@ type EditorInit = { blocks: Block[]; grid: GridKind; gutter: Gutter; guide: Guid
  */
 function loadInitial(storageKey: string | undefined): EditorInit {
   const fallback: EditorInit = {
-    blocks: starterBlocks(GRID_TRACKS.columns),
-    grid: 'columns',
+    blocks: starterBlocks(),
     gutter: 'cozy',
     guide: 'lines',
   };
@@ -807,7 +778,6 @@ function loadInitial(storageKey: string | undefined): EditorInit {
         const parsed = JSON.parse(raw) as {
           layout?: LayoutDocument;
           nodes?: unknown;
-          grid?: unknown;
           gutter?: unknown;
           guide?: unknown;
         };
@@ -815,7 +785,6 @@ function loadInitial(storageKey: string | undefined): EditorInit {
         const blocks = fromLayoutDocument(layout);
         return {
           blocks: blocks.length > 0 ? blocks : fallback.blocks,
-          grid: isGridKind(parsed.grid) ? parsed.grid : fallback.grid,
           gutter: isGutter(parsed.gutter) ? parsed.gutter : fallback.gutter,
           guide: isGuide(parsed.guide) ? parsed.guide : fallback.guide,
         };
@@ -827,22 +796,22 @@ function loadInitial(storageKey: string | undefined): EditorInit {
   return fallback;
 }
 
-function starterBlocks(tracks: number): Block[] {
-  const half = Math.max(1, Math.round(tracks / 2));
+function starterBlocks(): Block[] {
+  const half = Math.max(1, Math.round(GRID_COLS / 2));
   return [
-    { id: 'identity-0', kind: 'identity', label: 'Identity', placement: { col: 1, colSpan: tracks, row: 1 } },
-    { id: 'projects-0', kind: 'projects', label: 'Projects', placement: { col: 1, colSpan: tracks, row: 9 } },
+    { id: 'identity-0', kind: 'identity', label: 'Identity', placement: { col: 1, colSpan: GRID_COLS, row: 1 } },
+    { id: 'projects-0', kind: 'projects', label: 'Projects', placement: { col: 1, colSpan: GRID_COLS, row: 4 } },
     {
       id: 'experience-0',
       kind: 'experience',
       label: 'Experience',
-      placement: { col: 1, colSpan: half, row: 22 },
+      placement: { col: 1, colSpan: half, row: 9 },
     },
     {
       id: 'metrics-0',
       kind: 'metrics',
       label: 'Metrics',
-      placement: { col: half + 1, colSpan: Math.max(1, tracks - half), row: 22 },
+      placement: { col: half + 1, colSpan: Math.max(1, GRID_COLS - half), row: 9 },
     },
   ];
 }
