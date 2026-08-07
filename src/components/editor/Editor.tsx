@@ -415,48 +415,6 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     return true;
   };
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement | null;
-      const inField = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
-      // Escape clears the selection (a field handles its own Escape to stop editing).
-      if (e.key === 'Escape') {
-        if (!inField && selectionRef.current.length) setSelection([]);
-        return;
-      }
-      if (!(e.metaKey || e.ctrlKey)) return;
-      if (inField) return;
-      const k = e.key.toLowerCase();
-      if (k === 'a') {
-        // Select every top-level block (locked components count as their root).
-        const roots = blocksRef.current.filter((b) => b.parentId === undefined).map((b) => b.id);
-        if (roots.length) {
-          e.preventDefault();
-          setSelection(roots);
-        }
-        return;
-      }
-      if (k === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        restore('past');
-      } else if ((k === 'z' && e.shiftKey) || k === 'y') {
-        e.preventDefault();
-        restore('future');
-      } else if (k === 'c') {
-        // Only claim the shortcut when there is a selection to copy.
-        if (copySelection()) e.preventDefault();
-      } else if (k === 'v') {
-        if (pasteClipboard()) e.preventDefault();
-      } else if (k === 'd') {
-        if (duplicateSelection()) e.preventDefault();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-    // restore reads only stable refs/setters, so this binds once.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const update = (id: string, patch: Partial<Block>) => {
     snapshot();
     setBlocks((bs) => bs.map((b) => (b.id === id ? { ...b, ...patch } : b)));
@@ -1109,21 +1067,95 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   };
 
   // ── keyboard ────────────────────────────────────────────────────────
-  /** Nudge a block and its whole subtree by a cell delta, so a container (or a
-   *  locked component) carries its contents. */
-  const moveTree = (rootId: string, dCol: number, dRow: number) => {
-    const kin = descendantIds(blocks, rootId);
+  /** Nudge one or more roots (each with its whole subtree) by a cell delta, so a
+   *  container or locked component carries its contents and a multi-selection
+   *  moves together — all in one coalesced history step. */
+  const moveRoots = (rootIds: string[], dCol: number, dRow: number) => {
+    const moving = new Set<string>();
+    for (const id of rootIds) {
+      moving.add(id);
+      for (const kid of descendantIds(blocksRef.current, id)) moving.add(kid);
+    }
+    if (moving.size === 0) return;
     snapshot(); // coalesced history step for a burst of arrow nudges
     setBlocks((bs) =>
       bs.map((b) => {
-        if (b.id === rootId || kin.has(b.id)) {
-          const p = clampPlacement(b.placement);
-          return { ...b, placement: clampPlacement({ ...p, col: p.col + dCol, row: p.row + dRow }) };
-        }
-        return b;
+        if (!moving.has(b.id)) return b;
+        const p = clampPlacement(b.placement);
+        return { ...b, placement: clampPlacement({ ...p, col: p.col + dCol, row: p.row + dRow }) };
       }),
     );
   };
+
+  // Global keyboard: undo/redo, clipboard, select-all, and — on the current
+  // selection wherever focus sits (but never inside a field) — arrow-nudge
+  // (Shift for a chunk) and delete. Binds once; every handler it calls is
+  // ref-based or a stable setter, so the first-render closures stay correct.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      const inField =
+        !!t &&
+        (t.tagName === 'INPUT' ||
+          t.tagName === 'TEXTAREA' ||
+          t.tagName === 'SELECT' ||
+          t.isContentEditable);
+      // Escape clears the selection (a field handles its own Escape to stop editing).
+      if (e.key === 'Escape') {
+        if (!inField && selectionRef.current.length) setSelection([]);
+        return;
+      }
+      // Arrow-nudge and delete act on the whole selection, wherever focus sits
+      // (as long as it isn't a field) — so a marquee or select-all selection can
+      // be moved or removed too, not just a focused block.
+      const sel = selectionRef.current;
+      if (!e.metaKey && !e.ctrlKey && !e.altKey && !inField && sel.length > 0) {
+        const step = e.shiftKey ? NUDGE_STEP : 1;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          const dCol = e.key === 'ArrowRight' ? step : e.key === 'ArrowLeft' ? -step : 0;
+          const dRow = e.key === 'ArrowDown' ? step : e.key === 'ArrowUp' ? -step : 0;
+          moveRoots(sel, dCol, dRow);
+          return;
+        }
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+          e.preventDefault();
+          removeMany(sel);
+          return;
+        }
+      }
+      if (!(e.metaKey || e.ctrlKey)) return;
+      if (inField) return;
+      const k = e.key.toLowerCase();
+      if (k === 'a') {
+        // Select every top-level block (locked components count as their root).
+        const roots = blocksRef.current.filter((b) => b.parentId === undefined).map((b) => b.id);
+        if (roots.length) {
+          e.preventDefault();
+          setSelection(roots);
+        }
+        return;
+      }
+      if (k === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        restore('past');
+      } else if ((k === 'z' && e.shiftKey) || k === 'y') {
+        e.preventDefault();
+        restore('future');
+      } else if (k === 'c') {
+        // Only claim the shortcut when there is a selection to copy.
+        if (copySelection()) e.preventDefault();
+      } else if (k === 'v') {
+        if (pasteClipboard()) e.preventDefault();
+      } else if (k === 'd') {
+        if (duplicateSelection()) e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // All handlers read stable refs/setters, so this binds once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── align & distribute a multi-selection ────────────────────────────
   // Works on the selection's own roots (a selected block that lives inside
@@ -1210,21 +1242,6 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         return { ...b, placement: clampPlacement({ ...p, col: p.col + d.dCol, row: p.row + d.dRow }) };
       }),
     );
-  };
-
-  const onBlockKey = (e: React.KeyboardEvent, block: Block) => {
-    if (editingId === block.id) return;
-    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-      e.preventDefault();
-      moveTree(block.id, e.key === 'ArrowRight' ? 1 : -1, 0);
-    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      moveTree(block.id, 0, e.key === 'ArrowDown' ? 1 : -1);
-    } else if (e.key === 'Delete' || e.key === 'Backspace') {
-      e.preventDefault();
-      if (selection.length > 1) removeMany(selection);
-      else remove(block.id);
-    }
   };
 
   const reset = () => {
@@ -1349,7 +1366,6 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
           onPointerMove: (e: React.PointerEvent) => onBlockMove(e),
           onPointerUp: (e: React.PointerEvent) => onBlockUp(e),
           onFocus: () => setSelectedId((lockedRootOf(blocks, block.id) ?? block).id),
-          onKeyDown: (e: React.KeyboardEvent) => onBlockKey(e, lockedRootOf(blocks, block.id) ?? block),
           onDoubleClick: () => {
             // Inside a locked component, a double-click selects the component
             // rather than editing a piece; unlock it to edit the pieces.
@@ -1978,6 +1994,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   );
 }
 
+/** Cells an arrow key nudges a block; a chunkier jump when Shift is held. */
+const NUDGE_STEP = 8;
 /** Zoom bounds (effective artboard scale) and the per-step multiplier. */
 const ZOOM_MIN = 0.2;
 const ZOOM_MAX = 3;
