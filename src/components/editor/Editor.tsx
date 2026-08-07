@@ -95,8 +95,22 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     snap: Placement;
     guides: AlignGuide[];
   } | null>(null);
-  /** How much the artboard is scaled to fit the window. */
-  const [scale, setScale] = useState(0.75);
+  /** How much the artboard is scaled to fit the window (auto, from its width). */
+  const [fitScale, setFitScale] = useState(0.75);
+  /** The user's zoom on top of the fit, 1 = fit-to-window. */
+  const [zoom, setZoom] = useState(1);
+  /** The effective artboard scale: fit × zoom, clamped. */
+  const scale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, fitScale * zoom));
+  const fitScaleRef = useRef(fitScale);
+  useEffect(() => {
+    fitScaleRef.current = fitScale;
+  }, [fitScale]);
+  const zoomBy = (factor: number) =>
+    setZoom((z) => {
+      const fit = fitScaleRef.current;
+      return Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, fit * z * factor)) / fit;
+    });
+  const zoomFit = () => setZoom(1);
   /** Edit arranges the blocks; Preview makes them interactive, like the page. */
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
   /** The project opened in the detail modal (Preview only). */
@@ -232,12 +246,26 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     if (!el || typeof ResizeObserver === 'undefined') return;
     const fit = () => {
       const avail = el.clientWidth - CANVAS_PAD * 2;
-      setScale(Math.max(0.25, Math.min(1.2, avail / ARTBOARD.width)));
+      setFitScale(Math.max(0.25, Math.min(1.2, avail / ARTBOARD.width)));
     };
     fit();
     const ro = new ResizeObserver(fit);
     ro.observe(el);
     return () => ro.disconnect();
+  }, []);
+
+  // Ctrl/⌘ + wheel zooms the canvas (a non-passive listener so it can suppress
+  // the browser's own page zoom). Plain scroll still pans as usual.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      zoomBy(e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP);
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
   }, []);
 
   // Measure block heights after each render so spacing and drop-placement can
@@ -1474,6 +1502,38 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               ))}
             </div>
           </div>
+          <div className="ed-toolbar-field ed-toolbar-zoom">
+            <span className="ed-toolbar-label">Zoom</span>
+            <div className="ed-grid-switch" role="group" aria-label="Zoom">
+              <button
+                type="button"
+                className="ed-chip"
+                onClick={() => zoomBy(1 / ZOOM_STEP)}
+                title="Zoom out"
+                aria-label="Zoom out"
+              >
+                −
+              </button>
+              <button
+                type="button"
+                className="ed-chip ed-zoom-pct"
+                onClick={zoomFit}
+                title="Fit to window"
+                aria-label="Fit to window"
+              >
+                {Math.round(scale * 100)}%
+              </button>
+              <button
+                type="button"
+                className="ed-chip"
+                onClick={() => zoomBy(ZOOM_STEP)}
+                title="Zoom in"
+                aria-label="Zoom in"
+              >
+                +
+              </button>
+            </div>
+          </div>
           <div className="ed-toolbar-field ed-toolbar-mode">
             <div className="ed-grid-switch" role="group" aria-label="Mode">
               {(['edit', 'preview'] as const).map((m) => (
@@ -1903,6 +1963,10 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   );
 }
 
+/** Zoom bounds (effective artboard scale) and the per-step multiplier. */
+const ZOOM_MIN = 0.2;
+const ZOOM_MAX = 3;
+const ZOOM_STEP = 1.1;
 /** Screen px the pointer must travel before a click becomes a drag. */
 const DRAG_THRESHOLD = 4;
 /** Artboard px within which a dragged edge/centre snaps to a neighbour's. */
