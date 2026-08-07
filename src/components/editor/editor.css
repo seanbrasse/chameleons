@@ -298,6 +298,14 @@
   overflow: hidden;
 }
 
+/* The block's content. A corner-resize scales this (and everything inside it)
+   uniformly; the over-100% width/height counters the transform so the scaled
+   content still fills the box. The tag and resize handles are siblings, not
+   children, so chrome stays at natural size. */
+.ed-block-body {
+  transform-origin: top left;
+}
+
 /* Resize handles — four sides and four corners on the selected block. */
 .ed-handle {
   position: absolute;

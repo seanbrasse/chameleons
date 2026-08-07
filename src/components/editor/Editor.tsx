@@ -95,8 +95,20 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     startX: number;
     startY: number;
   } | null>(null);
-  /** The live resize session: which block edge/corner is being dragged. */
-  const resizeRef = useRef<{ id: string; edge: ResizeDir; pointerId: number } | null>(null);
+  /** The live resize session. For corners we also anchor the opposite corner
+   *  and the base size, so the drag scales the element uniformly. */
+  const resizeRef = useRef<{
+    id: string;
+    edge: ResizeDir;
+    pointerId: number;
+    anchorX: number;
+    anchorY: number;
+    baseW: number;
+    baseH: number;
+    startScale: number;
+    right: number;
+    bottom: number;
+  } | null>(null);
   /** Measured block heights in artboard px, by id — for spacing/placement. */
   const heightsRef = useRef<Record<string, number>>({});
 
@@ -302,7 +314,22 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     if (e.button !== 0) return;
     e.stopPropagation();
     setSelectedId(block.id);
-    resizeRef.current = { id: block.id, edge, pointerId: e.pointerId };
+    const p = clampPlacement(block.placement);
+    const box = boxOf(p);
+    const h = box.height ?? heightsRef.current[block.id] ?? CELL;
+    resizeRef.current = {
+      id: block.id,
+      edge,
+      pointerId: e.pointerId,
+      // The opposite corner stays put while the dragged corner moves.
+      anchorX: edge.includes('w') ? box.left + box.width : box.left,
+      anchorY: edge.includes('n') ? box.top + h : box.top,
+      baseW: box.width,
+      baseH: h,
+      startScale: block.scale ?? 1,
+      right: p.col + p.colSpan,
+      bottom: p.row + Math.max(1, Math.round(h / CELL)),
+    };
     setArranging(true);
     e.currentTarget.setPointerCapture(e.pointerId);
   };
@@ -314,30 +341,41 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     if (!rect) return;
     const ax = (e.clientX - rect.left) / scale;
     const ay = (e.clientY - rect.top) / scale;
-    // Grid lines (0-based) nearest the pointer, in columns and in rows.
-    const colLine = Math.round((ax - ARTBOARD.margin) / CELL);
-    const rowLine = Math.round((ay - ARTBOARD.margin) / CELL);
-
     const p = clampPlacement(block.placement);
-    let { col, colSpan, row } = p;
-    // Once resized vertically the height is explicit; until then, seed it from
-    // the block's measured height so a corner/edge drag has something to move.
-    let rowSpan =
-      p.rowSpan ?? Math.max(1, Math.round((heightsRef.current[block.id] ?? CELL) / CELL));
     const edge = r.edge;
 
-    if (edge.includes('e')) {
+    // A corner scales the element and its contents uniformly: the ratio from the
+    // anchored corner grows the footprint and the content zoom together.
+    if (edge.length === 2) {
+      const ratio = Math.max(0.2, Math.abs(ax - r.anchorX) / r.baseW, Math.abs(ay - r.anchorY) / r.baseH);
+      const colSpan = Math.max(1, Math.min(GRID_COLS, Math.round((r.baseW * ratio) / CELL)));
+      const rowSpan = Math.max(1, Math.min(GRID_ROWS, Math.round((r.baseH * ratio) / CELL)));
+      const col = edge.includes('w') ? Math.max(1, r.right - colSpan) : p.col;
+      const row = edge.includes('n') ? Math.max(1, r.bottom - rowSpan) : p.row;
+      update(block.id, {
+        scale: r.startScale * ratio,
+        placement: clampPlacement({ col, colSpan, row, rowSpan }),
+      });
+      return;
+    }
+
+    // A side reflows one edge: width (E/W) or height (N/S), content unchanged.
+    const colLine = Math.round((ax - ARTBOARD.margin) / CELL);
+    const rowLine = Math.round((ay - ARTBOARD.margin) / CELL);
+    let { col, colSpan, row } = p;
+    let rowSpan = p.rowSpan ?? Math.max(1, Math.round((heightsRef.current[block.id] ?? CELL) / CELL));
+    if (edge === 'e') {
       colSpan = Math.max(1, Math.min(GRID_COLS - col + 1, colLine - (col - 1)));
     }
-    if (edge.includes('w')) {
+    if (edge === 'w') {
       const right = p.col + p.colSpan;
       col = Math.max(1, Math.min(right - 1, colLine + 1));
       colSpan = right - col;
     }
-    if (edge.includes('s')) {
+    if (edge === 's') {
       rowSpan = Math.max(1, rowLine - (row - 1));
     }
-    if (edge.includes('n')) {
+    if (edge === 'n') {
       const bottom = row - 1 + rowSpan;
       const top = Math.max(0, Math.min(bottom - 1, rowLine));
       row = top + 1;
@@ -539,17 +577,30 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                     {...editProps}
                   >
                     {isEditMode ? <span className="ed-block-tag">{block.label}</span> : null}
-                    <BlockPreview
-                      block={block}
-                      issue={issue}
-                      editing={isEditMode && editingId === block.id}
-                      interactive={!isEditMode}
-                      activeIndex={activeIndex}
-                      onActive={setActiveIndex}
-                      onText={(text) => update(block.id, { text })}
-                      onEditEnd={() => setEditingId(null)}
-                      onOpenProject={setModalProject}
-                    />
+                    <div
+                      className="ed-block-body"
+                      style={
+                        block.scale && block.scale !== 1
+                          ? {
+                              transform: `scale(${block.scale})`,
+                              width: `${100 / block.scale}%`,
+                              height: `${100 / block.scale}%`,
+                            }
+                          : undefined
+                      }
+                    >
+                      <BlockPreview
+                        block={block}
+                        issue={issue}
+                        editing={isEditMode && editingId === block.id}
+                        interactive={!isEditMode}
+                        activeIndex={activeIndex}
+                        onActive={setActiveIndex}
+                        onText={(text) => update(block.id, { text })}
+                        onEditEnd={() => setEditingId(null)}
+                        onOpenProject={setModalProject}
+                      />
+                    </div>
                     {isEditMode && block.id === selectedId && editingId !== block.id ? (
                       <>
                         {RESIZE_DIRS.map((dir) => (
