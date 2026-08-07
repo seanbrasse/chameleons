@@ -70,7 +70,15 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const [gutter, setGutter] = useState<Gutter>(initial.gutter);
   const [guide, setGuide] = useState<Guide>(initial.guide);
   const [blocks, setBlocks] = useState<Block[]>(initial.blocks);
-  const [selectedId, setSelectedId] = useState<string | null>(initial.blocks[0]?.id ?? null);
+  /** The current selection — one, several (multi-select), or none. */
+  const [selection, setSelection] = useState<string[]>(initial.blocks[0] ? [initial.blocks[0].id] : []);
+  /** The lone selected id when exactly one is selected — drives the inspector and
+   *  resize handles. Null when zero or many are selected. */
+  const selectedId = selection.length === 1 ? selection[0]! : null;
+  /** Replace the selection with a single block (or clear it). Keeps every
+   *  existing single-selection call working. */
+  const setSelectedId = (id: string | null) => setSelection(id ? [id] : []);
+  const isSelected = (id: string) => selection.includes(id);
   /** The primitive block being text-edited in place, if any. */
   const [editingId, setEditingId] = useState<string | null>(null);
   /** True while a block is being dragged — the grid guides show only then. */
@@ -109,7 +117,13 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     moved: boolean;
     startX: number;
     startY: number;
+    /** When the drag started on a multi-selection, the other selected roots that
+     *  move along with `id` (the primary). */
+    group: string[];
   } | null>(null);
+  /** The live marquee rubber-band selection, in artboard px. */
+  const [marquee, setMarquee] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
+  const marqueeRef = useRef<{ pointerId: number; x0: number; y0: number; additive: boolean } | null>(null);
   /** The live resize session. For corners we also anchor the opposite corner
    *  and the base size, so the drag scales the element uniformly. */
   const resizeRef = useRef<{
@@ -129,7 +143,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   /** The latest block list, so undo/redo can read it without stale closures. */
   const blocksRef = useRef(blocks);
   /** The latest selection, for clipboard shortcuts read from a stable handler. */
-  const selectedIdRef = useRef<string | null>(selectedId);
+  const selectionRef = useRef<string[]>(selection);
   /** Cascades successive spawns so quick adds don't stack on one spot. */
   const spawnCountRef = useRef(0);
   /** Copied blocks (a subtree), for paste. */
@@ -231,7 +245,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     });
     heightsRef.current = next;
     blocksRef.current = blocks;
-    selectedIdRef.current = selectedId;
+    selectionRef.current = selection;
   });
 
   // ── undo / redo ─────────────────────────────────────────────────────
@@ -306,9 +320,24 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     }));
   };
 
+  /** The subtrees of every selected block, as one de-duplicated list. */
+  const selectedSubtrees = (): Block[] => {
+    const seen = new Set<string>();
+    const out: Block[] = [];
+    for (const id of selectionRef.current) {
+      for (const b of subtreeOf(id)) {
+        if (seen.has(b.id)) continue;
+        seen.add(b.id);
+        out.push(b);
+      }
+    }
+    return out;
+  };
+
   const cloneAndInsert = (src: Block[] | null) => {
     if (!src || src.length === 0) return;
     snapshot(true);
+    const idSet = new Set(src.map((b) => b.id));
     const idMap = new Map<string, string>();
     for (const b of src) idMap.set(b.id, newBlockId(b.kind));
     const clones = src.map((b) => {
@@ -317,21 +346,23 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         id: idMap.get(b.id)!,
         placement: clampPlacement({ ...b.placement, col: b.placement.col + 2, row: b.placement.row + 2 }),
       };
-      // Keep internal links inside the copy; the copied root pastes at top level.
+      // Keep internal links inside the copy; a root of the copy detaches.
       if (b.parentId && idMap.has(b.parentId)) clone.parentId = idMap.get(b.parentId);
       else delete clone.parentId;
       if (b.opensModal && idMap.has(b.opensModal)) clone.opensModal = idMap.get(b.opensModal);
       return clone;
     });
     setBlocks((bs) => [...bs, ...clones]);
-    const newRoot = idMap.get(src[0]!.id);
-    if (newRoot) setSelectedId(newRoot);
+    // Reselect the clones of the copied roots (blocks whose parent isn't in the copy).
+    const newRoots = src
+      .filter((b) => b.parentId === undefined || !idSet.has(b.parentId))
+      .map((b) => idMap.get(b.id)!)
+      .filter(Boolean);
+    if (newRoots.length) setSelection(newRoots);
   };
 
   const copySelection = () => {
-    const id = selectedIdRef.current;
-    if (!id) return false;
-    const src = subtreeOf(id);
+    const src = selectedSubtrees();
     if (src.length === 0) return false;
     clipboardRef.current = src;
     return true;
@@ -342,9 +373,9 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     return true;
   };
   const duplicateSelection = () => {
-    const id = selectedIdRef.current;
-    if (!id) return false;
-    cloneAndInsert(subtreeOf(id));
+    const src = selectedSubtrees();
+    if (src.length === 0) return false;
+    cloneAndInsert(src);
     return true;
   };
 
@@ -492,8 +523,20 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       if (parentId !== undefined) next = fitContainer(next, parentId, 'shrink');
       return next;
     });
-    setSelectedId((cur) => (cur === id ? null : cur));
+    setSelection((cur) => cur.filter((x) => x !== id));
     setEditingId((cur) => (cur === id ? null : cur));
+  };
+
+  /** Delete every block in `ids` (and each one's subtree) as a single undo step. */
+  const removeMany = (ids: string[]) => {
+    if (ids.length === 0) return;
+    snapshot(true);
+    suppressHistoryRef.current = true;
+    try {
+      for (const id of ids) remove(id);
+    } finally {
+      suppressHistoryRef.current = false;
+    }
   };
 
   /** Detach a block from its container, leaving it where it sits on the page. */
@@ -588,7 +631,19 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     if (editingId === block.id || e.button !== 0) return;
     e.stopPropagation();
     const target = dragTargetOf(block);
-    setSelectedId(target.id);
+    // Shift-click toggles a block in and out of the selection, no drag.
+    if (e.shiftKey) {
+      setSelection((cur) => (cur.includes(target.id) ? cur.filter((x) => x !== target.id) : [...cur, target.id]));
+      return;
+    }
+    // Dragging one of several selected blocks moves them all; otherwise select
+    // just this block.
+    let group: string[] = [];
+    if (selection.includes(target.id) && selection.length > 1) {
+      group = selection.filter((x) => x !== target.id);
+    } else {
+      setSelectedId(target.id);
+    }
     const rect = artboardRef.current?.getBoundingClientRect();
     if (!rect) return;
     const ax = (e.clientX - rect.left) / scale;
@@ -602,6 +657,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       moved: false,
       startX: e.clientX,
       startY: e.clientY,
+      group,
     };
     e.currentTarget.setPointerCapture(e.pointerId);
   };
@@ -647,11 +703,30 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     if (moved) endGesture(); // close the undo step opened on first move
     if (!(moved && snap) || !target) return;
 
-    // Snap to the nearest slot, carry any descendants by the same delta, and
-    // re-parent into (or out of) whatever container the drop landed in.
     const oldP = clampPlacement(target.placement);
     const dCol = snap.col - oldP.col;
     const dRow = snap.row - oldP.row;
+
+    // A multi-selection drag moves every selected block (and its subtree) by the
+    // same delta — no re-parenting, so the group keeps its arrangement.
+    if (d.group.length > 0) {
+      const moving = new Set<string>();
+      for (const rootId of [target.id, ...d.group]) {
+        moving.add(rootId);
+        for (const kid of descendantIds(blocks, rootId)) moving.add(kid);
+      }
+      setBlocks((bs) =>
+        bs.map((b) => {
+          if (!moving.has(b.id)) return b;
+          const p = clampPlacement(b.placement);
+          return { ...b, placement: clampPlacement({ ...p, col: p.col + dCol, row: p.row + dRow }) };
+        }),
+      );
+      return;
+    }
+
+    // Single drag: snap, carry descendants by the same delta, and re-parent into
+    // (or out of) whatever container the drop landed in.
     const kin = descendantIds(blocks, target.id);
     const oldParent = target.parentId;
     const newParent = findDropContainer(target, snap, kin);
@@ -676,6 +751,50 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     // Only a free, non-container block joins the spacing shuffle; a box or a
     // nested block keeps exactly where it was dropped.
     if (newParent === null && !isContainer(target.kind)) resolveOverlap(target.id);
+  };
+
+  // ── marquee (rubber-band select on empty canvas) ────────────────────
+  const onArtboardDown = (e: React.PointerEvent) => {
+    if (!isEditMode || e.button !== 0) return;
+    const rect = artboardRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const x0 = (e.clientX - rect.left) / scale;
+    const y0 = (e.clientY - rect.top) / scale;
+    marqueeRef.current = { pointerId: e.pointerId, x0, y0, additive: e.shiftKey };
+    if (!e.shiftKey) setSelection([]); // an empty click clears, then a drag selects
+    setMarquee({ x0, y0, x1: x0, y1: y0 });
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onArtboardMove = (e: React.PointerEvent) => {
+    const m = marqueeRef.current;
+    if (!m || m.pointerId !== e.pointerId) return;
+    const rect = artboardRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const x1 = (e.clientX - rect.left) / scale;
+    const y1 = (e.clientY - rect.top) / scale;
+    setMarquee({ x0: m.x0, y0: m.y0, x1, y1 });
+    const box = { left: Math.min(m.x0, x1), right: Math.max(m.x0, x1), top: Math.min(m.y0, y1), bottom: Math.max(m.y0, y1) };
+    const hits = (childMap.get(null) ?? [])
+      .filter((b) => {
+        const bx = boxOf(clampPlacement(b.placement));
+        const h = bx.height ?? heightsRef.current[b.id] ?? CELL;
+        return bx.left < box.right && bx.left + bx.width > box.left && bx.top < box.bottom && bx.top + h > box.top;
+      })
+      .map((b) => b.id);
+    setSelection(m.additive ? Array.from(new Set([...selectionRef.current, ...hits])) : hits);
+  };
+
+  const onArtboardUp = (e: React.PointerEvent) => {
+    const m = marqueeRef.current;
+    if (!m || m.pointerId !== e.pointerId) return;
+    marqueeRef.current = null;
+    setMarquee(null);
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // capture may already be gone
+    }
   };
 
   // ── resize (drag a side or corner handle) ───────────────────────────
@@ -768,7 +887,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       moveTree(block.id, 0, e.key === 'ArrowDown' ? 1 : -1);
     } else if (e.key === 'Delete' || e.key === 'Backspace') {
       e.preventDefault();
-      remove(block.id);
+      if (selection.length > 1) removeMany(selection);
+      else remove(block.id);
     }
   };
 
@@ -800,7 +920,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     const isComponent = isContainer(block.kind) && block.locked;
     return (
       <div key={block.id}>
-        <div className={`ed-outline-row${block.id === selectedId ? ' is-active' : ''}${block.hidden ? ' is-off' : ''}${lockRoot ? ' is-in-component' : ''}`}>
+        <div className={`ed-outline-row${isSelected(block.id) ? ' is-active' : ''}${block.hidden ? ' is-off' : ''}${lockRoot ? ' is-in-component' : ''}`}>
           <button
             type="button"
             className="ed-outline-select"
@@ -889,7 +1009,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       ? {
           role: 'button',
           tabIndex: 0,
-          'aria-pressed': block.id === selectedId,
+          'aria-pressed': isSelected(block.id),
           onPointerDown: (e: React.PointerEvent) => onBlockDown(e, block),
           onPointerMove: (e: React.PointerEvent) => onBlockMove(e),
           onPointerUp: (e: React.PointerEvent) => onBlockUp(e),
@@ -923,7 +1043,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         data-block-id={block.id}
         aria-label={`${block.label} block`}
         data-anim-trigger={anim?.trigger === 'scroll' ? 'scroll' : undefined}
-        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${block.parentId !== undefined ? ' is-nested' : ''}${isLocked ? ' is-locked' : ''}${inLocked ? ' in-locked' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId ? ' is-trigger' : ''}${block.id === selectedId ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
+        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${block.parentId !== undefined ? ' is-nested' : ''}${isLocked ? ' is-locked' : ''}${inLocked ? ' in-locked' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId ? ' is-trigger' : ''}${isSelected(block.id) ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
         style={{
           left: (free ? free.left : box.left) - origin.left,
           top: (free ? free.top : box.top) - origin.top,
@@ -1127,7 +1247,9 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                 ['--cell' as string]: `${CELL}px`,
                 ['--pad' as string]: `${ARTBOARD.margin}px`,
               }}
-              onPointerDown={isEditMode ? () => setSelectedId(null) : undefined}
+              onPointerDown={isEditMode ? onArtboardDown : undefined}
+              onPointerMove={isEditMode ? onArtboardMove : undefined}
+              onPointerUp={isEditMode ? onArtboardUp : undefined}
             >
               {(childMap.get(null) ?? [])
                 .filter((block) => isEditMode || !block.asModal)
@@ -1174,6 +1296,18 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                     );
                   })()
                 : null}
+              {marquee ? (
+                <div
+                  className="ed-marquee"
+                  style={{
+                    left: Math.min(marquee.x0, marquee.x1),
+                    top: Math.min(marquee.y0, marquee.y1),
+                    width: Math.abs(marquee.x1 - marquee.x0),
+                    height: Math.abs(marquee.y1 - marquee.y0),
+                  }}
+                  aria-hidden="true"
+                />
+              ) : null}
             </div>
           </div>
         </div>
@@ -1411,10 +1545,28 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               </button>
             </div>
           </div>
+        ) : selection.length > 1 ? (
+          <div className="ed-props">
+            <div className="ed-field">
+              <span className="ed-field-label">Selection</span>
+              <div className="ed-field-static">{selection.length} elements selected</div>
+            </div>
+            <p className="ed-empty" style={{ padding: '0 0 4px' }}>
+              Drag any one to move them together. Shift-click to add or remove.
+            </p>
+            <div className="ed-props-actions">
+              <button type="button" className="ed-btn" onClick={() => duplicateSelection()}>
+                Duplicate all
+              </button>
+              <button type="button" className="ed-btn ed-btn-danger" onClick={() => removeMany(selection)}>
+                Delete all
+              </button>
+            </div>
+          </div>
         ) : (
           <p className="ed-empty">
             {isEditMode
-              ? 'Select an element on the canvas to edit it. Double-click a heading, text or button to edit its words.'
+              ? 'Select an element on the canvas to edit it. Shift-click or drag a box to select several. Double-click a heading, text or button to edit its words.'
               : 'Previewing — the page is live: cycle the project cards and click one to open it. Switch to Edit to rearrange.'}
           </p>
         )}

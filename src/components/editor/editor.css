@@ -430,6 +430,16 @@
   font-size: 9px;
 }
 
+/* The rubber-band selection rectangle dragged across empty canvas. */
+.ed-marquee {
+  position: absolute;
+  z-index: 6;
+  border: 1px solid var(--sel);
+  background: var(--sel-soft);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 /* The slot a dragged block will magnetically snap to on release. */
 .ed-snap-ghost {
   position: absolute;
