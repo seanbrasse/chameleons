@@ -1444,7 +1444,13 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         {isEditMode ? <span className="ed-block-tag">{block.label}</span> : null}
         <div className="ed-block-body" style={bodyScale}>
           {cont ? (
-            kids.map((child) => renderBlock(child, { left: box.left, top: box.top }))
+            kids.length > 0 ? (
+              kids.map((child) => renderBlock(child, { left: box.left, top: box.top }))
+            ) : isEditMode && !isLocked ? (
+              <span className="ed-drop-hint" aria-hidden="true">
+                Drop elements here to build a component
+              </span>
+            ) : null
           ) : (
             <BlockPreview
               block={block}
