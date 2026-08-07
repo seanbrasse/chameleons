@@ -1300,6 +1300,35 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     );
   };
 
+  /** Wrap the selection in a new locked container — a component. Each selected
+   *  root becomes a child; the container starts at their bounding box and the
+   *  hug effect tightens it. The whole thing then moves/edits/deletes as one. */
+  const groupSelection = () => {
+    const rootIds = selection.filter(
+      (id) => !selection.some((o) => o !== id && descendantIds(blocks, o).has(id)),
+    );
+    const items = rootIds
+      .map((id) => blocks.find((b) => b.id === id))
+      .filter((b): b is Block => !!b);
+    if (items.length < 2) return;
+    const left = Math.min(...items.map((b) => clampPlacement(b.placement).col));
+    const right = Math.max(...items.map((b) => clampPlacement(b.placement).col + clampPlacement(b.placement).colSpan));
+    const top = Math.min(...items.map((b) => clampPlacement(b.placement).row));
+    const bottom = Math.max(...items.map((b) => clampPlacement(b.placement).row + heightCells(b)));
+    const id = newBlockId('container');
+    const container: Block = {
+      id,
+      kind: 'container',
+      label: 'Component',
+      locked: true,
+      placement: clampPlacement({ col: left, colSpan: Math.max(1, right - left), row: top, rowSpan: Math.max(1, bottom - top) }),
+    };
+    const rootSet = new Set(rootIds);
+    snapshot(true);
+    setBlocks((bs) => [...bs.map((b) => (rootSet.has(b.id) ? { ...b, parentId: id } : b)), container]);
+    setSelection([id]);
+  };
+
   const reset = () => {
     snapshot(true); // a reset can be undone
     if (storageKey) {
@@ -2035,6 +2064,9 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                 </div>
               </div>
             ) : null}
+            <button type="button" className="ed-btn ed-btn-wide" onClick={() => groupSelection()}>
+              Group into component
+            </button>
             <div className="ed-props-actions">
               <button type="button" className="ed-btn" onClick={() => duplicateSelection()}>
                 Duplicate all
