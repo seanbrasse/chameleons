@@ -1,0 +1,480 @@
+/*
+ * The canvas builder's chrome. Neutral tool UI, deliberately not the warm
+ * builder palette — this is an instrument for making a page, not a page. Hex
+ * lives here (a CSS file), not in the components.
+ */
+.ed {
+  --panel: #f6f6f5;
+  --panel-line: #e4e3e0;
+  --stage: #e9e8e6;
+  --art: #ffffff;
+  --ink: #1c1b19;
+  --ink-soft: #6b6862;
+  --ink-faint: #97938c;
+  --line: #dcdbd7;
+  --sel: #3b6cf6;
+  --sel-soft: #e8efff;
+  --grid-line: #eceae6;
+  --danger: #c0392b;
+
+  height: 100dvh;
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr) 300px;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--ink);
+  background: var(--stage);
+  overflow: hidden;
+}
+
+.ed-panel {
+  background: var(--panel);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.ed-left {
+  border-right: 1px solid var(--panel-line);
+}
+
+.ed-right {
+  border-left: 1px solid var(--panel-line);
+}
+
+.ed-panel-head {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--panel-line);
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+}
+
+/* ── palette ──────────────────────────────────────────────────────── */
+
+.ed-palette {
+  padding: 12px;
+  display: grid;
+  gap: 16px;
+}
+
+.ed-palette-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 6px 4px;
+}
+
+.ed-palette-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  text-align: left;
+  margin-bottom: 6px;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.ed-palette-item:hover {
+  border-color: var(--sel);
+  background: var(--sel-soft);
+}
+
+.ed-palette-glyph {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  background: var(--panel);
+  color: var(--ink-soft);
+  font-size: 12px;
+  flex: none;
+}
+
+.ed-palette-name {
+  flex: 1;
+}
+
+.ed-palette-add {
+  color: var(--ink-faint);
+  font-size: 15px;
+}
+
+/* ── stage / canvas ───────────────────────────────────────────────── */
+
+.ed-stage {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ed-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  padding: 10px 16px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--panel-line);
+}
+
+.ed-toolbar-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ed-toolbar-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.ed-grid-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--stage);
+  border-radius: 8px;
+}
+
+.ed-chip {
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.ed-chip[aria-pressed='true'] {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.ed-toolbar-reset {
+  margin-left: auto;
+}
+
+.ed-canvas-scroll {
+  flex: 1;
+  overflow: auto;
+  padding: 32px;
+  display: flex;
+  justify-content: center;
+}
+
+.ed-canvas {
+  width: 100%;
+  max-width: 900px;
+  align-self: flex-start;
+  background: var(--art);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 10px 40px -24px rgba(0, 0, 0, 0.4);
+  padding: 28px;
+  min-height: 70vh;
+}
+
+.ed-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--tracks), minmax(0, 1fr));
+  gap: var(--gap, 12px);
+}
+
+/* How the grid is drawn behind the blocks. The horizontal period accounts for
+   the gutter so a mark sits on each track start at any spacing. */
+.ed-guide-lines {
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--grid-line) 0,
+    var(--grid-line) 1px,
+    transparent 1px,
+    transparent calc((100% + var(--gap, 12px)) / var(--tracks))
+  );
+}
+
+.ed-guide-dots {
+  background-image: radial-gradient(var(--grid-line) 1.2px, transparent 1.2px);
+  background-size: calc((100% + var(--gap, 12px)) / var(--tracks)) 26px;
+  background-position: 0 13px;
+}
+
+.ed-guide-off {
+  background-image: none;
+}
+
+.ed-block {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  padding: 16px 14px 14px;
+  cursor: pointer;
+  min-height: 56px;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.ed-block:hover {
+  border-color: #c9c8c3;
+}
+
+.ed-block.is-selected {
+  border-color: var(--sel);
+  box-shadow: 0 0 0 2px var(--sel-soft);
+}
+
+.ed-block:focus-visible {
+  outline: 2px solid var(--sel);
+  outline-offset: 2px;
+}
+
+.ed-block.is-hidden {
+  opacity: 0.4;
+}
+
+.ed-block.is-dragging {
+  border-color: var(--sel);
+  box-shadow: 0 0 0 2px var(--sel-soft);
+  z-index: 2;
+  cursor: grabbing;
+}
+
+.ed-block-grip {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink-faint);
+  font-size: 13px;
+  line-height: 1;
+  cursor: grab;
+  opacity: 0;
+  touch-action: none;
+  transition: opacity 0.12s, background 0.12s;
+}
+
+.ed-block:hover .ed-block-grip,
+.ed-block.is-selected .ed-block-grip {
+  opacity: 1;
+}
+
+.ed-block-grip:hover {
+  background: var(--panel);
+  color: var(--ink-soft);
+}
+
+.ed-block.is-dragging .ed-block-grip {
+  cursor: grabbing;
+}
+
+.ed-block-tag {
+  position: absolute;
+  top: -9px;
+  left: 10px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: #fff;
+  padding: 0 5px;
+}
+
+.ed-block.is-selected .ed-block-tag {
+  color: var(--sel);
+}
+
+/* ── inspector ────────────────────────────────────────────────────── */
+
+.ed-props {
+  padding: 14px;
+  display: grid;
+  gap: 14px;
+}
+
+.ed-field {
+  display: grid;
+  gap: 5px;
+}
+
+.ed-field-label {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.ed-field input[type='text'],
+.ed-field input:not([type]),
+.ed-field textarea {
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  width: 100%;
+}
+
+.ed-field input:focus,
+.ed-field textarea:focus {
+  outline: 2px solid var(--sel-soft);
+  border-color: var(--sel);
+}
+
+.ed-field input[type='range'] {
+  width: 100%;
+}
+
+.ed-field-static {
+  font-size: 13px;
+  color: var(--ink-soft);
+  padding: 7px 9px;
+  background: var(--panel);
+  border-radius: 6px;
+}
+
+.ed-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.ed-props-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.ed-btn {
+  font: inherit;
+  font-size: 12px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.ed-btn:hover {
+  border-color: #c9c8c3;
+}
+
+.ed-btn-danger {
+  color: var(--danger);
+  border-color: #e6c9c5;
+}
+
+.ed-empty {
+  padding: 16px;
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+/* ── block previews ───────────────────────────────────────────────── */
+
+.pv-name {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.pv-role {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+
+.pv-list {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  display: grid;
+  gap: 3px;
+}
+
+.pv-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.pv-metric b {
+  font-size: 18px;
+  color: var(--ink);
+}
+
+.pv-contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.pv-heading {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.pv-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.pv-button {
+  display: inline-block;
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+}
+
+.pv-image {
+  display: grid;
+  place-items: center;
+  height: 90px;
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+.pv-divider {
+  height: 1px;
+  background: var(--line);
+}
