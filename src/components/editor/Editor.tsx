@@ -33,15 +33,14 @@ const GRID_GAP = 12;
  * for different levels of customizability" idea: fewer tracks is harder to
  * break, more tracks is finer control.
  *
- * A block is placed on the grid by its start column and span, and dragged
- * across the grid by its grip — the drag snaps to a track and is clamped so a
- * block can never spill past the last column (`clampPlacement`), which is the
- * "break-proof" part. The same placement is editable from the inspector (Width,
- * Column) for a keyboard path. Vertical order is the block list; reorder is in
- * the inspector for now.
+ * A block is placed by its start column and span, and dragged by its grip:
+ * horizontally the drag snaps to a track (clamped so a block can never spill
+ * past the last column — the "break-proof" part), vertically it reorders in the
+ * list, so one gesture both moves and reorders. The same is reachable from the
+ * inspector (Width, Column, Move up/down) for a keyboard path.
  *
- * Persistence to the `LayoutDocument` is the next loop; the model is already
- * shaped for it.
+ * The canvas serialises to a `LayoutDocument` (`./serialise`) — the persisted,
+ * template-agnostic record — and, on /try, is remembered in localStorage.
  */
 export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: string }) {
   const [grid, setGrid] = useState<GridKind>('columns');
@@ -116,6 +115,39 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     return Math.max(1, Math.min(col, maxCol(span, tracks)));
   };
 
+  /**
+   * Reorder the dragged block to where the pointer is. Blocks render in list
+   * order, so each grid child maps to a block by its `data-block-id`; the target
+   * is the first other block whose midpoint the pointer has passed (down a row,
+   * or right within a row), else the end. Reordering as the pointer moves lets
+   * the block flow to a new position under the cursor.
+   */
+  const reorderToPointer = (id: string, clientX: number, clientY: number) => {
+    const el = gridRef.current;
+    if (!el) return;
+    const children = Array.from(el.children) as HTMLElement[];
+    const targetId = children
+      .map((c) => ({ id: c.dataset.blockId, rect: c.getBoundingClientRect() }))
+      .filter((c) => c.id && c.id !== id)
+      .find(
+        ({ rect }) =>
+          clientY < rect.top + rect.height / 2 ||
+          (clientY < rect.bottom && clientX < rect.left + rect.width / 2),
+      )?.id;
+
+    setBlocks((bs) => {
+      const from = bs.findIndex((b) => b.id === id);
+      if (from < 0) return bs;
+      let to = targetId ? bs.findIndex((b) => b.id === targetId) : bs.length;
+      if (to < 0 || to === from) return bs;
+      const next = [...bs];
+      const [moved] = next.splice(from, 1);
+      if (from < to) to -= 1; // the splice shifted everything after `from` left
+      next.splice(to, 0, moved!);
+      return next;
+    });
+  };
+
   const onGripDown = (e: React.PointerEvent, block: Block) => {
     e.stopPropagation();
     e.preventDefault();
@@ -130,6 +162,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     const { span } = clampPlacement(block.placement, tracks);
     const col = columnAt(e.clientX, span);
     if (col !== drag.col) setDrag({ id: block.id, col });
+    reorderToPointer(block.id, e.clientX, e.clientY);
   };
 
   const onGripUp = (e: React.PointerEvent, block: Block) => {
@@ -207,6 +240,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                 return (
                   <div
                     key={block.id}
+                    data-block-id={block.id}
                     className={`ed-block${block.id === selectedId ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${isDragging ? ' is-dragging' : ''}`}
                     style={{ gridColumn: grid === 'stack' ? undefined : `${startCol} / span ${span}` }}
                     onClick={(e) => {
@@ -215,20 +249,18 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                     }}
                   >
                     <span className="ed-block-tag">{block.label}</span>
-                    {grid !== 'stack' ? (
-                      <button
-                        type="button"
-                        className="ed-block-grip"
-                        aria-label={`Move ${block.label} across the grid`}
-                        title="Drag to snap across the grid"
-                        onPointerDown={(e) => onGripDown(e, block)}
-                        onPointerMove={(e) => onGripMove(e, block)}
-                        onPointerUp={(e) => onGripUp(e, block)}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        ⠿
-                      </button>
-                    ) : null}
+                    <button
+                      type="button"
+                      className="ed-block-grip"
+                      aria-label={`Move ${block.label}`}
+                      title={grid === 'stack' ? 'Drag to reorder' : 'Drag to move and snap to the grid'}
+                      onPointerDown={(e) => onGripDown(e, block)}
+                      onPointerMove={(e) => onGripMove(e, block)}
+                      onPointerUp={(e) => onGripUp(e, block)}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      ⠿
+                    </button>
                     <BlockPreview block={block} issue={issue} />
                   </div>
                 );
