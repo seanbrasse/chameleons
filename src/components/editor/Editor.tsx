@@ -1304,11 +1304,13 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
    *  root becomes a child; the container starts at their bounding box and the
    *  hug effect tightens it. The whole thing then moves/edits/deletes as one. */
   const groupSelection = () => {
-    const rootIds = selection.filter(
-      (id) => !selection.some((o) => o !== id && descendantIds(blocks, o).has(id)),
+    const sel = selectionRef.current;
+    const blocksNow = blocksRef.current;
+    const rootIds = sel.filter(
+      (id) => !sel.some((o) => o !== id && descendantIds(blocksNow, o).has(id)),
     );
     const items = rootIds
-      .map((id) => blocks.find((b) => b.id === id))
+      .map((id) => blocksNow.find((b) => b.id === id))
       .filter((b): b is Block => !!b);
     if (items.length < 2) return;
     const left = Math.min(...items.map((b) => clampPlacement(b.placement).col));
@@ -1333,9 +1335,10 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
    *  level, or its own parent if it was nested). The inverse of Group. Nested
    *  grandchildren keep their own parents. */
   const ungroup = (id: string) => {
-    const container = blocks.find((b) => b.id === id);
+    const blocksNow = blocksRef.current;
+    const container = blocksNow.find((b) => b.id === id);
     if (!container || !isContainer(container.kind)) return;
-    const kids = childrenOf(blocks, id);
+    const kids = childrenOf(blocksNow, id);
     if (kids.length === 0) return;
     const kidIds = new Set(kids.map((k) => k.id));
     const parentId = container.parentId;
@@ -1347,6 +1350,28 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     );
     setSelection(kids.map((k) => k.id));
   };
+
+  // ⌘/Ctrl+G groups the selection; ⌘/Ctrl+Shift+G ungroups a selected component.
+  // Bound here (after group/ungroup) so it references them directly; both read
+  // refs, so the once-bound handler always sees the current selection.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'g') return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      e.preventDefault();
+      if (e.shiftKey) {
+        const sel = selectionRef.current;
+        if (sel.length === 1) ungroup(sel[0]!);
+      } else {
+        groupSelection();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // groupSelection/ungroup read refs, so this binds once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const reset = () => {
     snapshot(true); // a reset can be undone
