@@ -24,6 +24,7 @@ import {
   isGutter,
   makeBlock,
   maxCol,
+  newBlockId,
   type Block,
   type BlockKind,
   type GridKind,
@@ -102,8 +103,18 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
 
   const add = (kind: BlockKind, label: string) => {
     const block = makeBlock(kind, label, Math.min(tracks, kind === 'divider' ? tracks : 6));
-    setBlocks((bs) => [...bs, block]);
+    // Insert right after the selected block so building follows where you are,
+    // not always the very end; with nothing selected, append.
+    setBlocks((bs) => insertAfter(bs, selectedId, block));
     setSelectedId(block.id);
+  };
+
+  const duplicate = (id: string) => {
+    const src = blocks.find((b) => b.id === id);
+    if (!src) return;
+    const copy: Block = { ...src, id: newBlockId(src.kind), placement: { ...src.placement } };
+    setBlocks((bs) => insertAfter(bs, id, copy));
+    setSelectedId(copy.id);
   };
 
   const remove = (id: string) => {
@@ -437,6 +448,9 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               <button type="button" className="ed-btn" onClick={() => move(selected.id, 1)}>
                 Move down
               </button>
+              <button type="button" className="ed-btn" onClick={() => duplicate(selected.id)}>
+                Duplicate
+              </button>
               <button type="button" className="ed-btn ed-btn-danger" onClick={() => remove(selected.id)}>
                 Delete
               </button>
@@ -463,6 +477,15 @@ const GLYPH: Record<BlockKind, string> = {
   metrics: '＃',
   contact: '✦',
 };
+
+/** Put `block` right after `afterId` in the list, or at the end if not found. */
+function insertAfter(blocks: Block[], afterId: string | null, block: Block): Block[] {
+  const i = afterId ? blocks.findIndex((b) => b.id === afterId) : -1;
+  if (i < 0) return [...blocks, block];
+  const next = [...blocks];
+  next.splice(i + 1, 0, block);
+  return next;
+}
 
 type EditorInit = { blocks: Block[]; grid: GridKind; gutter: Gutter; guide: Guide };
 
