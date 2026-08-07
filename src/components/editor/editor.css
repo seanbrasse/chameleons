@@ -511,6 +511,63 @@
   gap: 3px;
 }
 
+/* ── project gallery ──────────────────────────────────────────────── */
+
+.pv-gallery {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.pv-card {
+  flex: 0 0 160px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pv-card-media {
+  height: 96px;
+  border-radius: 6px;
+  background-color: var(--panel);
+  background-size: cover;
+  background-position: center;
+  display: grid;
+  place-items: center;
+  color: var(--ink-faint);
+  font-size: 20px;
+  margin-bottom: 5px;
+}
+
+.pv-card-source {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.pv-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pv-card-summary {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--ink-soft);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .pv-metrics {
   display: flex;
   flex-wrap: wrap;

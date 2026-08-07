@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-import type { Education, Experience, Issue } from '@/content/types';
+import type { Education, Experience, Issue, Project } from '@/content/types';
 import type { LayoutDocument } from '@/templates/layout';
 
 import './editor.css';
@@ -732,6 +732,40 @@ function InlineText({
   );
 }
 
+/** A row of project cards — a media well, its source, title and summary. */
+function ProjectGallery({
+  projects,
+  experiences,
+}: {
+  projects: Project[];
+  experiences: Experience[];
+}) {
+  const source = (p: Project): string => {
+    if (p.context === 'personal') return 'Personal';
+    return experiences.find((e) => e.id === p.experienceId)?.company ?? 'Work';
+  };
+  return (
+    <div className="pv-gallery">
+      {projects.slice(0, 4).map((p) => {
+        const cover = p.images[0];
+        return (
+          <div key={p.id} className="pv-card">
+            <div
+              className="pv-card-media"
+              style={cover ? { backgroundImage: `url(${cover.src})` } : undefined}
+            >
+              {cover ? null : <span aria-hidden="true">▦</span>}
+            </div>
+            <div className="pv-card-source">{source(p)}</div>
+            <div className="pv-card-title">{p.title}</div>
+            <div className="pv-card-summary">{p.summary}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /** A horizontal career timeline — experiences and schooling, earliest first. */
 function TimelinePreview({
   experiences,
@@ -809,13 +843,7 @@ function BlockPreview({
     case 'timeline':
       return <TimelinePreview experiences={experiences} education={education} />;
     case 'projects':
-      return (
-        <ul className="pv-list">
-          {projects.slice(0, 3).map((p) => (
-            <li key={p.id}>{p.title}</li>
-          ))}
-        </ul>
-      );
+      return <ProjectGallery projects={projects} experiences={experiences} />;
     case 'experience':
       return (
         <ul className="pv-list">
