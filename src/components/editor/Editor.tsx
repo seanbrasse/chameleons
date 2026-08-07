@@ -23,6 +23,8 @@ import {
   DEFAULT_CONTAINER_ROWS,
   MIN_GAP_ROWS,
   PALETTE,
+  PRESETS,
+  makePreset,
   clampPlacement,
   descendantIds,
   isContainer,
@@ -38,6 +40,7 @@ import {
   type Block,
   type BlockKind,
   type ContentSource,
+  type PresetKind,
   type Guide,
   type Gutter,
   type Placement,
@@ -240,6 +243,15 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     const block = makeBlock(kind, label, nextRow());
     setBlocks((bs) => [...bs, block]);
     setSelectedId(block.id);
+  };
+
+  // Drop a preset — a pre-composed group of nested blocks — and select its
+  // container, so it arrives ready to tweak as one piece.
+  const addPreset = (preset: PresetKind) => {
+    const group = makePreset(preset, nextRow());
+    if (group.length === 0) return;
+    setBlocks((bs) => [...bs, ...group]);
+    setSelectedId(group[0]!.id);
   };
 
   const duplicate = (id: string) => {
@@ -696,6 +708,26 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               ))}
             </div>
           ))}
+          <div className="ed-palette-group">
+            <div className="ed-palette-label">Components</div>
+            {PRESETS.map((item) => (
+              <button
+                key={item.preset}
+                type="button"
+                className="ed-palette-item"
+                onClick={() => addPreset(item.preset)}
+                title={item.hint}
+              >
+                <span className="ed-palette-glyph" aria-hidden="true">
+                  ✦
+                </span>
+                <span className="ed-palette-name">{item.label}</span>
+                <span className="ed-palette-add" aria-hidden="true">
+                  +
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </aside>
 
