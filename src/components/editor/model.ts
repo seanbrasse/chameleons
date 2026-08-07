@@ -17,10 +17,13 @@
 export type BlockKind =
   // primitives
   | 'container'
+  | 'card'
   | 'heading'
   | 'text'
   | 'image'
   | 'button'
+  | 'input'
+  | 'textarea'
   | 'divider'
   | 'themeToggle'
   // content, bound to the Issue
@@ -36,10 +39,13 @@ export type BlockKind =
 /** Every block kind, in palette order — the source of truth for validation. */
 export const BLOCK_KINDS: readonly BlockKind[] = [
   'container',
+  'card',
   'heading',
   'text',
   'image',
   'button',
+  'input',
+  'textarea',
   'divider',
   'themeToggle',
   'identity',
@@ -53,9 +59,15 @@ export const BLOCK_KINDS: readonly BlockKind[] = [
 ];
 
 /** Whether a kind is a container — a box that holds other blocks as children,
- *  the base other components (cards, and later inputs) compose from. */
+ *  the base other components compose from. A card is a styled container: it
+ *  nests, clips, moves and scales exactly like one, and only looks different. */
 export function isContainer(kind: BlockKind): boolean {
-  return kind === 'container';
+  return kind === 'container' || kind === 'card';
+}
+
+/** Whether a kind is a form input — a leaf primitive that takes typed answers. */
+export function isInput(kind: BlockKind): boolean {
+  return kind === 'input' || kind === 'textarea';
 }
 
 /** Whether an arbitrary value is a known block kind — for parsing stored data. */
@@ -308,12 +320,20 @@ export const PALETTE: { group: string; items: PaletteItem[] }[] = [
     group: 'Basic',
     items: [
       { kind: 'container', label: 'Container', hint: 'A box that holds other elements' },
+      { kind: 'card', label: 'Card', hint: 'A styled box that holds other elements' },
       { kind: 'heading', label: 'Heading', hint: 'A title' },
       { kind: 'text', label: 'Text', hint: 'A paragraph' },
       { kind: 'image', label: 'Image', hint: 'A picture' },
       { kind: 'button', label: 'Button', hint: 'A link' },
       { kind: 'divider', label: 'Divider', hint: 'A rule' },
       { kind: 'themeToggle', label: 'Theme toggle', hint: 'Light / dark switch' },
+    ],
+  },
+  {
+    group: 'Form',
+    items: [
+      { kind: 'input', label: 'Input', hint: 'A single-line field' },
+      { kind: 'textarea', label: 'Text area', hint: 'A multi-line field' },
     ],
   },
   {
@@ -338,10 +358,13 @@ export const PALETTE: { group: string; items: PaletteItem[] }[] = [
  */
 const SPAN_FRACTION: Record<BlockKind, number> = {
   container: 0.5,
+  card: 0.4,
   heading: 1,
   text: 0.5,
   image: 1 / 3,
   button: 0.25,
+  input: 0.4,
+  textarea: 0.5,
   divider: 1,
   themeToggle: 0.2,
   identity: 1,
@@ -390,5 +413,7 @@ function defaultText(kind: BlockKind): string {
   if (kind === 'heading') return 'Heading';
   if (kind === 'text') return 'Write something here.';
   if (kind === 'button') return 'Learn more';
+  if (kind === 'input') return 'Your answer';
+  if (kind === 'textarea') return 'Your message';
   return '';
 }

@@ -8,6 +8,7 @@ import {
   descendantIds,
   isBlockKind,
   isContainer,
+  isInput,
   isContentSource,
   isGuide,
   isGutter,
@@ -99,9 +100,20 @@ describe('containers and the tree', () => {
     { id: 'root', kind: 'heading', label: 'Root', placement: { col: 1, colSpan: 6, row: 20 } },
   ];
 
-  it('isContainer knows the container kind', () => {
+  it('isContainer knows containers and cards, but not leaves', () => {
     expect(isContainer('container')).toBe(true);
+    expect(isContainer('card')).toBe(true);
     expect(isContainer('text')).toBe(false);
+  });
+
+  it('isInput knows the form kinds', () => {
+    expect(isInput('input')).toBe(true);
+    expect(isInput('textarea')).toBe(true);
+    expect(isInput('text')).toBe(false);
+  });
+
+  it('makeBlock gives a card a starting height, like a container', () => {
+    expect(makeBlock('card', 'Card').placement.rowSpan).toBeGreaterThan(0);
   });
 
   it('makeBlock gives a container a starting height so it is a real box', () => {

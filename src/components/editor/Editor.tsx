@@ -23,6 +23,7 @@ import {
   clampPlacement,
   descendantIds,
   isContainer,
+  isInput,
   isFreeText,
   isGuide,
   isGutter,
@@ -556,7 +557,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         key={block.id}
         data-block-id={block.id}
         aria-label={`${block.label} block`}
-        className={`ed-block${cont ? ' is-container' : ''}${block.id === selectedId ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
+        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${block.id === selectedId ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
         style={{
           left: (free ? free.left : box.left) - origin.left,
           top: (free ? free.top : box.top) - origin.top,
@@ -777,6 +778,16 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               </label>
             ) : null}
 
+            {isInput(selected.kind) ? (
+              <label className="ed-field">
+                <span className="ed-field-label">Placeholder</span>
+                <input
+                  value={selected.text ?? ''}
+                  onChange={(e) => update(selected.id, { text: e.target.value })}
+                />
+              </label>
+            ) : null}
+
             <label className="ed-field">
               <span className="ed-field-label">
                 Width — {sel.colSpan} of {GRID_COLS}
@@ -882,6 +893,9 @@ const RESIZE_DIRS: ResizeDir[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 
 const GLYPH: Record<BlockKind, string> = {
   container: '▢',
+  card: '▤',
+  input: '▭',
+  textarea: '☰',
   heading: 'H',
   text: '¶',
   image: '▦',
@@ -1486,6 +1500,24 @@ function BlockPreview({
       return <p className="pv-text pv-text-bound">{boundText ?? block.text}</p>;
     case 'button':
       return <span className="pv-button">{boundText ?? block.text}</span>;
+    case 'input':
+      return (
+        <input
+          className="pv-input"
+          placeholder={block.text || 'Your answer'}
+          disabled={!interactive}
+          aria-label={block.label}
+        />
+      );
+    case 'textarea':
+      return (
+        <textarea
+          className="pv-textarea"
+          placeholder={block.text || 'Your message'}
+          disabled={!interactive}
+          aria-label={block.label}
+        />
+      );
     case 'image':
       return <div className="pv-image">Image</div>;
     case 'divider':
