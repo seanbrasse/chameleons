@@ -1092,13 +1092,6 @@
 
 /* ── project gallery ──────────────────────────────────────────────── */
 
-.pv-gallery {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-}
-
 .pv-card {
   flex: 0 0 160px;
   min-width: 0;
@@ -1160,6 +1153,12 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+/* In Edit the carousel is a static preview: inert, so a pointer drives the
+   block (select / drag), not the deck's arrows, cards or dots. */
+.pv-carousel.is-static {
+  pointer-events: none;
 }
 
 .pv-carousel-stage {
