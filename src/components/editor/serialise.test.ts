@@ -86,4 +86,29 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(blocks).toHaveLength(1);
     expect(blocks[0]).toMatchObject({ label: 'First' });
   });
+
+  it('round-trips a valid parentId nesting a block in a container', () => {
+    const nested: Block[] = [
+      { id: 'box', kind: 'container', label: 'Box', placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },
+      { id: 't', kind: 'text', label: 'Text', text: 'hi', parentId: 'box', placement: { col: 2, colSpan: 4, row: 2 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(nested))).toEqual(nested);
+  });
+
+  it('drops a parentId that points at no container', () => {
+    const [block] = fromLayoutDocument(
+      doc([{ id: 't', props: { kind: 'text', parentId: 'ghost' } }]),
+    );
+    expect(block && 'parentId' in block).toBe(false);
+  });
+
+  it('drops a parentId that points at a non-container block', () => {
+    const blocks = fromLayoutDocument(
+      doc([
+        { id: 'h', props: { kind: 'heading' } },
+        { id: 't', props: { kind: 'text', parentId: 'h' } },
+      ]),
+    );
+    expect(blocks.find((b) => b.id === 't') && 'parentId' in blocks[1]!).toBe(false);
+  });
 });

@@ -306,6 +306,38 @@
   transform-origin: top left;
 }
 
+/* A container: a box that holds other blocks. It carries no padding of its own
+   so a child's placement lands exactly where dropped; its frame is an inset
+   ring (no layout inset) and its children live in the body, which clips them —
+   the handles sit outside the body, so the box itself stays resizable. */
+.ed-block.is-container {
+  padding: 0;
+  border: none;
+  background: rgba(99, 102, 241, 0.03);
+  box-shadow: inset 0 0 0 1px #d7defc;
+}
+
+.ed-block.is-container:hover {
+  box-shadow: inset 0 0 0 1px #b9cdf6;
+}
+
+.ed-block.is-container.is-selected {
+  box-shadow: inset 0 0 0 1px var(--sel), 0 0 0 2px var(--sel-soft);
+}
+
+.ed-block.is-container > .ed-block-body {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* While arranging, a container stops clipping so a child dragged out of it stays
+   visible (and stays a child of the same DOM node — no re-mount mid-drag) until
+   it is dropped. */
+.ed-artboard.is-arranging .ed-block.is-container > .ed-block-body {
+  overflow: visible;
+}
+
 /* Resize handles — four sides and four corners on the selected block. */
 .ed-handle {
   position: absolute;
