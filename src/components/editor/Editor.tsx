@@ -72,6 +72,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
   /** The project opened in the detail modal (Preview only). */
   const [modalProject, setModalProject] = useState<Project | null>(null);
+  /** The focused project index (by date) shared by the timeline and carousel. */
+  const [activeIndex, setActiveIndex] = useState(0);
   const isEditMode = mode === 'edit';
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -447,6 +449,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                   onClick={() => {
                     setMode(m);
                     setModalProject(null);
+                    setActiveIndex(0);
                     if (m === 'preview') setSelectedId(null);
                   }}
                 >
@@ -516,6 +519,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                       issue={issue}
                       editing={isEditMode && editingId === block.id}
                       interactive={!isEditMode}
+                      activeIndex={activeIndex}
+                      onActive={setActiveIndex}
                       onText={(text) => update(block.id, { text })}
                       onEditEnd={() => setEditingId(null)}
                       onOpenProject={setModalProject}
@@ -823,24 +828,38 @@ function MediaWell({ cover, className }: { cover: Project['images'][number] | un
   );
 }
 
+/** Projects oldest → newest by date — the order the timeline and carousel share. */
+function projectsByDate(projects: Project[]): Project[] {
+  return [...projects].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+}
+
+/** A year as a float (2021-06 → 2021.42), for placing things along the axis. */
+function yearFloat(date: string): number {
+  const [y, m] = date.split('-');
+  return Number(y) + (Number(m ?? '1') - 1) / 12;
+}
+
 /**
  * The project section. In Edit it is a static row of cards so it can be
- * arranged; in Preview it becomes a real carousel — the active card is
- * clickable to open the detail modal, dots and arrows cycle the deck.
+ * arranged; in Preview it becomes a real carousel driven by the shared
+ * `activeIndex` — the active card is clickable to open the detail modal, dots
+ * and arrows move through the deck (and the timeline playhead with it).
  */
 function ProjectGallery({
   projects,
   experiences,
   interactive,
+  activeIndex,
+  onActive,
   onOpen,
 }: {
   projects: Project[];
   experiences: Experience[];
   interactive: boolean;
+  activeIndex: number;
+  onActive: (i: number) => void;
   onOpen: (p: Project) => void;
 }) {
-  const [i, setI] = useState(0);
-
   if (!interactive) {
     return (
       <div className="pv-gallery">
@@ -856,10 +875,11 @@ function ProjectGallery({
     );
   }
 
-  const n = projects.length;
+  const sorted = projectsByDate(projects);
+  const n = sorted.length;
   if (n === 0) return <div className="pv-carousel" />;
-  const idx = ((i % n) + n) % n;
-  const active = projects[idx]!;
+  const idx = ((activeIndex % n) + n) % n;
+  const active = sorted[idx]!;
 
   return (
     <div className="pv-carousel">
@@ -868,7 +888,7 @@ function ProjectGallery({
           type="button"
           className="pv-carousel-nav"
           aria-label="Previous project"
-          onClick={() => setI(idx - 1)}
+          onClick={() => onActive(idx - 1)}
         >
           ‹
         </button>
@@ -881,24 +901,139 @@ function ProjectGallery({
           type="button"
           className="pv-carousel-nav"
           aria-label="Next project"
-          onClick={() => setI(idx + 1)}
+          onClick={() => onActive(idx + 1)}
         >
           ›
         </button>
       </div>
       <div className="pv-carousel-foot">
         <div className="pv-carousel-dots">
-          {projects.map((p, k) => (
+          {sorted.map((p, k) => (
             <button
               key={p.id}
               type="button"
               className={`pv-dot${k === idx ? ' is-on' : ''}`}
               aria-label={`Show ${p.title}`}
-              onClick={() => setI(k)}
+              onClick={() => onActive(k)}
             />
           ))}
         </div>
         <span className="pv-allprojects">All projects</span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The interactive timeline (Preview). Experience and school logos sit along a
+ * year axis; a draggable playhead marks the active project's date and, when
+ * moved, scrubs the carousel to the nearest project in time. Clicking a stop
+ * jumps to the nearest project too — so the timeline and carousel drive each
+ * other, like the live page.
+ */
+function TimelineScrubber({
+  experiences,
+  education,
+  projects,
+  activeIndex,
+  onActive,
+}: {
+  experiences: Experience[];
+  education: Education[];
+  projects: Project[];
+  activeIndex: number;
+  onActive: (i: number) => void;
+}) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const sorted = projectsByDate(projects);
+  const stops = [
+    ...experiences.map((e) => ({ id: e.id, label: e.company, date: e.startDate, logo: e.logo })),
+    ...education.map((s) => ({ id: s.id, label: s.school, date: s.startDate, logo: s.logo })),
+  ]
+    .filter((s) => Boolean(s.date))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const dates = [...stops.map((s) => s.date), ...sorted.map((p) => p.date)].filter(Boolean).map(yearFloat);
+  const min = Math.floor(Math.min(...dates));
+  const max = Math.ceil(Math.max(...dates));
+  const span = Math.max(1, max - min);
+  const frac = (date: string) => (yearFloat(date) - min) / span;
+  const years = Array.from({ length: max - min + 1 }, (_, k) => min + k);
+
+  const n = sorted.length;
+  const idx = n > 0 ? ((activeIndex % n) + n) % n : 0;
+
+  // The reel: the playhead runs evenly across the track through every project,
+  // so dragging always cycles the whole deck — the year axis and the logos give
+  // career context around it.
+  const headFrac = n > 1 ? idx / (n - 1) : 0;
+
+  const scrubTo = (clientX: number) => {
+    const el = trackRef.current;
+    if (!el || n === 0) return;
+    const rect = el.getBoundingClientRect();
+    const f = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    onActive(Math.round(f * (n - 1)));
+  };
+
+  /** The project closest in time to a career date — for a stop click. */
+  const nearestByDate = (date: string): number => {
+    if (n === 0) return 0;
+    let best = 0;
+    let bestD = Infinity;
+    sorted.forEach((p, k) => {
+      const d = Math.abs(yearFloat(p.date) - yearFloat(date));
+      if (d < bestD) {
+        bestD = d;
+        best = k;
+      }
+    });
+    return best;
+  };
+
+  return (
+    <div className="pv-scrub">
+      <div className="pv-scrub-stops">
+        {stops.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            className="pv-scrub-stop"
+            style={{ left: `${frac(s.date) * 100}%` }}
+            aria-label={`${s.label}, ${s.date.slice(0, 4)}`}
+            onClick={() => onActive(nearestByDate(s.date))}
+          >
+            {s.logo ? (
+              // eslint-disable-next-line @next/next/no-img-element -- storage URLs are not on a next/image host; same as the templates.
+              <img className="pv-scrub-logo" src={s.logo.src} alt="" />
+            ) : (
+              <span className="pv-scrub-co">{s.label}</span>
+            )}
+          </button>
+        ))}
+      </div>
+      <div
+        ref={trackRef}
+        className="pv-scrub-track"
+        onPointerDown={(e) => {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          scrubTo(e.clientX);
+        }}
+        onPointerMove={(e) => {
+          if (e.buttons === 1) scrubTo(e.clientX);
+        }}
+      >
+        {years.map((y) => (
+          <span key={y} className="pv-scrub-tick" style={{ left: `${((y - min) / span) * 100}%` }} />
+        ))}
+        <span className="pv-scrub-head" style={{ left: `${headFrac * 100}%` }} aria-hidden="true" />
+      </div>
+      <div className="pv-scrub-years">
+        {years.map((y) => (
+          <span key={y} className="pv-scrub-year" style={{ left: `${((y - min) / span) * 100}%` }}>
+            {y}
+          </span>
+        ))}
       </div>
     </div>
   );
@@ -998,6 +1133,8 @@ function BlockPreview({
   issue,
   editing,
   interactive,
+  activeIndex,
+  onActive,
   onText,
   onEditEnd,
   onOpenProject,
@@ -1006,6 +1143,8 @@ function BlockPreview({
   issue: Issue;
   editing: boolean;
   interactive: boolean;
+  activeIndex: number;
+  onActive: (i: number) => void;
   onText: (text: string) => void;
   onEditEnd: () => void;
   onOpenProject: (p: Project) => void;
@@ -1046,13 +1185,25 @@ function BlockPreview({
         </div>
       );
     case 'timeline':
-      return <TimelinePreview experiences={experiences} education={education} />;
+      return interactive ? (
+        <TimelineScrubber
+          experiences={experiences}
+          education={education}
+          projects={projects}
+          activeIndex={activeIndex}
+          onActive={onActive}
+        />
+      ) : (
+        <TimelinePreview experiences={experiences} education={education} />
+      );
     case 'projects':
       return (
         <ProjectGallery
           projects={projects}
           experiences={experiences}
           interactive={interactive}
+          activeIndex={activeIndex}
+          onActive={onActive}
           onOpen={onOpenProject}
         />
       );
