@@ -417,10 +417,25 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!(e.metaKey || e.ctrlKey)) return;
-      const k = e.key.toLowerCase();
       const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      const inField = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+      // Escape clears the selection (a field handles its own Escape to stop editing).
+      if (e.key === 'Escape') {
+        if (!inField && selectionRef.current.length) setSelection([]);
+        return;
+      }
+      if (!(e.metaKey || e.ctrlKey)) return;
+      if (inField) return;
+      const k = e.key.toLowerCase();
+      if (k === 'a') {
+        // Select every top-level block (locked components count as their root).
+        const roots = blocksRef.current.filter((b) => b.parentId === undefined).map((b) => b.id);
+        if (roots.length) {
+          e.preventDefault();
+          setSelection(roots);
+        }
+        return;
+      }
       if (k === 'z' && !e.shiftKey) {
         e.preventDefault();
         restore('past');
