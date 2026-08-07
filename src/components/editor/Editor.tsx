@@ -25,6 +25,7 @@ import {
   PALETTE,
   PRESETS,
   makePreset,
+  canAlign,
   childrenOf,
   clampPlacement,
   descendantIds,
@@ -37,6 +38,7 @@ import {
   makeBlock,
   maxCol,
   newBlockId,
+  TEXT_ALIGNS,
   withoutParent,
   type Animation,
   type Block,
@@ -1536,7 +1538,10 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         {...triggerProps}
       >
         {isEditMode ? <span className="ed-block-tag">{block.label}</span> : null}
-        <div className="ed-block-body" style={bodyScale}>
+        <div
+          className="ed-block-body"
+          style={{ ...bodyScale, textAlign: canAlign(block) ? block.align : undefined }}
+        >
           {cont ? (
             kids.length > 0 ? (
               kids.map((child) => renderBlock(child, { left: box.left, top: box.top }))
@@ -1950,6 +1955,27 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                   onChange={(e) => update(selected.id, { text: e.target.value })}
                 />
               </label>
+            ) : null}
+
+            {canAlign(selected) ? (
+              <div className="ed-field">
+                <span className="ed-field-label">Align</span>
+                <div className="ed-arrange">
+                  {TEXT_ALIGNS.map((a) => (
+                    <button
+                      key={a}
+                      type="button"
+                      className={`ed-arrange-btn${(selected.align ?? 'left') === a ? ' is-on' : ''}`}
+                      title={`Align ${a}`}
+                      aria-label={`Align ${a}`}
+                      aria-pressed={(selected.align ?? 'left') === a}
+                      onClick={() => update(selected.id, { align: a === 'left' ? undefined : a })}
+                    >
+                      {a === 'left' ? '⇤' : a === 'center' ? '⇔' : '⇥'}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ) : null}
 
             {isInput(selected.kind) ? (

@@ -824,6 +824,12 @@
   background: var(--sel-soft);
 }
 
+.ed-arrange-btn.is-on {
+  border-color: var(--sel);
+  color: var(--sel);
+  background: var(--sel-soft);
+}
+
 /* A text block bound to a multi-line source (education, experience) keeps its
    line breaks. */
 .pv-text-bound {

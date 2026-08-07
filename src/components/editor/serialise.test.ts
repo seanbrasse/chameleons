@@ -119,6 +119,15 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(fromLayoutDocument(toLayoutDocument(locked))).toEqual(locked);
   });
 
+  it('round-trips a text alignment, and drops a bad one', () => {
+    const aligned: Block[] = [
+      { id: 't', kind: 'text', label: 'Text', align: 'center', placement: { col: 1, colSpan: 8, row: 1 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(aligned))).toEqual(aligned);
+    const [block] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'text', align: 'middle' } }]));
+    expect(block && 'align' in block).toBe(false);
+  });
+
   it('round-trips a well-formed animation', () => {
     const animated: Block[] = [
       { id: 'c', kind: 'card', label: 'Card', animation: { effect: 'rise', trigger: 'scroll' }, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },
