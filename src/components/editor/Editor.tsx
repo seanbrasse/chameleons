@@ -85,6 +85,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const [arranging, setArranging] = useState(false);
   /** The id of the block currently being dragged, for its lifted styling. */
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  /** While dragging: the container the block would nest into on release. */
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   /** While dragging: the block's free (un-snapped) position, and the slot it
    *  will magnetically snap to on release. */
   const [dragFree, setDragFree] = useState<{
@@ -871,11 +873,14 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     const gridSnap = placementAt(e.clientX, e.clientY, d.grabDx, d.grabDy, target.placement.colSpan);
     const height = heightsRef.current[target.id] ?? CELL;
     // A lone drag snaps to neighbours' edges/centres; a group drag moves rigidly.
+    const kin = new Set(descendantIds(blocks, target.id));
     const aligned =
       d.group.length === 0
-        ? alignToNeighbours(target, gridSnap, left, top, new Set(descendantIds(blocks, target.id)))
+        ? alignToNeighbours(target, gridSnap, left, top, kin)
         : { snap: gridSnap, guides: [] as AlignGuide[] };
     setDragFree({ id: target.id, left, top, height, snap: aligned.snap, guides: aligned.guides });
+    // Highlight the container this lone block would drop into (none for a group).
+    setDropTargetId(d.group.length === 0 ? findDropContainer(target, aligned.snap, kin) : null);
   };
 
   const onBlockUp = (e: React.PointerEvent) => {
@@ -893,6 +898,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     setArranging(false);
     setDraggingId(null);
     setDragFree(null);
+    setDropTargetId(null);
     if (moved) endGesture(); // close the undo step opened on first move
     if (!(moved && snap) || !target) return;
 
@@ -1431,7 +1437,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         data-block-id={block.id}
         aria-label={`${block.label} block`}
         data-anim-trigger={anim?.trigger === 'scroll' ? 'scroll' : undefined}
-        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${block.parentId !== undefined ? ' is-nested' : ''}${isLocked ? ' is-locked' : ''}${inLocked ? ' in-locked' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId ? ' is-trigger' : ''}${isSelected(block.id) ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
+        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${block.parentId !== undefined ? ' is-nested' : ''}${isLocked ? ' is-locked' : ''}${inLocked ? ' in-locked' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId ? ' is-trigger' : ''}${isSelected(block.id) ? ' is-selected' : ''}${dropTargetId === block.id ? ' is-drop-target' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
         style={{
           left: (free ? free.left : box.left) - origin.left,
           top: (free ? free.top : box.top) - origin.top,
