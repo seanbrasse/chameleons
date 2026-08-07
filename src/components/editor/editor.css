@@ -283,6 +283,18 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
+.ed-chip:hover {
+  color: var(--ink);
+}
+
+/* The zoom read-out doubles as a "fit to window" button; a fixed width keeps
+   the − and + keys from jittering as the percentage changes. */
+.ed-zoom-pct {
+  min-width: 48px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 .ed-toolbar-mode {
   margin-left: auto;
 }
@@ -303,7 +315,9 @@
   overflow: auto;
   padding: 40px;
   display: flex;
-  justify-content: center;
+  /* `safe` centre: centred when it fits, but never clips the far edge out of
+     reach once the zoomed artboard overflows — so you can scroll to pan. */
+  justify-content: safe center;
   align-items: flex-start;
   background: var(--stage);
 }
