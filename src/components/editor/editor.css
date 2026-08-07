@@ -478,3 +478,35 @@
   height: 1px;
   background: var(--line);
 }
+
+/* ── inline text editing ──────────────────────────────────────────── */
+
+.pv-edit {
+  font: inherit;
+  width: 100%;
+  border: 1px dashed var(--sel);
+  border-radius: 5px;
+  padding: 4px 6px;
+  background: var(--sel-soft);
+  color: var(--ink);
+  resize: none;
+}
+
+.pv-edit:focus {
+  outline: none;
+  background: #fff;
+}
+
+.pv-edit-heading {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.pv-edit-text {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.pv-edit-button {
+  font-size: 13px;
+}

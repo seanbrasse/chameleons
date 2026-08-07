@@ -60,6 +60,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const [guide, setGuide] = useState<Guide>(initial.guide);
   const [blocks, setBlocks] = useState<Block[]>(initial.blocks);
   const [selectedId, setSelectedId] = useState<string | null>(initial.blocks[0]?.id ?? null);
+  /** The primitive block being text-edited in place, if any. */
+  const [editingId, setEditingId] = useState<string | null>(null);
   /** The block being dragged and the column it is snapping to, live. */
   const [drag, setDrag] = useState<{ id: string; col: number } | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -198,6 +200,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   // column (clamped), Up/Down reorder, Delete removes. Arrows would otherwise
   // scroll the canvas, so they are handled here.
   const onBlockKey = (e: React.KeyboardEvent, block: Block) => {
+    if (editingId === block.id) return; // typing in the block's text field
     const { col, span } = clampPlacement(block.placement, tracks);
     if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
       if (tracks === 1) return;
@@ -338,6 +341,12 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                       e.stopPropagation();
                       setSelectedId(block.id);
                     }}
+                    onDoubleClick={() => {
+                      if (isEditable(block.kind)) {
+                        setSelectedId(block.id);
+                        setEditingId(block.id);
+                      }
+                    }}
                     onFocus={() => setSelectedId(block.id)}
                     onKeyDown={(e) => onBlockKey(e, block)}
                   >
@@ -354,7 +363,13 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                     >
                       ⠿
                     </button>
-                    <BlockPreview block={block} issue={issue} />
+                    <BlockPreview
+                      block={block}
+                      issue={issue}
+                      editing={editingId === block.id}
+                      onText={(text) => update(block.id, { text })}
+                      onEditEnd={() => setEditingId(null)}
+                    />
                   </div>
                 );
               })}
@@ -478,6 +493,11 @@ const GLYPH: Record<BlockKind, string> = {
   contact: '✦',
 };
 
+/** The primitives whose text can be edited in place on the canvas. */
+function isEditable(kind: BlockKind): boolean {
+  return kind === 'heading' || kind === 'text' || kind === 'button';
+}
+
 /** Put `block` right after `afterId` in the list, or at the end if not found. */
 function insertAfter(blocks: Block[], afterId: string | null, block: Block): Block[] {
   const i = afterId ? blocks.findIndex((b) => b.id === afterId) : -1;
@@ -544,9 +564,64 @@ function starterBlocks(tracks: number): Block[] {
   ];
 }
 
+/**
+ * An inline text field for editing a primitive's copy directly on the canvas.
+ * Commits live (like the inspector); Enter finishes a single-line block, Escape
+ * and blur end editing. Key events are kept from bubbling so the canvas's block
+ * shortcuts don't fire while typing.
+ */
+function InlineText({
+  block,
+  onText,
+  onEditEnd,
+}: {
+  block: Block;
+  onText: (text: string) => void;
+  onEditEnd: () => void;
+}) {
+  const multiline = block.kind === 'text';
+  const shared = {
+    autoFocus: true,
+    value: block.text ?? '',
+    'aria-label': `${block.label} text`,
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onText(e.target.value),
+    onBlur: onEditEnd,
+    onClick: (e: React.MouseEvent) => e.stopPropagation(),
+    onFocus: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => e.currentTarget.select(),
+    onKeyDown: (e: React.KeyboardEvent) => {
+      e.stopPropagation();
+      if (e.key === 'Escape' || (e.key === 'Enter' && !multiline)) {
+        e.preventDefault();
+        onEditEnd();
+      }
+    },
+  };
+  return multiline ? (
+    <textarea className="pv-edit pv-edit-text" rows={2} {...shared} />
+  ) : (
+    <input className={`pv-edit pv-edit-${block.kind}`} {...shared} />
+  );
+}
+
 /** A compact, representative preview of a block on the canvas. */
-function BlockPreview({ block, issue }: { block: Block; issue: Issue }) {
+function BlockPreview({
+  block,
+  issue,
+  editing,
+  onText,
+  onEditEnd,
+}: {
+  block: Block;
+  issue: Issue;
+  editing: boolean;
+  onText: (text: string) => void;
+  onEditEnd: () => void;
+}) {
   const { settings, projects, experiences, education, metrics } = issue;
+
+  if (editing && isEditable(block.kind)) {
+    return <InlineText block={block} onText={onText} onEditEnd={onEditEnd} />;
+  }
 
   switch (block.kind) {
     case 'identity':
