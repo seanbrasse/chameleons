@@ -1725,6 +1725,43 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               onPointerMove={isEditMode ? onArtboardMove : undefined}
               onPointerUp={isEditMode ? onArtboardUp : undefined}
             >
+              {arranging && guide !== 'off'
+                ? (() => {
+                    // A patch of grid that follows the moving object, instead of
+                    // tiling the whole page — sized to the object plus a margin,
+                    // its lines aligned to the real snap grid, fading at the edges.
+                    let box: { left: number; top: number; width: number; height: number } | null = null;
+                    if (dragFree) {
+                      const blk = blocks.find((b) => b.id === dragFree.id);
+                      const w = blk ? boxOf(clampPlacement(blk.placement)).width : CELL;
+                      box = { left: dragFree.left, top: dragFree.top, width: w, height: dragFree.height };
+                    } else if (selectedId) {
+                      const blk = blocks.find((b) => b.id === selectedId);
+                      if (blk) {
+                        const bx = boxOf(clampPlacement(blk.placement));
+                        box = { left: bx.left, top: bx.top, width: bx.width, height: bx.height ?? CELL };
+                      }
+                    }
+                    if (!box) return null;
+                    const left = box.left - GRID_PATCH_PAD;
+                    const top = box.top - GRID_PATCH_PAD;
+                    const offX = (((ARTBOARD.margin - left) % CELL) + CELL) % CELL;
+                    const offY = (((ARTBOARD.margin - top) % CELL) + CELL) % CELL;
+                    return (
+                      <div
+                        className={`ed-grid-patch ed-grid-${guide}`}
+                        style={{
+                          left,
+                          top,
+                          width: box.width + GRID_PATCH_PAD * 2,
+                          height: box.height + GRID_PATCH_PAD * 2,
+                          backgroundPosition: `${offX}px ${offY}px`,
+                        }}
+                        aria-hidden="true"
+                      />
+                    );
+                  })()
+                : null}
               {(childMap.get(null) ?? [])
                 .filter((block) => isEditMode || !block.asModal)
                 .map((block) => renderBlock(block, { left: 0, top: 0 }))}
@@ -2111,6 +2148,8 @@ const ALIGN_TOL = 9;
 type AlignGuide = { orient: 'v' | 'h'; pos: number; start: number; end: number };
 /** Padding around the artboard inside the scroll area, in screen px. */
 const CANVAS_PAD = 40;
+/** Artboard px of grid to show around the moving object, before its edge fade. */
+const GRID_PATCH_PAD = 88;
 /** Cells of breathing room a container keeps around its contents when it fits. */
 const FIT_PAD = 1;
 

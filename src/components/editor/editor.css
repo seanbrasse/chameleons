@@ -350,21 +350,31 @@
   pointer-events: none;
 }
 
-/* The snap grid, drawn only while arranging — square cells (graph paper), one
-   `--cell` in both axes, confined to the content area. */
-.ed-artboard.is-arranging.ed-guide-lines {
+/* The snap grid shows only around the object being moved — a patch that tracks
+   it, rather than tiling the whole page. Square `--cell` cells, lines aligned to
+   the real grid (positioned from JS), softly faded at the edges so it reads as a
+   local region. Sits behind the blocks and never takes the pointer. */
+.ed-grid-patch {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(closest-side, #000 55%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 55%, transparent 100%);
+}
+
+.ed-grid-patch.ed-grid-lines {
   background-image:
     repeating-linear-gradient(to right, var(--grid-line) 0 1px, transparent 1px var(--cell)),
     repeating-linear-gradient(to bottom, var(--grid-line) 0 1px, transparent 1px var(--cell));
-  background-repeat: no-repeat;
-  background-position: var(--pad) var(--pad);
-  background-size: calc(100% - 2 * var(--pad)) calc(100% - 2 * var(--pad));
 }
 
-.ed-artboard.is-arranging.ed-guide-dots {
+.ed-grid-patch.ed-grid-dots {
   background-image: radial-gradient(var(--grid-line) 1.2px, transparent 1.2px);
-  background-position: var(--pad) var(--pad);
   background-size: var(--cell) var(--cell);
+}
+
+.ed-grid-patch.ed-grid-off {
+  display: none;
 }
 
 .ed-block {
