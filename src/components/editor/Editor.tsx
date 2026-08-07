@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import type { Issue } from '@/content/types';
 import type { LayoutDocument } from '@/templates/layout';
@@ -8,14 +8,17 @@ import type { LayoutDocument } from '@/templates/layout';
 import './editor.css';
 import { fromLayoutDocument, toLayoutDocument } from './serialise';
 import {
+  ARTBOARD,
   GRID_KINDS,
   GRID_LABEL,
+  GRID_ROWS,
   GRID_TRACKS,
   GUIDE_LABEL,
   GUIDES,
   GUTTER_LABEL,
   GUTTER_PX,
   GUTTERS,
+  MIN_GAP_ROWS,
   PALETTE,
   clampPlacement,
   isContentBlock,
@@ -30,30 +33,27 @@ import {
   type GridKind,
   type Guide,
   type Gutter,
+  type Placement,
 } from './model';
 
 /**
- * The canvas builder — first pass.
+ * The canvas builder — a Figma-like artboard.
  *
- * Three panels: the element palette (left), the grid canvas (centre), and the
- * properties inspector (right; where the AI agent may also live). A block is
- * selected by clicking it and edited in the inspector. The grid the blocks snap
- * to is switchable — stack / columns / fine — which is the "different grid types
- * for different levels of customizability" idea: fewer tracks is harder to
- * break, more tracks is finer control.
+ * Three panels: the element palette (left), the artboard (centre), and the
+ * properties inspector (right). A block is a free-floating object placed on a
+ * snap grid: drag it anywhere by its body to move it, and it snaps to the grid's
+ * columns and to a vertical row step. The grid itself is invisible until you
+ * start arranging, then it shows and snaps.
  *
- * A block is placed by its start column and span, and dragged by its grip:
- * horizontally the drag snaps to a track (clamped so a block can never spill
- * past the last column — the "break-proof" part), vertically it reorders in the
- * list, so one gesture both moves and reorders. The same is reachable from the
- * inspector (Width, Column, Move up/down) for a keyboard path.
- *
- * The canvas serialises to a `LayoutDocument` (`./serialise`) — the persisted,
- * template-agnostic record — and, on /try, is remembered in localStorage.
+ * The artboard is a fixed design surface (`ARTBOARD`) scaled to fit the window,
+ * so everything on the page shrinks and grows together. Placement never leaves
+ * the page — column, span and row are all clamped (`clampPlacement`) — and a
+ * dropped block is pushed clear of any it overlaps, so elements keep their
+ * spacing. Content blocks stay bound to the `Issue`; only primitives carry free
+ * text, editable in place on a double-click. The whole thing serialises to a
+ * `LayoutDocument` and, on /try, is remembered in localStorage.
  */
 export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: string }) {
-  // Read the remembered layout and grid style once, synchronously (client-only;
-  // see the /try wrapper). Everything downstream initialises from it.
   const [initial] = useState(() => loadInitial(storageKey));
   const [grid, setGrid] = useState<GridKind>(initial.grid);
   const [gutter, setGutter] = useState<Gutter>(initial.gutter);
@@ -62,15 +62,35 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const [selectedId, setSelectedId] = useState<string | null>(initial.blocks[0]?.id ?? null);
   /** The primitive block being text-edited in place, if any. */
   const [editingId, setEditingId] = useState<string | null>(null);
-  /** The block being dragged and the column it is snapping to, live. */
-  const [drag, setDrag] = useState<{ id: string; col: number } | null>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
+  /** True while a block is being dragged — the grid guides show only then. */
+  const [arranging, setArranging] = useState(false);
+  /** The id of the block currently being dragged, for its lifted styling. */
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  /** How much the artboard is scaled to fit the window. */
+  const [scale, setScale] = useState(0.75);
 
-  // Persist on every change. This is the effect the rules endorse — it pushes
-  // React state out to an external system (localStorage) and calls no setState.
-  // The initial layout is read once, synchronously, in the state initialiser
-  // above; the editor is mounted client-only (see the /try wrapper) so that
-  // read is always safe and never disagrees with a server render.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const artboardRef = useRef<HTMLDivElement>(null);
+  /** The live drag session; a ref so pointer moves don't thrash React state. */
+  const dragRef = useRef<{
+    id: string;
+    pointerId: number;
+    grabDx: number;
+    grabDy: number;
+    moved: boolean;
+    startX: number;
+    startY: number;
+  } | null>(null);
+  /** Measured block heights in artboard px, by id — for spacing/placement. */
+  const heightsRef = useRef<Record<string, number>>({});
+
+  const tracks = GRID_TRACKS[grid];
+  const gutterPx = GUTTER_PX[gutter];
+  const contentW = ARTBOARD.width - ARTBOARD.margin * 2;
+  const colStep = contentW / tracks;
+  const selected = useMemo(() => blocks.find((b) => b.id === selectedId) ?? null, [blocks, selectedId]);
+
+  // Persist layout + grid style. Writes to localStorage only, no setState.
   useEffect(() => {
     if (!storageKey) return;
     try {
@@ -80,6 +100,190 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       // Storage full or blocked — the layout simply isn't remembered.
     }
   }, [blocks, grid, gutter, guide, storageKey]);
+
+  // Scale the artboard to fit the canvas width, so the page shrinks/grows with
+  // the window. Capped so it never gets microscopic or absurdly large.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const fit = () => {
+      const avail = el.clientWidth - CANVAS_PAD * 2;
+      setScale(Math.max(0.25, Math.min(1.2, avail / ARTBOARD.width)));
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Measure block heights after each render so spacing and drop-placement can
+  // reason about real sizes. offsetHeight is in artboard px (unscaled by the
+  // transform), which is exactly the coordinate space placement lives in.
+  useLayoutEffect(() => {
+    const el = artboardRef.current;
+    if (!el) return;
+    const next: Record<string, number> = {};
+    el.querySelectorAll<HTMLElement>('[data-block-id]').forEach((node) => {
+      const id = node.dataset.blockId;
+      if (id) next[id] = node.offsetHeight;
+    });
+    heightsRef.current = next;
+  });
+
+  const update = (id: string, patch: Partial<Block>) =>
+    setBlocks((bs) => bs.map((b) => (b.id === id ? { ...b, ...patch } : b)));
+
+  const setPlacement = (id: string, placement: Placement) =>
+    update(id, { placement: clampPlacement(placement, tracks) });
+
+  /** The top of the lowest block, in row units — where a new block should land. */
+  const nextRow = (): number => {
+    let bottomPx: number = ARTBOARD.margin;
+    for (const b of blocks) {
+      const top = ARTBOARD.margin + (b.placement.row - 1) * ARTBOARD.rowUnit;
+      bottomPx = Math.max(bottomPx, top + (heightsRef.current[b.id] ?? ARTBOARD.rowUnit * 4));
+    }
+    const gap = MIN_GAP_ROWS * ARTBOARD.rowUnit;
+    return Math.max(1, Math.round((bottomPx + gap - ARTBOARD.margin) / ARTBOARD.rowUnit) + 1);
+  };
+
+  const add = (kind: BlockKind, label: string) => {
+    const block = makeBlock(kind, label, tracks, nextRow());
+    setBlocks((bs) => [...bs, block]);
+    setSelectedId(block.id);
+  };
+
+  const duplicate = (id: string) => {
+    const src = blocks.find((b) => b.id === id);
+    if (!src) return;
+    const copy: Block = {
+      ...src,
+      id: newBlockId(src.kind),
+      placement: clampPlacement({ ...src.placement, row: nextRow() }, tracks),
+    };
+    setBlocks((bs) => [...bs, copy]);
+    setSelectedId(copy.id);
+  };
+
+  const remove = (id: string) => {
+    setBlocks((bs) => bs.filter((b) => b.id !== id));
+    setSelectedId((cur) => (cur === id ? null : cur));
+    setEditingId((cur) => (cur === id ? null : cur));
+  };
+
+  // ── geometry ────────────────────────────────────────────────────────
+  /** A placement's on-artboard box in artboard px. */
+  const boxOf = (p: Placement) => ({
+    left: ARTBOARD.margin + (p.col - 1) * colStep + gutterPx / 2,
+    top: ARTBOARD.margin + (p.row - 1) * ARTBOARD.rowUnit,
+    width: p.colSpan * colStep - gutterPx,
+  });
+
+  /** Convert a pointer position (held at grab offset) to a snapped placement. */
+  const placementAt = (clientX: number, clientY: number, grabDx: number, grabDy: number, colSpan: number): Placement => {
+    const rect = artboardRef.current?.getBoundingClientRect();
+    if (!rect) return { col: 1, colSpan, row: 1 };
+    const ax = (clientX - rect.left) / scale - grabDx;
+    const ay = (clientY - rect.top) / scale - grabDy;
+    const col = Math.round((ax - ARTBOARD.margin - gutterPx / 2) / colStep) + 1;
+    const row = Math.round((ay - ARTBOARD.margin) / ARTBOARD.rowUnit) + 1;
+    return clampPlacement({ col, colSpan, row }, tracks);
+  };
+
+  /** After a drop, push the block clear of any it overlaps — the spacing rule. */
+  const resolveOverlap = (id: string) => {
+    setBlocks((bs) => {
+      const me = bs.find((b) => b.id === id);
+      if (!me) return bs;
+      const heights = heightsRef.current;
+      const rect = (b: Block) => {
+        const box = boxOf(b.placement);
+        return { left: box.left, right: box.left + box.width, top: box.top, bottom: box.top + (heights[b.id] ?? ARTBOARD.rowUnit * 4) };
+      };
+      const mine = rect(me);
+      const gap = MIN_GAP_ROWS * ARTBOARD.rowUnit;
+      let pushTo: number | null = null;
+      for (const b of bs) {
+        if (b.id === id) continue;
+        const o = rect(b);
+        const overlapsX = mine.left < o.right - 0.5 && mine.right > o.left + 0.5;
+        const overlapsY = mine.top < o.bottom - 0.5 && mine.bottom > o.top + 0.5;
+        if (overlapsX && overlapsY) {
+          const cand = o.bottom + gap;
+          if (pushTo === null || cand > pushTo) pushTo = cand;
+        }
+      }
+      if (pushTo === null) return bs;
+      const row = Math.max(1, Math.round((pushTo - ARTBOARD.margin) / ARTBOARD.rowUnit) + 1);
+      return bs.map((b) => (b.id === id ? { ...b, placement: clampPlacement({ ...b.placement, row }, tracks) } : b));
+    });
+  };
+
+  // ── drag (anywhere on the block) ────────────────────────────────────
+  const onBlockDown = (e: React.PointerEvent, block: Block) => {
+    if (editingId === block.id || e.button !== 0) return;
+    e.stopPropagation();
+    setSelectedId(block.id);
+    const rect = artboardRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const ax = (e.clientX - rect.left) / scale;
+    const ay = (e.clientY - rect.top) / scale;
+    const box = boxOf(block.placement);
+    dragRef.current = {
+      id: block.id,
+      pointerId: e.pointerId,
+      grabDx: ax - box.left,
+      grabDy: ay - box.top,
+      moved: false,
+      startX: e.clientX,
+      startY: e.clientY,
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onBlockMove = (e: React.PointerEvent, block: Block) => {
+    const d = dragRef.current;
+    if (!d || d.id !== block.id) return;
+    if (!d.moved) {
+      if (Math.hypot(e.clientX - d.startX, e.clientY - d.startY) < DRAG_THRESHOLD) return;
+      d.moved = true;
+      setArranging(true);
+      setDraggingId(block.id);
+    }
+    setPlacement(block.id, placementAt(e.clientX, e.clientY, d.grabDx, d.grabDy, block.placement.colSpan));
+  };
+
+  const onBlockUp = (e: React.PointerEvent, block: Block) => {
+    const d = dragRef.current;
+    if (!d || d.id !== block.id) return;
+    try {
+      e.currentTarget.releasePointerCapture(d.pointerId);
+    } catch {
+      // capture may already be gone
+    }
+    const moved = d.moved;
+    dragRef.current = null;
+    setArranging(false);
+    setDraggingId(null);
+    if (moved) resolveOverlap(block.id);
+  };
+
+  // ── keyboard ────────────────────────────────────────────────────────
+  const onBlockKey = (e: React.KeyboardEvent, block: Block) => {
+    if (editingId === block.id) return;
+    const p = clampPlacement(block.placement, tracks);
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      if (tracks === 1) return;
+      e.preventDefault();
+      setPlacement(block.id, { ...p, col: p.col + (e.key === 'ArrowRight' ? 1 : -1) });
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      setPlacement(block.id, { ...p, row: p.row + (e.key === 'ArrowDown' ? 1 : -1) });
+    } else if (e.key === 'Delete' || e.key === 'Backspace') {
+      e.preventDefault();
+      remove(block.id);
+    }
+  };
 
   const reset = () => {
     if (storageKey) {
@@ -97,131 +301,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     setGuide('lines');
   };
 
-  const tracks = GRID_TRACKS[grid];
-  const selected = useMemo(() => blocks.find((b) => b.id === selectedId) ?? null, [blocks, selectedId]);
-
-  const update = (id: string, patch: Partial<Block>) =>
-    setBlocks((bs) => bs.map((b) => (b.id === id ? { ...b, ...patch } : b)));
-
-  const add = (kind: BlockKind, label: string) => {
-    const block = makeBlock(kind, label, Math.min(tracks, kind === 'divider' ? tracks : 6));
-    // Insert right after the selected block so building follows where you are,
-    // not always the very end; with nothing selected, append.
-    setBlocks((bs) => insertAfter(bs, selectedId, block));
-    setSelectedId(block.id);
-  };
-
-  const duplicate = (id: string) => {
-    const src = blocks.find((b) => b.id === id);
-    if (!src) return;
-    const copy: Block = { ...src, id: newBlockId(src.kind), placement: { ...src.placement } };
-    setBlocks((bs) => insertAfter(bs, id, copy));
-    setSelectedId(copy.id);
-  };
-
-  const remove = (id: string) => {
-    setBlocks((bs) => bs.filter((b) => b.id !== id));
-    setSelectedId((cur) => (cur === id ? null : cur));
-  };
-
-  const move = (id: string, delta: number) =>
-    setBlocks((bs) => {
-      const i = bs.findIndex((b) => b.id === id);
-      const j = i + delta;
-      if (i < 0 || j < 0 || j >= bs.length) return bs;
-      const next = [...bs];
-      [next[i], next[j]] = [next[j]!, next[i]!];
-      return next;
-    });
-
-  /** The start column the pointer is over, snapped to a track and kept in bounds. */
-  const columnAt = (clientX: number, span: number): number => {
-    const el = gridRef.current;
-    if (!el) return 1;
-    const rect = el.getBoundingClientRect();
-    // width = tracks·track + (tracks−1)·gap ⟹ track+gap = (width+gap)/tracks.
-    const gap = GUTTER_PX[gutter];
-    const step = (rect.width + gap) / tracks;
-    const col = Math.floor((clientX - rect.left) / step) + 1;
-    return Math.max(1, Math.min(col, maxCol(span, tracks)));
-  };
-
-  /**
-   * Reorder the dragged block to where the pointer is. Blocks render in list
-   * order, so each grid child maps to a block by its `data-block-id`; the target
-   * is the first other block whose midpoint the pointer has passed (down a row,
-   * or right within a row), else the end. Reordering as the pointer moves lets
-   * the block flow to a new position under the cursor.
-   */
-  const reorderToPointer = (id: string, clientX: number, clientY: number) => {
-    const el = gridRef.current;
-    if (!el) return;
-    const children = Array.from(el.children) as HTMLElement[];
-    const targetId = children
-      .map((c) => ({ id: c.dataset.blockId, rect: c.getBoundingClientRect() }))
-      .filter((c) => c.id && c.id !== id)
-      .find(
-        ({ rect }) =>
-          clientY < rect.top + rect.height / 2 ||
-          (clientY < rect.bottom && clientX < rect.left + rect.width / 2),
-      )?.id;
-
-    setBlocks((bs) => {
-      const from = bs.findIndex((b) => b.id === id);
-      if (from < 0) return bs;
-      let to = targetId ? bs.findIndex((b) => b.id === targetId) : bs.length;
-      if (to < 0 || to === from) return bs;
-      const next = [...bs];
-      const [moved] = next.splice(from, 1);
-      if (from < to) to -= 1; // the splice shifted everything after `from` left
-      next.splice(to, 0, moved!);
-      return next;
-    });
-  };
-
-  const onGripDown = (e: React.PointerEvent, block: Block) => {
-    e.stopPropagation();
-    e.preventDefault();
-    setSelectedId(block.id);
-    e.currentTarget.setPointerCapture(e.pointerId);
-    const { col } = clampPlacement(block.placement, tracks);
-    setDrag({ id: block.id, col });
-  };
-
-  const onGripMove = (e: React.PointerEvent, block: Block) => {
-    if (drag?.id !== block.id) return;
-    const { span } = clampPlacement(block.placement, tracks);
-    const col = columnAt(e.clientX, span);
-    if (col !== drag.col) setDrag({ id: block.id, col });
-    reorderToPointer(block.id, e.clientX, e.clientY);
-  };
-
-  // Keyboard operability for the selected block: Left/Right nudge the start
-  // column (clamped), Up/Down reorder, Delete removes. Arrows would otherwise
-  // scroll the canvas, so they are handled here.
-  const onBlockKey = (e: React.KeyboardEvent, block: Block) => {
-    if (editingId === block.id) return; // typing in the block's text field
-    const { col, span } = clampPlacement(block.placement, tracks);
-    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-      if (tracks === 1) return;
-      e.preventDefault();
-      const delta = e.key === 'ArrowRight' ? 1 : -1;
-      update(block.id, { placement: clampPlacement({ col: col + delta, span }, tracks) });
-    } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-      e.preventDefault();
-      move(block.id, e.key === 'ArrowUp' ? -1 : 1);
-    } else if (e.key === 'Delete' || e.key === 'Backspace') {
-      e.preventDefault();
-      remove(block.id);
-    }
-  };
-
-  const onGripUp = (e: React.PointerEvent, block: Block) => {
-    if (drag?.id !== block.id) return;
-    e.currentTarget.releasePointerCapture(e.pointerId);
-    update(block.id, { placement: { ...block.placement, col: drag.col } });
-    setDrag(null);
-  };
+  const sel = selected ? clampPlacement(selected.placement, tracks) : null;
 
   return (
     <div className="ed">
@@ -254,7 +334,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         </div>
       </aside>
 
-      {/* ── centre: canvas ─────────────────────────────────────────── */}
+      {/* ── centre: artboard ───────────────────────────────────────── */}
       <main className="ed-stage">
         <div className="ed-toolbar">
           <div className="ed-toolbar-field">
@@ -312,21 +392,27 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
           </button>
         </div>
 
-        <div className="ed-canvas-scroll">
-          {/* Clicking the empty canvas clears the selection. */}
-          <div className="ed-canvas" onClick={() => setSelectedId(null)}>
+        <div className="ed-canvas-scroll" ref={scrollRef}>
+          <div
+            className="ed-artboard-frame"
+            style={{ width: ARTBOARD.width * scale, height: ARTBOARD.height * scale }}
+          >
             <div
-              ref={gridRef}
-              className={`ed-grid ed-grid-${grid} ed-guide-${grid === 'stack' ? 'off' : guide}`}
+              ref={artboardRef}
+              className={`ed-artboard${arranging ? ` is-arranging ed-guide-${guide}` : ''}`}
               style={{
-                ['--tracks' as string]: String(tracks),
-                ['--gap' as string]: `${GUTTER_PX[gutter]}px`,
+                width: ARTBOARD.width,
+                height: ARTBOARD.height,
+                transform: `scale(${scale})`,
+                ['--colstep' as string]: `${colStep}px`,
+                ['--rowunit' as string]: `${ARTBOARD.rowUnit}px`,
+                ['--pad' as string]: `${ARTBOARD.margin}px`,
               }}
+              onPointerDown={() => setSelectedId(null)}
             >
               {blocks.map((block) => {
-                const { col, span } = clampPlacement(block.placement, tracks);
-                const isDragging = drag?.id === block.id;
-                const startCol = isDragging ? drag.col : col;
+                const box = boxOf(clampPlacement(block.placement, tracks));
+                const dragging = draggingId === block.id;
                 return (
                   <div
                     key={block.id}
@@ -335,34 +421,21 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                     tabIndex={0}
                     aria-pressed={block.id === selectedId}
                     aria-label={`${block.label} block`}
-                    className={`ed-block${block.id === selectedId ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${isDragging ? ' is-dragging' : ''}`}
-                    style={{ gridColumn: grid === 'stack' ? undefined : `${startCol} / span ${span}` }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedId(block.id);
-                    }}
+                    className={`ed-block${block.id === selectedId ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}`}
+                    style={{ left: box.left, top: box.top, width: box.width }}
+                    onPointerDown={(e) => onBlockDown(e, block)}
+                    onPointerMove={(e) => onBlockMove(e, block)}
+                    onPointerUp={(e) => onBlockUp(e, block)}
+                    onFocus={() => setSelectedId(block.id)}
+                    onKeyDown={(e) => onBlockKey(e, block)}
                     onDoubleClick={() => {
                       if (isEditable(block.kind)) {
                         setSelectedId(block.id);
                         setEditingId(block.id);
                       }
                     }}
-                    onFocus={() => setSelectedId(block.id)}
-                    onKeyDown={(e) => onBlockKey(e, block)}
                   >
                     <span className="ed-block-tag">{block.label}</span>
-                    <button
-                      type="button"
-                      className="ed-block-grip"
-                      aria-label={`Move ${block.label}`}
-                      title={grid === 'stack' ? 'Drag to reorder' : 'Drag to move and snap to the grid'}
-                      onPointerDown={(e) => onGripDown(e, block)}
-                      onPointerMove={(e) => onGripMove(e, block)}
-                      onPointerUp={(e) => onGripUp(e, block)}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      ⠿
-                    </button>
                     <BlockPreview
                       block={block}
                       issue={issue}
@@ -378,17 +451,14 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         </div>
       </main>
 
-      {/* ── right: properties (AI agent may join here) ─────────────── */}
+      {/* ── right: properties ──────────────────────────────────────── */}
       <aside className="ed-panel ed-right">
         <div className="ed-panel-head">Properties</div>
-        {selected ? (
+        {selected && sel ? (
           <div className="ed-props">
             <label className="ed-field">
               <span className="ed-field-label">Name</span>
-              <input
-                value={selected.label}
-                onChange={(e) => update(selected.id, { label: e.target.value })}
-              />
+              <input value={selected.label} onChange={(e) => update(selected.id, { label: e.target.value })} />
             </label>
 
             <div className="ed-field">
@@ -409,43 +479,41 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
 
             <label className="ed-field">
               <span className="ed-field-label">
-                Width — {clampPlacement(selected.placement, tracks).span} of {tracks}
+                Width — {sel.colSpan} of {tracks}
               </span>
               <input
                 type="range"
                 min={1}
                 max={tracks}
                 disabled={tracks === 1}
-                value={clampPlacement(selected.placement, tracks).span}
-                onChange={(e) =>
-                  update(selected.id, {
-                    placement: clampPlacement(
-                      { ...selected.placement, span: Number(e.target.value) },
-                      tracks,
-                    ),
-                  })
-                }
+                value={sel.colSpan}
+                onChange={(e) => setPlacement(selected.id, { ...sel, colSpan: Number(e.target.value) })}
               />
             </label>
 
-            {tracks > 1 && maxCol(clampPlacement(selected.placement, tracks).span, tracks) > 1 ? (
+            {tracks > 1 && maxCol(sel.colSpan, tracks) > 1 ? (
               <label className="ed-field">
-                <span className="ed-field-label">
-                  Column — starts at {clampPlacement(selected.placement, tracks).col}
-                </span>
+                <span className="ed-field-label">Column — starts at {sel.col}</span>
                 <input
                   type="range"
                   min={1}
-                  max={maxCol(clampPlacement(selected.placement, tracks).span, tracks)}
-                  value={clampPlacement(selected.placement, tracks).col}
-                  onChange={(e) =>
-                    update(selected.id, {
-                      placement: { ...selected.placement, col: Number(e.target.value) },
-                    })
-                  }
+                  max={maxCol(sel.colSpan, tracks)}
+                  value={sel.col}
+                  onChange={(e) => setPlacement(selected.id, { ...sel, col: Number(e.target.value) })}
                 />
               </label>
             ) : null}
+
+            <label className="ed-field">
+              <span className="ed-field-label">Row — {sel.row}</span>
+              <input
+                type="range"
+                min={1}
+                max={GRID_ROWS}
+                value={sel.row}
+                onChange={(e) => setPlacement(selected.id, { ...sel, row: Number(e.target.value) })}
+              />
+            </label>
 
             <label className="ed-check">
               <input
@@ -457,12 +525,6 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
             </label>
 
             <div className="ed-props-actions">
-              <button type="button" className="ed-btn" onClick={() => move(selected.id, -1)}>
-                Move up
-              </button>
-              <button type="button" className="ed-btn" onClick={() => move(selected.id, 1)}>
-                Move down
-              </button>
               <button type="button" className="ed-btn" onClick={() => duplicate(selected.id)}>
                 Duplicate
               </button>
@@ -472,12 +534,17 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
             </div>
           </div>
         ) : (
-          <p className="ed-empty">Select an element on the canvas to edit it.</p>
+          <p className="ed-empty">Select an element on the canvas to edit it. Double-click a heading, text or button to edit its words.</p>
         )}
       </aside>
     </div>
   );
 }
+
+/** Screen px the pointer must travel before a click becomes a drag. */
+const DRAG_THRESHOLD = 4;
+/** Padding around the artboard inside the scroll area, in screen px. */
+const CANVAS_PAD = 40;
 
 const GLYPH: Record<BlockKind, string> = {
   heading: 'H',
@@ -498,26 +565,14 @@ function isEditable(kind: BlockKind): boolean {
   return kind === 'heading' || kind === 'text' || kind === 'button';
 }
 
-/** Put `block` right after `afterId` in the list, or at the end if not found. */
-function insertAfter(blocks: Block[], afterId: string | null, block: Block): Block[] {
-  const i = afterId ? blocks.findIndex((b) => b.id === afterId) : -1;
-  if (i < 0) return [...blocks, block];
-  const next = [...blocks];
-  next.splice(i + 1, 0, block);
-  return next;
-}
-
 type EditorInit = { blocks: Block[]; grid: GridKind; gutter: Gutter; guide: Guide };
 
 /**
  * The blocks and grid style to open with: a remembered session if one is stored
  * under `storageKey`, else the defaults. Reads synchronously and only makes
  * sense on the client — the editor is mounted client-only, so this never runs
- * on the server or disagrees with a hydrated render.
- *
- * Forgiving of shape: an older payload that is a bare `LayoutDocument` (with a
- * `nodes` array) is still read as the layout, and an unknown grid or gutter
- * falls back to its default.
+ * on the server or disagrees with a hydrated render. Forgiving of shape: an
+ * older bare-`LayoutDocument` payload is still read as the layout.
  */
 function loadInitial(storageKey: string | undefined): EditorInit {
   const fallback: EditorInit = {
@@ -537,9 +592,7 @@ function loadInitial(storageKey: string | undefined): EditorInit {
           gutter?: unknown;
           guide?: unknown;
         };
-        const layout = Array.isArray(parsed.nodes)
-          ? (parsed as LayoutDocument) // legacy: the payload was the document itself
-          : (parsed.layout ?? null);
+        const layout = Array.isArray(parsed.nodes) ? (parsed as LayoutDocument) : (parsed.layout ?? null);
         const blocks = fromLayoutDocument(layout);
         return {
           blocks: blocks.length > 0 ? blocks : fallback.blocks,
@@ -556,18 +609,29 @@ function loadInitial(storageKey: string | undefined): EditorInit {
 }
 
 function starterBlocks(tracks: number): Block[] {
+  const half = Math.max(1, Math.round(tracks / 2));
   return [
-    { id: 'identity-0', kind: 'identity', label: 'Identity', placement: { col: 1, span: tracks } },
-    { id: 'projects-0', kind: 'projects', label: 'Projects', placement: { col: 1, span: tracks } },
-    { id: 'experience-0', kind: 'experience', label: 'Experience', placement: { col: 1, span: Math.min(tracks, 6) } },
-    { id: 'metrics-0', kind: 'metrics', label: 'Metrics', placement: { col: 1, span: Math.min(tracks, 6) } },
+    { id: 'identity-0', kind: 'identity', label: 'Identity', placement: { col: 1, colSpan: tracks, row: 1 } },
+    { id: 'projects-0', kind: 'projects', label: 'Projects', placement: { col: 1, colSpan: tracks, row: 9 } },
+    {
+      id: 'experience-0',
+      kind: 'experience',
+      label: 'Experience',
+      placement: { col: 1, colSpan: half, row: 22 },
+    },
+    {
+      id: 'metrics-0',
+      kind: 'metrics',
+      label: 'Metrics',
+      placement: { col: half + 1, colSpan: Math.max(1, tracks - half), row: 22 },
+    },
   ];
 }
 
 /**
  * An inline text field for editing a primitive's copy directly on the canvas.
- * Commits live (like the inspector); Enter finishes a single-line block, Escape
- * and blur end editing. Key events are kept from bubbling so the canvas's block
+ * Commits live; Enter finishes a single-line block, Escape and blur end editing.
+ * Pointer and key events are kept from bubbling so the block's own drag and
  * shortcuts don't fire while typing.
  */
 function InlineText({
@@ -586,6 +650,7 @@ function InlineText({
     'aria-label': `${block.label} text`,
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onText(e.target.value),
     onBlur: onEditEnd,
+    onPointerDown: (e: React.PointerEvent) => e.stopPropagation(),
     onClick: (e: React.MouseEvent) => e.stopPropagation(),
     onFocus: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => e.currentTarget.select(),
     onKeyDown: (e: React.KeyboardEvent) => {

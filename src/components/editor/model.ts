@@ -49,25 +49,51 @@ export function isBlockKind(value: unknown): value is BlockKind {
   return typeof value === 'string' && (BLOCK_KINDS as readonly string[]).includes(value);
 }
 
-/** Placement on the grid. `col` is 1-based; `span` is in grid columns. */
-export type Placement = { col: number; span: number };
+/**
+ * The artboard — a fixed-size design surface the canvas scales to fit the
+ * window, like a Figma frame. Blocks are positioned in these coordinates and
+ * the whole thing is scaled uniformly, so everything on the page shrinks and
+ * grows together. `margin` is the page padding blocks can never enter; `rowUnit`
+ * is the vertical snap step.
+ */
+export const ARTBOARD = {
+  width: 1200,
+  height: 1600,
+  margin: 48,
+  rowUnit: 16,
+} as const;
+
+/** How many vertical snap rows fit between the top and bottom margins. */
+export const GRID_ROWS = Math.floor((ARTBOARD.height - ARTBOARD.margin * 2) / ARTBOARD.rowUnit);
 
 /**
- * Settle a placement onto a grid of `tracks` columns so it can never overflow:
- * the span is clamped to the grid, and the start column is pulled back so the
- * block always ends on or before the last track. This is what makes the canvas
- * break-proof — a placement saved against a finer grid, or dragged past the
- * edge, resolves to something that still fits.
+ * Placement on the canvas: a column band (`col`..`col+colSpan`) across the
+ * active grid, and a `row` for the top edge on the vertical snap grid. Height is
+ * the block's own content — a block is placed, not sized to a cell.
+ */
+export type Placement = { col: number; colSpan: number; row: number };
+
+function clamp(min: number, max: number, value: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+/**
+ * Settle a placement onto a grid of `tracks` columns so it can never fall out
+ * of bounds: the span is clamped to the grid, the start column is pulled back so
+ * the block ends on or before the last track, and the row is kept on the page.
+ * This is what makes the canvas break-proof — a placement saved against a finer
+ * grid, or dragged past an edge, resolves to something that still fits.
  */
 export function clampPlacement(placement: Placement, tracks: number): Placement {
-  const span = Math.max(1, Math.min(placement.span, tracks));
-  const col = Math.max(1, Math.min(placement.col, tracks - span + 1));
-  return { col, span };
+  const colSpan = clamp(1, tracks, Math.round(placement.colSpan));
+  const col = clamp(1, tracks - colSpan + 1, Math.round(placement.col));
+  const row = clamp(1, GRID_ROWS, Math.round(placement.row));
+  return { col, colSpan, row };
 }
 
 /** The last column a block of `span` may start on within `tracks` columns. */
 export function maxCol(span: number, tracks: number): number {
-  return Math.max(1, tracks - Math.max(1, Math.min(span, tracks)) + 1);
+  return Math.max(1, tracks - clamp(1, tracks, span) + 1);
 }
 
 export type Block = {
@@ -214,6 +240,34 @@ export const PALETTE: { group: string; items: PaletteItem[] }[] = [
   },
 ];
 
+/**
+ * The default width of each kind, as a fraction of the grid — a spacing rule so
+ * an element arrives sized for what it is: an identity or a divider wants the
+ * full width, a button only a sliver, a paragraph about half. Rounded to whole
+ * columns against the active grid.
+ */
+const SPAN_FRACTION: Record<BlockKind, number> = {
+  heading: 1,
+  text: 0.5,
+  image: 1 / 3,
+  button: 0.25,
+  divider: 1,
+  identity: 1,
+  projects: 1,
+  experience: 0.5,
+  education: 0.5,
+  metrics: 0.5,
+  contact: 1,
+};
+
+/** A sensible starting width, in columns, for a kind on a grid of `tracks`. */
+export function defaultColSpan(kind: BlockKind, tracks: number): number {
+  return Math.max(1, Math.min(tracks, Math.round(SPAN_FRACTION[kind] * tracks)));
+}
+
+/** The minimum vertical gap kept between blocks, in row units — a spacing rule. */
+export const MIN_GAP_ROWS = 1;
+
 let counter = 0;
 /** A client-only id for a new block. Not the persisted id; good enough for keys. */
 export function newBlockId(kind: BlockKind): string {
@@ -221,14 +275,14 @@ export function newBlockId(kind: BlockKind): string {
   return `${kind}-${counter}`;
 }
 
-/** A fresh block for a palette drop, spanning a sensible default for the grid. */
-export function makeBlock(kind: BlockKind, label: string, tracks: number): Block {
+/** A fresh block for a palette drop, sized for its kind and placed at `row`. */
+export function makeBlock(kind: BlockKind, label: string, tracks: number, row = 1): Block {
   return {
     id: newBlockId(kind),
     kind,
     label,
     text: isContentBlock(kind) ? undefined : defaultText(kind),
-    placement: { col: 1, span: tracks },
+    placement: { col: 1, colSpan: defaultColSpan(kind, tracks), row },
   };
 }
 

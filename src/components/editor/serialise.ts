@@ -33,7 +33,8 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           kind: block.kind,
           label: block.label,
           col: block.placement.col,
-          span: block.placement.span,
+          colSpan: block.placement.colSpan,
+          row: block.placement.row,
           ...(block.text !== undefined ? { text: block.text } : {}),
         },
       };
@@ -61,7 +62,9 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
       label: typeof props.label === 'string' ? props.label : props.kind,
       placement: {
         col: intOr(props.col, 1),
-        span: intOr(props.span, 1),
+        // `span` is the pre-v2 key; read it so an older document still loads.
+        colSpan: intOr(props.colSpan ?? props.span, 1),
+        row: intOr(props.row, 1),
       },
     };
     if (node.hidden) block.hidden = true;
