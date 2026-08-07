@@ -37,6 +37,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           row: block.placement.row,
           ...(block.placement.rowSpan !== undefined ? { rowSpan: block.placement.rowSpan } : {}),
           ...(block.source ? { source: block.source } : {}),
+          ...(block.scale !== undefined && block.scale !== 1 ? { scale: block.scale } : {}),
           ...(block.text !== undefined ? { text: block.text } : {}),
         },
       };
@@ -74,6 +75,9 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     }
     if (node.hidden) block.hidden = true;
     if (isContentSource(props.source)) block.source = props.source;
+    if (typeof props.scale === 'number' && Number.isFinite(props.scale) && props.scale > 0) {
+      block.scale = props.scale;
+    }
     if (typeof props.text === 'string') block.text = props.text;
     blocks.push(block);
   }

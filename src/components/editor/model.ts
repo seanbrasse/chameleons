@@ -127,6 +127,9 @@ export type Block = {
   /** When set, a text primitive reads its words from this Issue field instead of
    *  `text` — so a Text block can be bound to existing content rather than typed. */
   source?: ContentSource;
+  /** Content zoom. 1 (or absent) is natural size; a corner-resize scales the
+   *  element and everything inside it by this factor. */
+  scale?: number;
   placement: Placement;
 };
 
