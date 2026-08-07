@@ -14,8 +14,8 @@
   --line: #dcdbd7;
   --sel: #3b6cf6;
   --sel-soft: #e8efff;
-  --grid-line: #eceae6;
-  --guide-edge: #cfd8ea;
+  --grid-line: #c3d7fb;
+  --guide-edge: #b9cdf6;
   --danger: #c0392b;
 
   height: 100dvh;
@@ -277,8 +277,20 @@
 
 .ed-block.is-dragging {
   cursor: grabbing;
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 14px 34px -12px rgba(0, 0, 0, 0.45);
   z-index: 5;
+  transition: none;
+}
+
+/* The slot a dragged block will magnetically snap to on release. */
+.ed-snap-ghost {
+  position: absolute;
+  z-index: 1;
+  border: 2px dashed var(--sel);
+  border-radius: 6px;
+  background: var(--sel-soft);
+  opacity: 0.7;
+  pointer-events: none;
 }
 
 /* Side handles for resizing a selected block's width. */

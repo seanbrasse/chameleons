@@ -66,6 +66,15 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const [arranging, setArranging] = useState(false);
   /** The id of the block currently being dragged, for its lifted styling. */
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  /** While dragging: the block's free (un-snapped) position, and the slot it
+   *  will magnetically snap to on release. */
+  const [dragFree, setDragFree] = useState<{
+    id: string;
+    left: number;
+    top: number;
+    height: number;
+    snap: Placement;
+  } | null>(null);
   /** How much the artboard is scaled to fit the window. */
   const [scale, setScale] = useState(0.75);
   /** Edit arranges the blocks; Preview makes them interactive, like the page. */
@@ -259,7 +268,15 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       setArranging(true);
       setDraggingId(block.id);
     }
-    setPlacement(block.id, placementAt(e.clientX, e.clientY, d.grabDx, d.grabDy, block.placement.colSpan));
+    // The block follows the pointer freely between slots; the slot it will snap
+    // to shows as a ghost, and the placement only changes on release.
+    const rect = artboardRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const left = (e.clientX - rect.left) / scale - d.grabDx;
+    const top = (e.clientY - rect.top) / scale - d.grabDy;
+    const snap = placementAt(e.clientX, e.clientY, d.grabDx, d.grabDy, block.placement.colSpan);
+    const height = heightsRef.current[block.id] ?? ARTBOARD.rowUnit * 4;
+    setDragFree({ id: block.id, left, top, height, snap });
   };
 
   const onBlockUp = (e: React.PointerEvent, block: Block) => {
@@ -271,10 +288,15 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       // capture may already be gone
     }
     const moved = d.moved;
+    const snap = dragFree?.id === block.id ? dragFree.snap : null;
     dragRef.current = null;
     setArranging(false);
     setDraggingId(null);
-    if (moved) resolveOverlap(block.id);
+    setDragFree(null);
+    if (moved && snap) {
+      setPlacement(block.id, snap); // magnetic snap to the nearest slot
+      resolveOverlap(block.id);
+    }
   };
 
   // ── resize (drag a side handle to change width) ─────────────────────
@@ -486,6 +508,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               {blocks.map((block) => {
                 const box = boxOf(clampPlacement(block.placement, tracks));
                 const dragging = draggingId === block.id;
+                const free = dragging && dragFree?.id === block.id ? dragFree : null;
                 const editProps = isEditMode
                   ? {
                       role: 'button',
@@ -510,7 +533,11 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                     data-block-id={block.id}
                     aria-label={`${block.label} block`}
                     className={`ed-block${block.id === selectedId ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}`}
-                    style={{ left: box.left, top: box.top, width: box.width }}
+                    style={{
+                      left: free ? free.left : box.left,
+                      top: free ? free.top : box.top,
+                      width: box.width,
+                    }}
                     {...editProps}
                   >
                     {isEditMode ? <span className="ed-block-tag">{block.label}</span> : null}
@@ -546,6 +573,18 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                   </div>
                 );
               })}
+              {dragFree
+                ? (() => {
+                    const g = boxOf(dragFree.snap);
+                    return (
+                      <div
+                        className="ed-snap-ghost"
+                        style={{ left: g.left, top: g.top, width: g.width, height: dragFree.height }}
+                        aria-hidden="true"
+                      />
+                    );
+                  })()
+                : null}
             </div>
           </div>
         </div>
