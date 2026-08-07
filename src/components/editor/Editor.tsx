@@ -126,6 +126,10 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const heightsRef = useRef<Record<string, number>>({});
   /** The latest block list, so undo/redo can read it without stale closures. */
   const blocksRef = useRef(blocks);
+  /** The latest selection, for clipboard shortcuts read from a stable handler. */
+  const selectedIdRef = useRef<string | null>(selectedId);
+  /** Copied blocks (a subtree), for paste. */
+  const clipboardRef = useRef<Block[] | null>(null);
 
   // The gutter, capped so a one-cell block on the tight grid can't go to zero.
   const gutterPx = Math.min(GUTTER_PX[gutter], CELL - 2);
@@ -223,6 +227,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     });
     heightsRef.current = next;
     blocksRef.current = blocks;
+    selectedIdRef.current = selectedId;
   });
 
   // ── undo / redo ─────────────────────────────────────────────────────
@@ -282,17 +287,83 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const undo = () => restore('past');
   const redo = () => restore('future');
 
+  // ── clipboard (copy / paste / duplicate) ────────────────────────────
+  // A copied selection is the block plus its whole subtree. Cloning remaps every
+  // id, keeps internal parent and modal-trigger links pointing within the copy,
+  // detaches the copied root to the top level, and nudges the group a couple
+  // cells so it doesn't land exactly on the original.
+  const subtreeOf = (id: string): Block[] => {
+    const root = blocksRef.current.find((b) => b.id === id);
+    if (!root) return [];
+    const kin = descendantIds(blocksRef.current, id);
+    return [root, ...blocksRef.current.filter((b) => b.id !== id && kin.has(b.id))].map((b) => ({
+      ...b,
+      placement: { ...b.placement },
+    }));
+  };
+
+  const cloneAndInsert = (src: Block[] | null) => {
+    if (!src || src.length === 0) return;
+    snapshot(true);
+    const idMap = new Map<string, string>();
+    for (const b of src) idMap.set(b.id, newBlockId(b.kind));
+    const clones = src.map((b) => {
+      const clone: Block = {
+        ...b,
+        id: idMap.get(b.id)!,
+        placement: clampPlacement({ ...b.placement, col: b.placement.col + 2, row: b.placement.row + 2 }),
+      };
+      // Keep internal links inside the copy; the copied root pastes at top level.
+      if (b.parentId && idMap.has(b.parentId)) clone.parentId = idMap.get(b.parentId);
+      else delete clone.parentId;
+      if (b.opensModal && idMap.has(b.opensModal)) clone.opensModal = idMap.get(b.opensModal);
+      return clone;
+    });
+    setBlocks((bs) => [...bs, ...clones]);
+    const newRoot = idMap.get(src[0]!.id);
+    if (newRoot) setSelectedId(newRoot);
+  };
+
+  const copySelection = () => {
+    const id = selectedIdRef.current;
+    if (!id) return false;
+    const src = subtreeOf(id);
+    if (src.length === 0) return false;
+    clipboardRef.current = src;
+    return true;
+  };
+  const pasteClipboard = () => {
+    if (!clipboardRef.current) return false;
+    cloneAndInsert(clipboardRef.current);
+    return true;
+  };
+  const duplicateSelection = () => {
+    const id = selectedIdRef.current;
+    if (!id) return false;
+    cloneAndInsert(subtreeOf(id));
+    return true;
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;
       const k = e.key.toLowerCase();
-      const isUndo = k === 'z' && !e.shiftKey;
-      const isRedo = (k === 'z' && e.shiftKey) || k === 'y';
-      if (!isUndo && !isRedo) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
-      e.preventDefault();
-      restore(isUndo ? 'past' : 'future');
+      if (k === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        restore('past');
+      } else if ((k === 'z' && e.shiftKey) || k === 'y') {
+        e.preventDefault();
+        restore('future');
+      } else if (k === 'c') {
+        // Only claim the shortcut when there is a selection to copy.
+        if (copySelection()) e.preventDefault();
+      } else if (k === 'v') {
+        if (pasteClipboard()) e.preventDefault();
+      } else if (k === 'd') {
+        if (duplicateSelection()) e.preventDefault();
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
