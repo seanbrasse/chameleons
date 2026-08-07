@@ -129,6 +129,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const blocksRef = useRef(blocks);
   /** The latest selection, for clipboard shortcuts read from a stable handler. */
   const selectedIdRef = useRef<string | null>(selectedId);
+  /** Cascades successive spawns so quick adds don't stack on one spot. */
+  const spawnCountRef = useRef(0);
   /** Copied blocks (a subtree), for paste. */
   const clipboardRef = useRef<Block[] | null>(null);
 
@@ -380,20 +382,26 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const setPlacement = (id: string, placement: Placement) =>
     update(id, { placement: clampPlacement(placement) });
 
-  /** The top of the lowest block, in row units — where a new block should land. */
-  const nextRow = (): number => {
-    let bottomPx: number = ARTBOARD.margin;
-    for (const b of blocks) {
-      const top = ARTBOARD.margin + (b.placement.row - 1) * CELL;
-      bottomPx = Math.max(bottomPx, top + (heightsRef.current[b.id] ?? CELL));
-    }
-    const gap = MIN_GAP_ROWS * CELL;
-    return Math.max(1, Math.round((bottomPx + gap - ARTBOARD.margin) / CELL) + 1);
+  /**
+   * The row a new element should land on: inside the currently visible area, so
+   * it always appears where the owner is looking rather than off the bottom of a
+   * tall page (the append-below-everything approach fails once the page is full).
+   * Successive quick adds cascade a little so they don't stack on one spot.
+   */
+  const spawnRow = (): number => {
+    const scroller = scrollRef.current;
+    const focusPx = scroller
+      ? (scroller.scrollTop - CANVAS_PAD + scroller.clientHeight * 0.32) / scale
+      : ARTBOARD.margin;
+    const base = Math.round((focusPx - ARTBOARD.margin) / CELL) + 1;
+    const staggered = base + (spawnCountRef.current % 6) * 3;
+    spawnCountRef.current += 1;
+    return Math.max(1, Math.min(GRID_ROWS, staggered));
   };
 
   const add = (kind: BlockKind, label: string) => {
     snapshot(true);
-    const block = makeBlock(kind, label, nextRow());
+    const block = makeBlock(kind, label, spawnRow());
     setBlocks((bs) => [...bs, block]);
     setSelectedId(block.id);
   };
@@ -401,7 +409,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   // Drop a preset — a pre-composed group of nested blocks — and select its
   // container, so it arrives ready to tweak as one piece.
   const addPreset = (preset: PresetKind) => {
-    const group = makePreset(preset, nextRow());
+    const group = makePreset(preset, spawnRow());
     if (group.length === 0) return;
     snapshot(true);
     setBlocks((bs) => [...bs, ...group]);
@@ -412,11 +420,11 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     const src = blocks.find((b) => b.id === id);
     if (!src) return;
     snapshot(true);
-    // The copy lands as a free root, not hidden inside the original's container.
+    // The copy lands beside the original, as a free root, so it's visible.
     const copy: Block = withoutParent({
       ...src,
       id: newBlockId(src.kind),
-      placement: clampPlacement({ ...src.placement, row: nextRow() }),
+      placement: clampPlacement({ ...src.placement, col: src.placement.col + 2, row: src.placement.row + 2 }),
     });
     setBlocks((bs) => [...bs, copy]);
     setSelectedId(copy.id);
