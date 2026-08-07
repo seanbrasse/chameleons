@@ -165,6 +165,25 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     reorderToPointer(block.id, e.clientX, e.clientY);
   };
 
+  // Keyboard operability for the selected block: Left/Right nudge the start
+  // column (clamped), Up/Down reorder, Delete removes. Arrows would otherwise
+  // scroll the canvas, so they are handled here.
+  const onBlockKey = (e: React.KeyboardEvent, block: Block) => {
+    const { col, span } = clampPlacement(block.placement, tracks);
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      if (tracks === 1) return;
+      e.preventDefault();
+      const delta = e.key === 'ArrowRight' ? 1 : -1;
+      update(block.id, { placement: clampPlacement({ col: col + delta, span }, tracks) });
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      move(block.id, e.key === 'ArrowUp' ? -1 : 1);
+    } else if (e.key === 'Delete' || e.key === 'Backspace') {
+      e.preventDefault();
+      remove(block.id);
+    }
+  };
+
   const onGripUp = (e: React.PointerEvent, block: Block) => {
     if (drag?.id !== block.id) return;
     e.currentTarget.releasePointerCapture(e.pointerId);
@@ -241,12 +260,18 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                   <div
                     key={block.id}
                     data-block-id={block.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={block.id === selectedId}
+                    aria-label={`${block.label} block`}
                     className={`ed-block${block.id === selectedId ? ' is-selected' : ''}${block.hidden ? ' is-hidden' : ''}${isDragging ? ' is-dragging' : ''}`}
                     style={{ gridColumn: grid === 'stack' ? undefined : `${startCol} / span ${span}` }}
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedId(block.id);
                     }}
+                    onFocus={() => setSelectedId(block.id)}
+                    onKeyDown={(e) => onBlockKey(e, block)}
                   >
                     <span className="ed-block-tag">{block.label}</span>
                     <button

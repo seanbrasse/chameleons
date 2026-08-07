@@ -223,6 +223,11 @@
   box-shadow: 0 0 0 2px var(--sel-soft);
 }
 
+.ed-block:focus-visible {
+  outline: 2px solid var(--sel);
+  outline-offset: 2px;
+}
+
 .ed-block.is-hidden {
   opacity: 0.4;
 }
