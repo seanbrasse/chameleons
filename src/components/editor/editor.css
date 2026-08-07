@@ -15,6 +15,7 @@
   --sel: #3b6cf6;
   --sel-soft: #e8efff;
   --grid-line: #eceae6;
+  --guide-edge: #cfd8ea;
   --danger: #c0392b;
 
   height: 100dvh;
@@ -178,60 +179,69 @@
 .ed-canvas-scroll {
   flex: 1;
   overflow: auto;
-  padding: 32px;
+  padding: 40px;
   display: flex;
   justify-content: center;
+  align-items: flex-start;
+  background: var(--stage);
 }
 
-.ed-canvas {
-  width: 100%;
-  max-width: 900px;
-  align-self: flex-start;
+/* Reserves the scaled footprint; the artboard inside is transform-scaled from
+   its top-left corner so the reserved box and the visible page line up. */
+.ed-artboard-frame {
+  position: relative;
+  flex: none;
+}
+
+.ed-artboard {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
   background: var(--art);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  box-shadow: 0 10px 40px -24px rgba(0, 0, 0, 0.4);
-  padding: 28px;
-  min-height: 70vh;
+  border-radius: 4px;
+  box-shadow: 0 12px 48px -24px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  touch-action: none;
 }
 
-.ed-grid {
-  display: grid;
-  grid-template-columns: repeat(var(--tracks), minmax(0, 1fr));
-  gap: var(--gap, 12px);
+/* The page-margin outline, shown only while arranging. */
+.ed-artboard.is-arranging::after {
+  content: '';
+  position: absolute;
+  inset: var(--pad);
+  border: 1px dashed var(--guide-edge);
+  pointer-events: none;
 }
 
-/* How the grid is drawn behind the blocks. The horizontal period accounts for
-   the gutter so a mark sits on each track start at any spacing. */
-.ed-guide-lines {
-  background-image: repeating-linear-gradient(
-    to right,
-    var(--grid-line) 0,
-    var(--grid-line) 1px,
-    transparent 1px,
-    transparent calc((100% + var(--gap, 12px)) / var(--tracks))
-  );
+/* The snap grid, drawn only while arranging. Lines are confined to the content
+   area (no-repeat, sized to it); the period is one column / one row. */
+.ed-artboard.is-arranging.ed-guide-lines {
+  background-image:
+    repeating-linear-gradient(to right, var(--grid-line) 0 1px, transparent 1px var(--colstep)),
+    repeating-linear-gradient(to bottom, var(--grid-line) 0 1px, transparent 1px var(--rowunit));
+  background-repeat: no-repeat;
+  background-position: var(--pad) var(--pad);
+  background-size: calc(100% - 2 * var(--pad)) calc(100% - 2 * var(--pad));
 }
 
-.ed-guide-dots {
+.ed-artboard.is-arranging.ed-guide-dots {
   background-image: radial-gradient(var(--grid-line) 1.2px, transparent 1.2px);
-  background-size: calc((100% + var(--gap, 12px)) / var(--tracks)) 26px;
-  background-position: 0 13px;
-}
-
-.ed-guide-off {
-  background-image: none;
+  background-position: var(--pad) var(--pad);
+  background-size: var(--colstep) var(--rowunit);
 }
 
 .ed-block {
-  position: relative;
+  position: absolute;
+  box-sizing: border-box;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: #fff;
   padding: 16px 14px 14px;
-  cursor: pointer;
-  min-height: 56px;
-  transition: border-color 0.12s, box-shadow 0.12s;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  transition: box-shadow 0.12s, border-color 0.12s;
 }
 
 .ed-block:hover {
@@ -241,11 +251,13 @@
 .ed-block.is-selected {
   border-color: var(--sel);
   box-shadow: 0 0 0 2px var(--sel-soft);
+  z-index: 3;
 }
 
 .ed-block:focus-visible {
   outline: 2px solid var(--sel);
   outline-offset: 2px;
+  z-index: 3;
 }
 
 .ed-block.is-hidden {
@@ -253,44 +265,9 @@
 }
 
 .ed-block.is-dragging {
-  border-color: var(--sel);
-  box-shadow: 0 0 0 2px var(--sel-soft);
-  z-index: 2;
   cursor: grabbing;
-}
-
-.ed-block-grip {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 22px;
-  height: 20px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--ink-faint);
-  font-size: 13px;
-  line-height: 1;
-  cursor: grab;
-  opacity: 0;
-  touch-action: none;
-  transition: opacity 0.12s, background 0.12s;
-}
-
-.ed-block:hover .ed-block-grip,
-.ed-block.is-selected .ed-block-grip {
-  opacity: 1;
-}
-
-.ed-block-grip:hover {
-  background: var(--panel);
-  color: var(--ink-soft);
-}
-
-.ed-block.is-dragging .ed-block-grip {
-  cursor: grabbing;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
+  z-index: 5;
 }
 
 .ed-block-tag {
@@ -477,4 +454,55 @@
 .pv-divider {
   height: 1px;
   background: var(--line);
+}
+
+/* ── inline text editing ──────────────────────────────────────────── */
+
+.pv-edit {
+  font: inherit;
+  width: 100%;
+  border: 1px dashed var(--sel);
+  border-radius: 5px;
+  padding: 4px 6px;
+  background: var(--sel-soft);
+  color: var(--ink);
+  resize: none;
+  user-select: text;
+}
+
+.pv-edit:focus {
+  outline: none;
+  background: #fff;
+}
+
+.pv-edit-heading {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.pv-edit-text {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.pv-edit-button {
+  font-size: 13px;
+}
+
+/* ── responsive chrome ────────────────────────────────────────────── */
+
+@media (max-width: 1100px) {
+  .ed {
+    grid-template-columns: 200px minmax(0, 1fr) 264px;
+  }
+}
+
+@media (max-width: 860px) {
+  .ed {
+    grid-template-columns: 168px minmax(0, 1fr) 220px;
+  }
+
+  .ed-canvas-scroll {
+    padding: 20px;
+  }
 }
