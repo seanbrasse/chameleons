@@ -871,6 +871,59 @@
   width: 100%;
 }
 
+.ed-shortcuts-wrap {
+  position: relative;
+}
+
+.ed-shortcuts-btn {
+  width: 30px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.ed-shortcuts-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  width: 232px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.35);
+  display: grid;
+  gap: 6px;
+}
+
+.ed-shortcuts-title {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 2px;
+}
+
+.ed-shortcuts-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.ed-shortcuts-keys {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.ed-shortcuts-label {
+  color: var(--ink-soft);
+  text-align: right;
+}
+
 .ed-btn:disabled {
   opacity: 0.4;
   cursor: default;
