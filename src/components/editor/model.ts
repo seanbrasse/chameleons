@@ -152,6 +152,8 @@ export type Block = {
   scale?: number;
   /** How a text primitive's words are aligned. Absent means left (the default). */
   align?: TextAlign;
+  /** The type family for a text primitive. Absent means the builder's sans. */
+  font?: FontChoice;
   /** The container this block nests inside, if any. A block with a `parentId`
    *  renders inside that container — clipped to it, and carried when it moves or
    *  scales. Placement stays in absolute artboard cells regardless of nesting;
@@ -323,6 +325,13 @@ export type TextAlign = 'left' | 'center' | 'right';
 export const TEXT_ALIGNS: readonly TextAlign[] = ['left', 'center', 'right'];
 export function isTextAlign(value: unknown): value is TextAlign {
   return typeof value === 'string' && (TEXT_ALIGNS as readonly string[]).includes(value);
+}
+
+/** Type family for a text block — the concrete stacks live in the editor CSS. */
+export type FontChoice = 'sans' | 'serif' | 'mono';
+export const FONT_CHOICES: readonly FontChoice[] = ['sans', 'serif', 'mono'];
+export function isFontChoice(value: unknown): value is FontChoice {
+  return typeof value === 'string' && (FONT_CHOICES as readonly string[]).includes(value);
 }
 
 /** Whether alignment applies to a block — the same set as free text, plus a

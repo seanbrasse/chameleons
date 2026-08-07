@@ -9,6 +9,7 @@ import {
   descendantIds,
   isBlockKind,
   isContainer,
+  isFontChoice,
   isInput,
   isPresetKind,
   isContentSource,
@@ -101,6 +102,14 @@ describe('validation guards', () => {
     expect(isTextAlign('right')).toBe(true);
     expect(isTextAlign('justify')).toBe(false);
     expect(isTextAlign(2)).toBe(false);
+  });
+
+  it('isFontChoice', () => {
+    expect(isFontChoice('sans')).toBe(true);
+    expect(isFontChoice('serif')).toBe(true);
+    expect(isFontChoice('mono')).toBe(true);
+    expect(isFontChoice('comic')).toBe(false);
+    expect(isFontChoice(null)).toBe(false);
   });
 
   it('canAlign covers text primitives only', () => {

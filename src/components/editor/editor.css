@@ -507,6 +507,15 @@
   transform-origin: top left;
 }
 
+/* Type families a text block can choose — system stacks, no web fonts. */
+.ed-font-serif {
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+}
+
+.ed-font-mono {
+  font-family: ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', Menlo, Consolas, monospace;
+}
+
 /* A container: a box that holds other blocks. It carries no padding of its own
    so a child's placement lands exactly where dropped; its frame is an inset
    ring (no layout inset) and its children live in the body, which clips them —
