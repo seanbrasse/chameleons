@@ -150,6 +150,8 @@ export type Block = {
   /** Content zoom. 1 (or absent) is natural size; a corner-resize scales the
    *  element and everything inside it by this factor. */
   scale?: number;
+  /** How a text primitive's words are aligned. Absent means left (the default). */
+  align?: TextAlign;
   /** The container this block nests inside, if any. A block with a `parentId`
    *  renders inside that container — clipped to it, and carried when it moves or
    *  scales. Placement stays in absolute artboard cells regardless of nesting;
@@ -314,6 +316,19 @@ export function isContentSource(value: unknown): value is ContentSource {
  *  isn't bound to Issue content. */
 export function isFreeText(block: Block): boolean {
   return (block.kind === 'heading' || block.kind === 'text' || block.kind === 'button') && !block.source;
+}
+
+/** Text alignment for a heading / text / button block. */
+export type TextAlign = 'left' | 'center' | 'right';
+export const TEXT_ALIGNS: readonly TextAlign[] = ['left', 'center', 'right'];
+export function isTextAlign(value: unknown): value is TextAlign {
+  return typeof value === 'string' && (TEXT_ALIGNS as readonly string[]).includes(value);
+}
+
+/** Whether alignment applies to a block — the same set as free text, plus a
+ *  bound text block (its words still align). */
+export function canAlign(block: Block): boolean {
+  return block.kind === 'heading' || block.kind === 'text' || block.kind === 'button';
 }
 
 /**

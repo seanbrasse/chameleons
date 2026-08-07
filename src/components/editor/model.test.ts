@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   GRID_COLS,
   GRID_ROWS,
+  canAlign,
   childrenOf,
   clampPlacement,
   descendantIds,
@@ -11,6 +12,7 @@ import {
   isInput,
   isPresetKind,
   isContentSource,
+  isTextAlign,
   lockedRootOf,
   makePreset,
   isGuide,
@@ -91,6 +93,23 @@ describe('validation guards', () => {
     expect(isGuide('dots')).toBe(true);
     expect(isGuide('off')).toBe(true);
     expect(isGuide('grid')).toBe(false);
+  });
+
+  it('isTextAlign', () => {
+    expect(isTextAlign('left')).toBe(true);
+    expect(isTextAlign('center')).toBe(true);
+    expect(isTextAlign('right')).toBe(true);
+    expect(isTextAlign('justify')).toBe(false);
+    expect(isTextAlign(2)).toBe(false);
+  });
+
+  it('canAlign covers text primitives only', () => {
+    const at = (kind: Block['kind']): Block => ({ id: 'x', kind, label: kind, placement: { col: 1, colSpan: 4, row: 1 } });
+    expect(canAlign(at('heading'))).toBe(true);
+    expect(canAlign(at('text'))).toBe(true);
+    expect(canAlign(at('button'))).toBe(true);
+    expect(canAlign(at('container'))).toBe(false);
+    expect(canAlign(at('image'))).toBe(false);
   });
 });
 

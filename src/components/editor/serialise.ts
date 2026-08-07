@@ -25,6 +25,7 @@ import {
   isAnimTrigger,
   isBlockKind,
   isContentSource,
+  isTextAlign,
   sanitizeParents,
   type Block,
 } from './model';
@@ -50,6 +51,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           ...(block.opensModal !== undefined ? { opensModal: block.opensModal } : {}),
           ...(block.locked ? { locked: true } : {}),
           ...(block.scale !== undefined && block.scale !== 1 ? { scale: block.scale } : {}),
+          ...(block.align !== undefined ? { align: block.align } : {}),
           ...(block.text !== undefined ? { text: block.text } : {}),
         },
       };
@@ -95,6 +97,7 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     if (typeof props.scale === 'number' && Number.isFinite(props.scale) && props.scale > 0) {
       block.scale = props.scale;
     }
+    if (isTextAlign(props.align)) block.align = props.align;
     if (typeof props.text === 'string') block.text = props.text;
     blocks.push(block);
   }
