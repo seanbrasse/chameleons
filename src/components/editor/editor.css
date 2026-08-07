@@ -392,6 +392,28 @@
   transition: none;
 }
 
+/* A nested element (inside a container) reads as clean content: no frame, no
+   padding chrome, no label — so a component looks like a card of content, not a
+   stack of boxes. Its frame and label appear only on hover or when selected. */
+.ed-block.is-nested {
+  border-color: transparent;
+  background: transparent;
+  padding: 4px 6px;
+}
+
+.ed-block.is-nested:hover {
+  border-color: var(--line);
+}
+
+.ed-block.is-nested > .ed-block-tag {
+  display: none;
+}
+
+.ed-block.is-nested:hover > .ed-block-tag,
+.ed-block.is-nested.is-selected > .ed-block-tag {
+  display: block;
+}
+
 /* The slot a dragged block will magnetically snap to on release. */
 .ed-snap-ghost {
   position: absolute;
