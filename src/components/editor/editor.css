@@ -616,6 +616,22 @@
   border-color: #c9c8c3;
 }
 
+.ed-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ed-toolbar-history {
+  display: flex;
+  gap: 4px;
+}
+
+.ed-toolbar-history .ed-btn {
+  padding: 6px 9px;
+  font-size: 14px;
+  line-height: 1;
+}
+
 .ed-btn-danger {
   color: var(--danger);
   border-color: #e6c9c5;
