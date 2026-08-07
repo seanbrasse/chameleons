@@ -1329,6 +1329,25 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     setSelection([id]);
   };
 
+  /** Dissolve a container, promoting its direct children to where it lived (top
+   *  level, or its own parent if it was nested). The inverse of Group. Nested
+   *  grandchildren keep their own parents. */
+  const ungroup = (id: string) => {
+    const container = blocks.find((b) => b.id === id);
+    if (!container || !isContainer(container.kind)) return;
+    const kids = childrenOf(blocks, id);
+    if (kids.length === 0) return;
+    const kidIds = new Set(kids.map((k) => k.id));
+    const parentId = container.parentId;
+    snapshot(true);
+    setBlocks((bs) =>
+      bs
+        .filter((b) => b.id !== id)
+        .map((b) => (kidIds.has(b.id) ? (parentId === undefined ? withoutParent(b) : { ...b, parentId }) : b)),
+    );
+    setSelection(kids.map((k) => k.id));
+  };
+
   const reset = () => {
     snapshot(true); // a reset can be undone
     if (storageKey) {
@@ -1907,6 +1926,9 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                   />
                   <span>Lock as a component (move &amp; edit as one)</span>
                 </label>
+                <button type="button" className="ed-btn ed-btn-wide" onClick={() => ungroup(selected.id)}>
+                  Ungroup
+                </button>
               </>
             ) : (
               <>
