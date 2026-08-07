@@ -18,10 +18,11 @@ import {
   GUTTER_LABEL,
   GUTTER_PX,
   GUTTERS,
+  CONTENT_SOURCES,
   MIN_GAP_ROWS,
   PALETTE,
   clampPlacement,
-  isContentBlock,
+  isFreeText,
   isGridKind,
   isGuide,
   isGutter,
@@ -30,6 +31,7 @@ import {
   newBlockId,
   type Block,
   type BlockKind,
+  type ContentSource,
   type GridKind,
   type Guide,
   type Gutter,
@@ -541,7 +543,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                       onFocus: () => setSelectedId(block.id),
                       onKeyDown: (e: React.KeyboardEvent) => onBlockKey(e, block),
                       onDoubleClick: () => {
-                        if (isEditable(block.kind)) {
+                        if (isFreeText(block)) {
                           setSelectedId(block.id);
                           setEditingId(block.id);
                         }
@@ -623,7 +625,28 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               <div className="ed-field-static">{selected.kind}</div>
             </div>
 
-            {!isContentBlock(selected.kind) && selected.text !== undefined ? (
+            {selected.kind === 'heading' || selected.kind === 'text' || selected.kind === 'button' ? (
+              <label className="ed-field">
+                <span className="ed-field-label">Content</span>
+                <select
+                  value={selected.source ?? 'custom'}
+                  onChange={(e) =>
+                    update(selected.id, {
+                      source: e.target.value === 'custom' ? undefined : (e.target.value as ContentSource),
+                    })
+                  }
+                >
+                  <option value="custom">Custom text</option>
+                  {CONTENT_SOURCES.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
+            {isFreeText(selected) && selected.text !== undefined ? (
               <label className="ed-field">
                 <span className="ed-field-label">Text</span>
                 <textarea
@@ -736,9 +759,29 @@ const GLYPH: Record<BlockKind, string> = {
   contact: '✦',
 };
 
-/** The primitives whose text can be edited in place on the canvas. */
-function isEditable(kind: BlockKind): boolean {
-  return kind === 'heading' || kind === 'text' || kind === 'button';
+/** The words a bound text block shows, read from the Issue. */
+function resolveSource(issue: Issue, source: ContentSource): string {
+  const { settings, education, experiences } = issue;
+  switch (source) {
+    case 'displayName':
+      return settings.displayName;
+    case 'role':
+      return settings.role;
+    case 'tagline':
+      return settings.tagline;
+    case 'location':
+      return settings.location;
+    case 'contactEmail':
+      return settings.contactEmail;
+    case 'skills':
+      return settings.skills.join(' · ');
+    case 'education':
+      return education.map((e) => `${e.school} — ${e.credential}`).join('\n');
+    case 'experience':
+      return experiences.map((e) => `${e.company} — ${e.role}`).join('\n');
+    default:
+      return '';
+  }
 }
 
 type EditorInit = { blocks: Block[]; grid: GridKind; gutter: Gutter; guide: Guide };
@@ -1212,9 +1255,12 @@ function BlockPreview({
 }) {
   const { settings, projects, experiences, education, metrics } = issue;
 
-  if (editing && isEditable(block.kind)) {
+  if (editing && isFreeText(block)) {
     return <InlineText block={block} onText={onText} onEditEnd={onEditEnd} />;
   }
+
+  // A text primitive bound to Issue content shows that content (read-only here).
+  const boundText = block.source ? resolveSource(issue, block.source) : null;
 
   switch (block.kind) {
     case 'identity':
@@ -1299,11 +1345,11 @@ function BlockPreview({
     case 'contact':
       return <ContactFooter settings={settings} />;
     case 'heading':
-      return <div className="pv-heading">{block.text}</div>;
+      return <div className="pv-heading">{boundText ?? block.text}</div>;
     case 'text':
-      return <p className="pv-text">{block.text}</p>;
+      return <p className="pv-text pv-text-bound">{boundText ?? block.text}</p>;
     case 'button':
-      return <span className="pv-button">{block.text}</span>;
+      return <span className="pv-button">{boundText ?? block.text}</span>;
     case 'image':
       return <div className="pv-image">Image</div>;
     case 'divider':

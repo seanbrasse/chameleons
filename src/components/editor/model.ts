@@ -116,8 +116,48 @@ export type Block = {
   hidden?: boolean;
   /** Free text for a primitive; ignored for content blocks (they read the Issue). */
   text?: string;
+  /** When set, a text primitive reads its words from this Issue field instead of
+   *  `text` — so a Text block can be bound to existing content rather than typed. */
+  source?: ContentSource;
   placement: Placement;
 };
+
+/**
+ * The Issue fields a Text/Heading block can bind to, so the palette needn't ship
+ * a dedicated block per section: drop a Text block and point it at the content.
+ */
+export type ContentSource =
+  | 'displayName'
+  | 'role'
+  | 'tagline'
+  | 'location'
+  | 'contactEmail'
+  | 'skills'
+  | 'education'
+  | 'experience';
+
+export const CONTENT_SOURCES: { value: ContentSource; label: string }[] = [
+  { value: 'displayName', label: 'Name' },
+  { value: 'role', label: 'Role' },
+  { value: 'tagline', label: 'Bio / tagline' },
+  { value: 'location', label: 'Location' },
+  { value: 'contactEmail', label: 'Email' },
+  { value: 'skills', label: 'Skills' },
+  { value: 'education', label: 'Education' },
+  { value: 'experience', label: 'Experience' },
+];
+
+export function isContentSource(value: unknown): value is ContentSource {
+  return (
+    typeof value === 'string' && CONTENT_SOURCES.some((s) => s.value === value)
+  );
+}
+
+/** Whether a block's text can be typed in place — a free-text primitive that
+ *  isn't bound to Issue content. */
+export function isFreeText(block: Block): boolean {
+  return (block.kind === 'heading' || block.kind === 'text' || block.kind === 'button') && !block.source;
+}
 
 /**
  * The grid the canvas snaps to — a ramp from coarse and hard-to-break to fine
@@ -250,7 +290,6 @@ export const PALETTE: { group: string; items: PaletteItem[] }[] = [
       { kind: 'timeline', label: 'Timeline', hint: 'Career path' },
       { kind: 'projects', label: 'Projects', hint: 'Your work' },
       { kind: 'experience', label: 'Experience', hint: 'Roles' },
-      { kind: 'education', label: 'Education', hint: 'Schools' },
       { kind: 'metrics', label: 'Metrics', hint: 'Figures' },
       { kind: 'contact', label: 'Contact', hint: 'Email & links' },
     ],
