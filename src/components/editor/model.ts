@@ -174,6 +174,8 @@ export type Block = {
   /** Line height (leading) for a text primitive. Absent means normal — tighter
    *  leading suits big display headings, looser suits multi-line body copy. */
   leading?: LeadingLevel;
+  /** A font-weight override for a text block. Absent means the natural weight. */
+  weight?: TextWeight;
   /** A CSS colour for a text primitive's words. Absent means the default ink. */
   color?: string;
   /** A gradient that paints a text primitive's words (clipped to the glyphs).
@@ -458,6 +460,16 @@ export type LeadingLevel = 'tight' | 'normal' | 'relaxed';
 export const LEADING_LEVELS: readonly LeadingLevel[] = ['tight', 'normal', 'relaxed'];
 export function isLeadingLevel(value: unknown): value is LeadingLevel {
   return typeof value === 'string' && (LEADING_LEVELS as readonly string[]).includes(value);
+}
+
+/** Font weight override for a text block — the concrete weights live in the CSS
+ *  as `.ed-weight-<weight>` classes. Absent means the element's natural weight
+ *  (a heading stays bold, a paragraph stays regular); setting one overrides it,
+ *  so a light heading or a bold line is a click away. */
+export type TextWeight = 'light' | 'regular' | 'medium' | 'bold';
+export const TEXT_WEIGHTS: readonly TextWeight[] = ['light', 'regular', 'medium', 'bold'];
+export function isTextWeight(value: unknown): value is TextWeight {
+  return typeof value === 'string' && (TEXT_WEIGHTS as readonly string[]).includes(value);
 }
 
 /** Line style for a divider — a solid hairline, a dashed or dotted rule, or a

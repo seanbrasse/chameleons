@@ -612,6 +612,22 @@
   line-height: 1.75;
 }
 
+/* Font-weight override a text block can choose. Absent leaves the element's
+   natural weight; these force a specific one, so a heading can go light or a
+   paragraph can go bold. */
+.ed-weight-light {
+  font-weight: 300;
+}
+.ed-weight-regular {
+  font-weight: 400;
+}
+.ed-weight-medium {
+  font-weight: 500;
+}
+.ed-weight-bold {
+  font-weight: 700;
+}
+
 /* A soft outer glow behind a container / card — a signature modern touch. Painted
    with drop-shadow so it layers under the surface without touching the inset ring
    or selection box-shadow. Reads strongest on an opaque surface (a card or a
