@@ -199,6 +199,9 @@ export type Block = {
   elevation?: Elevation;
   /** The image source URL for an `image` block. Absent shows the placeholder. */
   imageUrl?: string;
+  /** Corner rounding for an `image` block. Absent means square corners; 'full'
+   *  makes a circle for avatars. */
+  imageRadius?: ImageRadius;
   /** The line style for a `divider` block. Absent means a solid hairline. */
   dividerStyle?: DividerStyle;
   /** The colour tone for a `badge` block. Absent means the accent tone. */
@@ -486,6 +489,15 @@ export function isDividerStyle(value: unknown): value is DividerStyle {
 /** The colour tone for a `badge` — accent (the default), a neutral grey, or a
  *  positive / warning semantic. The concrete fills live in the editor CSS as
  *  `.pv-badge-<tone>` classes; absence means the accent tone. */
+/** Corner rounding for an `image` block — soft, medium or large rounded corners,
+ *  or a full circle for avatars. The concrete radii live in the editor CSS as
+ *  `.pv-image-round-<level>` classes; absence means square corners. */
+export type ImageRadius = 'sm' | 'md' | 'lg' | 'full';
+export const IMAGE_RADII: readonly ImageRadius[] = ['sm', 'md', 'lg', 'full'];
+export function isImageRadius(value: unknown): value is ImageRadius {
+  return typeof value === 'string' && (IMAGE_RADII as readonly string[]).includes(value);
+}
+
 export type BadgeTone = 'accent' | 'neutral' | 'positive' | 'warn';
 export const BADGE_TONES: readonly BadgeTone[] = ['accent', 'neutral', 'positive', 'warn'];
 export function isBadgeTone(value: unknown): value is BadgeTone {
@@ -1255,6 +1267,7 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
         row: cardRow + 1,
         rowSpan: 4,
       });
+      avatar.imageRadius = 'full';
       const name = presetChild('heading', 'Name', m.name, card.id, { col: col + 1, colSpan: cardSpan - 2, row: cardRow + 6 });
       name.size = 'sm';
       name.align = 'center';

@@ -553,7 +553,10 @@ describe('containers and the tree', () => {
       expect(card.animation).toEqual({ effect: 'rise', trigger: 'load' });
       // each card nests exactly one avatar image, one name heading and one role text
       const kids = group.filter((b) => b.parentId === card.id);
-      expect(kids.filter((k) => k.kind === 'image')).toHaveLength(1);
+      const avatars = kids.filter((k) => k.kind === 'image');
+      expect(avatars).toHaveLength(1);
+      // the avatar is a circle
+      expect(avatars[0]!.imageRadius).toBe('full');
       expect(kids.filter((k) => k.kind === 'heading')).toHaveLength(1);
       expect(kids.filter((k) => k.kind === 'text')).toHaveLength(1);
     }
