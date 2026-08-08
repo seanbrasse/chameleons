@@ -189,6 +189,13 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   /** The live marquee rubber-band selection, in artboard px. */
   const [marquee, setMarquee] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
   const marqueeRef = useRef<{ pointerId: number; x0: number; y0: number; additive: boolean } | null>(null);
+  /** Space is held: the canvas is ready to hand-pan on the next drag. State for
+   *  the cursor; a ref so the pointer handler reads it synchronously. */
+  const [panReady, setPanReady] = useState(false);
+  const panReadyRef = useRef(false);
+  /** A hand-pan in progress (space-drag or middle-button drag). */
+  const [panning, setPanning] = useState(false);
+  const panRef = useRef<{ pointerId: number; startX: number; startY: number; startLeft: number; startTop: number } | null>(null);
   /** The live resize session. For corners we also anchor the opposite corner
    *  and the base size, so the drag scales the element uniformly. */
   const resizeRef = useRef<{
@@ -317,6 +324,75 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
   }, []);
+
+  // Holding Space arms hand-panning (Figma's grab-scroll). Ignored while typing
+  // or on a focused control, so Space still types and activates buttons there.
+  // Released on keyup or when the window loses focus, so the canvas never gets
+  // stuck in pan mode.
+  useEffect(() => {
+    const setReady = (v: boolean) => {
+      panReadyRef.current = v;
+      setPanReady(v);
+    };
+    const onDown = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || e.repeat) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'BUTTON' || t.isContentEditable)) return;
+      e.preventDefault();
+      setReady(true);
+    };
+    const onUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') setReady(false);
+    };
+    const onBlur = () => setReady(false);
+    window.addEventListener('keydown', onDown);
+    window.addEventListener('keyup', onUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onDown);
+      window.removeEventListener('keyup', onUp);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, []);
+
+  // Hand-pan the canvas by scrolling its container — so it stays correct at any
+  // zoom (the viewport moves, not the artboard's coordinate space). Armed by a
+  // held Space or the middle mouse button; capture-phase so it pre-empts block
+  // selection and marquee while active.
+  const onPanDown = (e: React.PointerEvent) => {
+    const el = scrollRef.current;
+    if (!el || !(panReadyRef.current || e.button === 1)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    panRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      startLeft: el.scrollLeft,
+      startTop: el.scrollTop,
+    };
+    el.setPointerCapture(e.pointerId);
+    setPanning(true);
+  };
+  const onPanMove = (e: React.PointerEvent) => {
+    const p = panRef.current;
+    const el = scrollRef.current;
+    if (!p || !el || p.pointerId !== e.pointerId) return;
+    e.stopPropagation();
+    el.scrollLeft = p.startLeft - (e.clientX - p.startX);
+    el.scrollTop = p.startTop - (e.clientY - p.startY);
+  };
+  const onPanUp = (e: React.PointerEvent) => {
+    const p = panRef.current;
+    if (!p || p.pointerId !== e.pointerId) return;
+    try {
+      scrollRef.current?.releasePointerCapture(p.pointerId);
+    } catch {
+      // capture may already be gone
+    }
+    panRef.current = null;
+    setPanning(false);
+  };
 
   // Measure block heights after each render so spacing and drop-placement can
   // reason about real sizes. offsetHeight is in artboard px (unscaled by the
@@ -1941,7 +2017,13 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
           </div>
         </div>
 
-        <div className="ed-canvas-scroll" ref={scrollRef}>
+        <div
+          className={`ed-canvas-scroll${panReady ? ' is-pan-ready' : ''}${panning ? ' is-panning' : ''}`}
+          ref={scrollRef}
+          onPointerDownCapture={onPanDown}
+          onPointerMoveCapture={onPanMove}
+          onPointerUpCapture={onPanUp}
+        >
           <div
             className="ed-artboard-frame"
             style={{ width: ARTBOARD.width * scale, height: ARTBOARD.height * scale }}

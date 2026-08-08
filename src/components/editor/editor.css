@@ -344,6 +344,18 @@
   background: var(--stage);
 }
 
+/* Hand-pan affordance: a held Space shows the open hand everywhere on the
+   stage; an active drag closes it. The universal selector wins over each
+   block's own grab cursor so the whole canvas reads as pannable. */
+.ed-canvas-scroll.is-pan-ready,
+.ed-canvas-scroll.is-pan-ready * {
+  cursor: grab;
+}
+.ed-canvas-scroll.is-panning,
+.ed-canvas-scroll.is-panning * {
+  cursor: grabbing;
+}
+
 /* Reserves the scaled footprint; the artboard inside is transform-scaled from
    its top-left corner so the reserved box and the visible page line up. */
 .ed-artboard-frame {
