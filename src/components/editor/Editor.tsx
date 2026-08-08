@@ -1571,7 +1571,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       >
         {isEditMode ? <span className="ed-block-tag">{block.label}</span> : null}
         <div
-          className={`ed-block-body${canAlign(block) && block.font ? ` ed-font-${block.font}` : ''}${canAlign(block) && block.size ? ` ed-size-${block.size}` : ''}${canAlign(block) && block.tracking && block.tracking !== 'normal' ? ` ed-track-${block.tracking}` : ''}${canAlign(block) && block.textCase && block.textCase !== 'none' ? ` ed-case-${block.textCase}` : ''}${canAlign(block) && block.leading && block.leading !== 'normal' ? ` ed-lead-${block.leading}` : ''}${canAlign(block) && block.weight ? ` ed-weight-${block.weight}` : ''}${canAlign(block) && block.textGradient ? ` ed-bg-${block.textGradient} ed-text-clip` : ''}${cont && block.ring ? ` ed-ring-${block.ring}` : ''}`}
+          className={`ed-block-body${canAlign(block) && block.font ? ` ed-font-${block.font}` : ''}${canAlign(block) && block.size ? ` ed-size-${block.size}` : ''}${canAlign(block) && block.tracking && block.tracking !== 'normal' ? ` ed-track-${block.tracking}` : ''}${canAlign(block) && block.textCase && block.textCase !== 'none' ? ` ed-case-${block.textCase}` : ''}${canAlign(block) && block.leading && block.leading !== 'normal' ? ` ed-lead-${block.leading}` : ''}${canAlign(block) && block.weight ? ` ed-weight-${block.weight}` : ''}${canAlign(block) && block.underline ? ' ed-underline' : ''}${canAlign(block) && block.textGradient ? ` ed-bg-${block.textGradient} ed-text-clip` : ''}${cont && block.ring ? ` ed-ring-${block.ring}` : ''}`}
           style={{
             ...bodyScale,
             textAlign: canAlign(block) ? block.align : undefined,
@@ -2148,6 +2148,14 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                     ))}
                   </div>
                 </div>
+                <label className="ed-check">
+                  <input
+                    type="checkbox"
+                    checked={!!selected.underline}
+                    onChange={(e) => update(selected.id, { underline: e.target.checked ? true : undefined })}
+                  />
+                  <span>Underline (reads as a link)</span>
+                </label>
                 <div className="ed-field">
                   <span className="ed-field-label">Colour</span>
                   <div className="ed-color-row">

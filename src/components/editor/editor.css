@@ -628,6 +628,14 @@
   font-weight: 700;
 }
 
+/* Underline a text block so it reads as an inline link — offset a touch from
+   the baseline so descenders stay legible. */
+.ed-underline {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: from-font;
+}
+
 /* A soft outer glow behind a container / card — a signature modern touch. Painted
    with drop-shadow so it layers under the surface without touching the inset ring
    or selection box-shadow. Reads strongest on an opaque surface (a card or a

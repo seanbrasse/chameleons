@@ -176,6 +176,8 @@ export type Block = {
   leading?: LeadingLevel;
   /** A font-weight override for a text block. Absent means the natural weight. */
   weight?: TextWeight;
+  /** Underlines a text block — reads as an inline link. Absent means no underline. */
+  underline?: boolean;
   /** A CSS colour for a text primitive's words. Absent means the default ink. */
   color?: string;
   /** A gradient that paints a text primitive's words (clipped to the glyphs).
