@@ -1321,6 +1321,96 @@
   .ed-artboard .ed-block.pv-anim-loop { animation: none; }
 }
 
+/* ── spin gallery: a polished 3D card carousel ─────────────────────── */
+/* Cards ride a preserve-3d ring that turns around its vertical axis; each faces
+   the viewer as it swings to the front. The radius is handed in per instance so
+   the cards space evenly for any count. */
+.pv-spingallery {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  perspective: 1200px;
+  perspective-origin: 50% 44%;
+  overflow: hidden;
+}
+
+/* A soft elliptical floor shadow grounds the ring. */
+.pv-spingallery::after {
+  content: '';
+  position: absolute;
+  bottom: 12%;
+  width: 46%;
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.28), transparent 72%);
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+.pv-spingallery-ring {
+  position: relative;
+  width: 150px;
+  height: 214px;
+  transform-style: preserve-3d;
+  animation: pv-spingallery-spin var(--sg-dur, 22s) linear infinite;
+  will-change: transform;
+}
+
+.pv-spingallery-card {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(calc(var(--sg-i) * (360deg / var(--sg-count)))) translateZ(var(--sg-radius, 240px));
+  backface-visibility: hidden;
+}
+
+.pv-spingallery-face {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+  background-color: #17171c;
+  background-size: cover;
+  background-position: center;
+  box-shadow:
+    0 22px 48px -16px rgba(0, 0, 0, 0.55),
+    0 4px 12px rgba(0, 0, 0, 0.28),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* A gentle top-light sheen so the cards read as glossy, not flat. */
+.pv-spingallery-face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 42%);
+  pointer-events: none;
+}
+
+@keyframes pv-spingallery-spin {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(360deg);
+  }
+}
+
+/* Editing calm: freeze the spin while its block is hovered or selected, so it's
+   easy to grab, resize and configure. */
+.ed-artboard:not(.is-preview) .ed-block:hover .pv-spingallery-ring,
+.ed-artboard:not(.is-preview) .ed-block.is-selected .pv-spingallery-ring {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pv-spingallery-ring {
+    animation: none;
+  }
+}
+
 /* Form inputs — leaf primitives that render a real field. */
 .pv-input,
 .pv-textarea {

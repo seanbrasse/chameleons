@@ -27,6 +27,7 @@ export type BlockKind =
   | 'divider'
   | 'badge'
   | 'themeToggle'
+  | 'spinGallery'
   // content, bound to the Issue
   | 'identity'
   | 'skills'
@@ -50,6 +51,7 @@ export const BLOCK_KINDS: readonly BlockKind[] = [
   'divider',
   'badge',
   'themeToggle',
+  'spinGallery',
   'identity',
   'skills',
   'timeline',
@@ -707,6 +709,7 @@ export const PALETTE: { group: string; items: PaletteItem[] }[] = [
       { kind: 'divider', label: 'Divider', hint: 'A rule' },
       { kind: 'badge', label: 'Badge', hint: 'A small pill / tag' },
       { kind: 'themeToggle', label: 'Theme toggle', hint: 'Light / dark switch' },
+      { kind: 'spinGallery', label: 'Spin gallery', hint: 'A 3D carousel of cards that turns to face you' },
     ],
   },
   {
@@ -748,6 +751,7 @@ const SPAN_FRACTION: Record<BlockKind, number> = {
   divider: 1,
   badge: 0.15,
   themeToggle: 0.2,
+  spinGallery: 1,
   identity: 1,
   skills: 1,
   timeline: 1,
@@ -789,6 +793,7 @@ export function newPageId(): string {
 export function makeBlock(kind: BlockKind, label: string, row = 1): Block {
   const placement: Placement = { col: 1, colSpan: defaultColSpan(kind), row };
   if (isContainer(kind)) placement.rowSpan = DEFAULT_CONTAINER_ROWS;
+  else if (kind === 'spinGallery') placement.rowSpan = 16; // a tall stage for the 3D ring
   return {
     id: newBlockId(kind),
     kind,
@@ -830,7 +835,6 @@ export type PresetKind =
   | 'teamGrid'
   | 'comparison'
   | 'gallery'
-  | 'spinGallery'
   | 'figure'
   | 'labeledDivider'
   | 'banner'
@@ -879,7 +883,6 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'teamGrid', label: 'Team grid', hint: 'A heading over a row of member cards, each an avatar, name and role' },
   { preset: 'comparison', label: 'Before / after', hint: 'A heading over two panels, each a label and an image, side by side' },
   { preset: 'gallery', label: 'Gallery', hint: 'A heading over a 2×3 grid of image tiles that stagger in' },
-  { preset: 'spinGallery', label: 'Spin gallery', hint: 'A ring of image tiles that rotates forever — a continuous carousel' },
   { preset: 'figure', label: 'Figure', hint: 'A rounded image over a small centred caption' },
   { preset: 'labeledDivider', label: 'Labeled divider', hint: 'A centred label flanked by two rules — a section separator' },
   { preset: 'banner', label: 'Announcement bar', hint: 'A thin ringed bar: a short message beside an inline button' },
@@ -955,7 +958,6 @@ const PRESET_GROUP_OF: Record<PresetKind, string> = {
   comparison: 'Sections',
   scrollReveal: 'Sections',
   gallery: 'Media',
-  spinGallery: 'Media',
   figure: 'Media',
   faq: 'Content',
   faqTwoColumn: 'Content',
@@ -1502,34 +1504,6 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
         tile.animation = { effect: 'rise', trigger: 'load' };
         blocks.push(tile);
       }
-    }
-    return blocks;
-  }
-
-  if (preset === 'spinGallery') {
-    // A ring of image tiles in a square container set to loop → spin, so the
-    // whole gallery rotates forever (see it in Preview). The tiles are placed
-    // around a circle by angle — cos/sin off the centre — and ride the parent's
-    // rotation. A pure showcase: swap each empty tile for a real image.
-    const S = Math.min(GRID_COLS, 26); // a square box, in cells
-    const boxCol = Math.max(1, Math.round((GRID_COLS - S) / 2) + 1);
-    const tileSpan = 6;
-    const count = 6;
-    const cx = boxCol + S / 2;
-    const cy = row + S / 2;
-    const radius = S / 2 - tileSpan / 2 - 1;
-    const box = makeBlock('container', 'Spin gallery', row);
-    box.placement = clampPlacement({ col: boxCol, colSpan: S, row, rowSpan: S });
-    box.locked = true;
-    box.animation = { effect: 'spin', trigger: 'loop', speed: 'slow' };
-    const blocks: Block[] = [box];
-    for (let k = 0; k < count; k++) {
-      const angle = (2 * Math.PI * k) / count;
-      const col = Math.round(cx + radius * Math.cos(angle) - tileSpan / 2);
-      const tileRow = Math.round(cy + radius * Math.sin(angle) - tileSpan / 2);
-      const tile = presetChild('image', 'Image', '', box.id, { col, colSpan: tileSpan, row: tileRow, rowSpan: tileSpan });
-      tile.imageRadius = 'lg';
-      blocks.push(tile);
     }
     return blocks;
   }

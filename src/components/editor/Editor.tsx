@@ -3663,6 +3663,7 @@ const GLYPH: Record<BlockKind, string> = {
   divider: '—',
   badge: '⬮',
   themeToggle: '◐',
+  spinGallery: '◎',
   identity: '◈',
   skills: '❖',
   timeline: '⌗',
@@ -4350,7 +4351,54 @@ function BlockPreview({
           }${block.dividerWeight && block.dividerWeight !== 'thin' ? ` pv-divider-w-${block.dividerWeight}` : ''}`}
         />
       );
+    case 'spinGallery':
+      return <SpinGallery projects={projects} speed={block.animation?.speed} />;
     default:
       return null;
   }
+}
+
+/**
+ * A polished 3D card carousel: cards ride a ring that turns around its vertical
+ * axis, each rotating to face the viewer as it comes to the front (the Apple /
+ * Framer "spin gallery" effect). Cards use the projects' cover images, falling
+ * back to the curated gradients so it looks composed even on an empty issue.
+ *
+ * The ring is a `preserve-3d` element that spins via keyframes; each card sits
+ * at `rotateY(i·step) translateZ(radius)`, with the radius sized from the card
+ * width and count so the cards never overlap. `backface-visibility: hidden`
+ * drops the cards facing away, keeping the front arc clean.
+ */
+function SpinGallery({ projects, speed }: { projects: Project[]; speed?: Animation['speed'] }) {
+  const covers = projectsByDate(projects)
+    .map((p) => p.images[0])
+    .filter((img): img is Project['images'][number] => !!img);
+  const count = Math.max(6, Math.min(8, covers.length || 7));
+  // Card footprint (px) and the ring radius that spaces `count` of them evenly.
+  const cardW = 150;
+  const radius = Math.round(cardW / 2 / Math.tan(Math.PI / count)) + 26;
+  const seconds = speed === 'slow' ? 34 : speed === 'fast' ? 14 : 22;
+  const style = {
+    ['--sg-count']: count,
+    ['--sg-radius']: `${radius}px`,
+    ['--sg-dur']: `${seconds}s`,
+  } as React.CSSProperties;
+  return (
+    <div className="pv-spingallery" style={style}>
+      <div className="pv-spingallery-ring">
+        {Array.from({ length: count }, (_, i) => {
+          const cover = covers.length ? covers[i % covers.length] : undefined;
+          return (
+            <div className="pv-spingallery-card" key={i} style={{ ['--sg-i']: i } as React.CSSProperties}>
+              {cover ? (
+                <div className="pv-spingallery-face" style={{ backgroundImage: `url(${cover.src})` }} />
+              ) : (
+                <div className={`pv-spingallery-face ed-bg-${GRADIENTS[i % GRADIENTS.length]!.value}`} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
