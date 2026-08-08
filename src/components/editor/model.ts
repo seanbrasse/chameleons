@@ -615,11 +615,12 @@ function defaultText(kind: BlockKind): string {
  * wired (nesting, and where relevant a modal trigger), so the palette can offer
  * a finished piece next to the raw primitives.
  */
-export type PresetKind = 'animatedCard' | 'hero' | 'contactForm' | 'contactModal';
+export type PresetKind = 'animatedCard' | 'hero' | 'gradientHero' | 'contactForm' | 'contactModal';
 
 export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'animatedCard', label: 'Animated card', hint: 'A card that lifts on hover, holding a title, text and button' },
   { preset: 'hero', label: 'Hero', hint: 'A full-width intro: big heading, tagline and a button' },
+  { preset: 'gradientHero', label: 'Gradient hero', hint: 'A gradient panel with big gradient type that staggers in on load' },
   { preset: 'contactForm', label: 'Contact form', hint: 'A card with name, email and message fields' },
   { preset: 'contactModal', label: 'Contact modal', hint: 'A button that opens the contact form in a modal' },
 ];
@@ -675,6 +676,25 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     const heading = presetChild('heading', 'Title', 'Your name, in large type', box.id, { col: 3, colSpan: GRID_COLS - 4, row: row + 2 });
     const tagline = presetChild('text', 'Tagline', 'A one-line summary of what you do and who for.', box.id, { col: 3, colSpan: Math.round(GRID_COLS * 0.6), row: row + 5, rowSpan: 3 });
     const button = presetChild('button', 'Button', 'Get in touch', box.id, { col: 3, colSpan: 8, row: row + 8 });
+    return [box, heading, tagline, button];
+  }
+
+  if (preset === 'gradientHero') {
+    // A showcase of the modern surface set: a gradient panel whose big
+    // gradient-filled heading, tagline and button rise in as a stagger on load.
+    const box = makeBlock('container', 'Hero', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 13 });
+    box.gradient = 'mint';
+    box.stagger = true;
+    box.locked = true;
+    const heading = presetChild('heading', 'Title', 'Design that moves.', box.id, { col: 3, colSpan: GRID_COLS - 4, row: row + 2 });
+    heading.size = 'xl';
+    heading.textGradient = 'violet';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const tagline = presetChild('text', 'Tagline', 'A modern portfolio that comes alive as it loads.', box.id, { col: 3, colSpan: Math.round(GRID_COLS * 0.6), row: row + 6, rowSpan: 3 });
+    tagline.animation = { effect: 'rise', trigger: 'load' };
+    const button = presetChild('button', 'Button', 'Get started', box.id, { col: 3, colSpan: 8, row: row + 9 });
+    button.animation = { effect: 'rise', trigger: 'load' };
     return [box, heading, tagline, button];
   }
 

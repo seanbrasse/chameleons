@@ -303,8 +303,22 @@ describe('containers and the tree', () => {
     expect(fields.every((f) => f.parentId === card!.id)).toBe(true);
   });
 
+  it('the gradientHero preset composes the modern surface set', () => {
+    const [box, heading, tagline, button] = makePreset('gradientHero', 5);
+    expect(box?.kind).toBe('container');
+    expect(box?.gradient).toBe('mint');
+    expect(box?.stagger).toBe(true);
+    expect(heading?.size).toBe('xl');
+    expect(heading?.textGradient).toBe('violet');
+    // every child rises on load, so the stagger has something to sequence
+    for (const child of [heading, tagline, button]) {
+      expect(child?.parentId).toBe(box?.id);
+      expect(child?.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+  });
+
   it('every preset lands in bounds and selects its first block', () => {
-    const kinds = ['animatedCard', 'hero', 'contactForm', 'contactModal'] as const;
+    const kinds = ['animatedCard', 'hero', 'gradientHero', 'contactForm', 'contactModal'] as const;
     for (const preset of kinds) {
       const group = makePreset(preset, 40);
       expect(group.length).toBeGreaterThan(0);
