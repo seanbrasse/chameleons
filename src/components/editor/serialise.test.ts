@@ -164,6 +164,15 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(block && 'color' in block).toBe(false);
   });
 
+  it('round-trips gradient text, and drops a bad one', () => {
+    const grad: Block[] = [
+      { id: 'h', kind: 'heading', label: 'Heading', textGradient: 'violet', placement: { col: 1, colSpan: 8, row: 1 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(grad))).toEqual(grad);
+    const [block] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'text', textGradient: 'rainbow' } }]));
+    expect(block && 'textGradient' in block).toBe(false);
+  });
+
   it('round-trips a container background, and drops a non-string one', () => {
     const filled: Block[] = [
       { id: 'c', kind: 'card', label: 'Card', bg: 'seashell', placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },

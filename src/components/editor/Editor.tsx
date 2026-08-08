@@ -1556,11 +1556,12 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       >
         {isEditMode ? <span className="ed-block-tag">{block.label}</span> : null}
         <div
-          className={`ed-block-body${canAlign(block) && block.font ? ` ed-font-${block.font}` : ''}${canAlign(block) && block.size ? ` ed-size-${block.size}` : ''}`}
+          className={`ed-block-body${canAlign(block) && block.font ? ` ed-font-${block.font}` : ''}${canAlign(block) && block.size ? ` ed-size-${block.size}` : ''}${canAlign(block) && block.textGradient ? ` ed-bg-${block.textGradient} ed-text-clip` : ''}`}
           style={{
             ...bodyScale,
             textAlign: canAlign(block) ? block.align : undefined,
-            color: canAlign(block) ? block.color : undefined,
+            // A text gradient paints the words; a solid colour would fight it.
+            color: canAlign(block) && !block.textGradient ? block.color : undefined,
           }}
         >
           {cont ? (
@@ -2068,6 +2069,30 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                     >
                       Default
                     </button>
+                  </div>
+                </div>
+                <div className="ed-field">
+                  <span className="ed-field-label">Gradient text</span>
+                  <div className="ed-grad-row">
+                    <button
+                      type="button"
+                      className={`ed-grad-btn ed-grad-none${selected.textGradient === undefined ? ' is-on' : ''}`}
+                      title="No gradient"
+                      aria-label="No gradient text"
+                      aria-pressed={selected.textGradient === undefined}
+                      onClick={() => update(selected.id, { textGradient: undefined })}
+                    />
+                    {GRADIENTS.map((g) => (
+                      <button
+                        key={g.value}
+                        type="button"
+                        className={`ed-grad-btn ed-bg-${g.value}${selected.textGradient === g.value ? ' is-on' : ''}`}
+                        title={g.label}
+                        aria-label={`${g.label} gradient text`}
+                        aria-pressed={selected.textGradient === g.value}
+                        onClick={() => update(selected.id, { textGradient: g.value })}
+                      />
+                    ))}
                   </div>
                 </div>
               </>
