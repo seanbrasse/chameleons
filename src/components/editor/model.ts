@@ -666,6 +666,7 @@ export type PresetKind =
   | 'gradientHero'
   | 'featureGrid'
   | 'ctaBand'
+  | 'testimonial'
   | 'contactForm'
   | 'contactModal';
 
@@ -675,6 +676,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'gradientHero', label: 'Gradient hero', hint: 'A gradient panel with big gradient type that staggers in on load' },
   { preset: 'featureGrid', label: 'Feature grid', hint: 'A heading over a row of three cards that stagger in on load' },
   { preset: 'ctaBand', label: 'CTA band', hint: 'A full-width gradient call-to-action: centered heading, line and button' },
+  { preset: 'testimonial', label: 'Testimonial', hint: 'A ringed card holding a large quote and an attribution line' },
   { preset: 'contactForm', label: 'Contact form', hint: 'A card with name, email and message fields' },
   { preset: 'contactModal', label: 'Contact modal', hint: 'A button that opens the contact form in a modal' },
 ];
@@ -823,6 +825,35 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     });
     button.animation = { effect: 'rise', trigger: 'load' };
     return [box, heading, line, button];
+  }
+
+  if (preset === 'testimonial') {
+    // A ringed card holding a large quote over an attribution line — the classic
+    // social-proof block. The quote rises in on load; the outlined ring gives it
+    // a crisp, modern frame without a heavy fill.
+    const card = makeBlock('card', 'Testimonial', row);
+    card.placement = clampPlacement({ col: 1, colSpan: half, row, rowSpan: 14 });
+    card.ring = 'hairline';
+    card.stagger = true;
+    card.locked = true;
+    const quote = presetChild(
+      'text',
+      'Quote',
+      '“This is the fastest I\'ve ever gone from idea to a site I\'m proud of.”',
+      card.id,
+      { col: 3, colSpan: half - 4, row: row + 2, rowSpan: 5 },
+    );
+    quote.size = 'lg';
+    quote.animation = { effect: 'rise', trigger: 'load' };
+    const attribution = presetChild('text', 'Attribution', '— Alex Rivera, Design Lead', card.id, {
+      col: 3,
+      colSpan: half - 4,
+      row: row + 9,
+      rowSpan: 2,
+    });
+    attribution.size = 'sm';
+    attribution.animation = { effect: 'rise', trigger: 'load' };
+    return [card, quote, attribution];
   }
 
   if (preset === 'contactForm') {
