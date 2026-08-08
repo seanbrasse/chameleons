@@ -191,6 +191,8 @@ export type Block = {
   /** A crisp inset outline on a container / card — the "outlined card" look.
    *  Absent means no ring. */
   ring?: RingLevel;
+  /** A drop shadow on a container / card. Absent means the surface sits flat. */
+  elevation?: Elevation;
   /** The image source URL for an `image` block. Absent shows the placeholder. */
   imageUrl?: string;
   /** The line style for a `divider` block. Absent means a solid hairline. */
@@ -528,6 +530,15 @@ export type RingLevel = 'hairline' | 'bold';
 export const RING_LEVELS: readonly RingLevel[] = ['hairline', 'bold'];
 export function isRingLevel(value: unknown): value is RingLevel {
   return typeof value === 'string' && (RING_LEVELS as readonly string[]).includes(value);
+}
+
+/** A drop shadow on a container / card — the "floating card" look, at three
+ *  strengths. The concrete shadows live in the editor CSS as `.ed-elev-<level>`
+ *  classes; absence means the surface sits flat. */
+export type Elevation = 'sm' | 'md' | 'lg';
+export const ELEVATIONS: readonly Elevation[] = ['sm', 'md', 'lg'];
+export function isElevation(value: unknown): value is Elevation {
+  return typeof value === 'string' && (ELEVATIONS as readonly string[]).includes(value);
 }
 
 /** Whether alignment applies to a block — the same set as free text, plus a
