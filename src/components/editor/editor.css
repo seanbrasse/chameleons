@@ -573,6 +573,21 @@
   --type-scale: 2;
 }
 
+/* Letter-spacing a text block can choose. 'normal' is the untouched base and
+   carries no class. Tracking scales with the type so it reads consistently at
+   any size — em units, not fixed pixels. */
+.ed-track-tight {
+  letter-spacing: -0.03em;
+}
+
+.ed-track-wide {
+  letter-spacing: 0.12em;
+}
+
+.ed-track-wider {
+  letter-spacing: 0.25em;
+}
+
 /* A soft outer glow behind a container / card — a signature modern touch. Painted
    with drop-shadow so it layers under the surface without touching the inset ring
    or selection box-shadow. Reads strongest on an opaque surface (a card or a

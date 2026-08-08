@@ -146,6 +146,17 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(block && 'grain' in block).toBe(false);
   });
 
+  it('round-trips letter-spacing, and drops normal (the default) and junk', () => {
+    const tracked: Block[] = [
+      { id: 't', kind: 'text', label: 'Text', tracking: 'wider', placement: { col: 1, colSpan: 8, row: 1 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(tracked))).toEqual(tracked);
+    const [asNormal] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'text', tracking: 'normal' } }]));
+    expect(asNormal && 'tracking' in asNormal).toBe(false);
+    const [junk] = fromLayoutDocument(doc([{ id: 'b', props: { kind: 'text', tracking: 'huge' } }]));
+    expect(junk && 'tracking' in junk).toBe(false);
+  });
+
   it('round-trips opacity, and drops one out of the 0–1 range', () => {
     const faint: Block[] = [
       { id: 'h', kind: 'heading', label: 'Heading', opacity: 0.4, placement: { col: 1, colSpan: 8, row: 1 } },

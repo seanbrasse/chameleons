@@ -159,6 +159,9 @@ export type Block = {
   font?: FontChoice;
   /** The display size (type scale) for a text primitive. Absent means medium. */
   size?: TextSize;
+  /** Letter-spacing (tracking) for a text primitive. Absent means normal —
+   *  wide tracking on a short uppercase label is a signature modern touch. */
+  tracking?: TrackingLevel;
   /** A CSS colour for a text primitive's words. Absent means the default ink. */
   color?: string;
   /** A gradient that paints a text primitive's words (clipped to the glyphs).
@@ -401,6 +404,14 @@ export type TextSize = 'sm' | 'md' | 'lg' | 'xl';
 export const TEXT_SIZES: readonly TextSize[] = ['sm', 'md', 'lg', 'xl'];
 export function isTextSize(value: unknown): value is TextSize {
   return typeof value === 'string' && (TEXT_SIZES as readonly string[]).includes(value);
+}
+
+/** Letter-spacing for a text block — the concrete tracking lives in the CSS.
+ *  'normal' is the untouched default and is stored as absent. */
+export type TrackingLevel = 'tight' | 'normal' | 'wide' | 'wider';
+export const TRACKING_LEVELS: readonly TrackingLevel[] = ['tight', 'normal', 'wide', 'wider'];
+export function isTrackingLevel(value: unknown): value is TrackingLevel {
+  return typeof value === 'string' && (TRACKING_LEVELS as readonly string[]).includes(value);
 }
 
 /** Corner radius for a container / card — the concrete pixels live in the CSS. */
