@@ -164,6 +164,15 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(block && 'radius' in block).toBe(false);
   });
 
+  it('round-trips an image URL, and drops a non-string one', () => {
+    const withImg: Block[] = [
+      { id: 'i', kind: 'image', label: 'Image', imageUrl: 'https://example.com/a.png', placement: { col: 1, colSpan: 8, row: 1 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(withImg))).toEqual(withImg);
+    const [block] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'image', imageUrl: 42 } }]));
+    expect(block && 'imageUrl' in block).toBe(false);
+  });
+
   it('round-trips a well-formed animation', () => {
     const animated: Block[] = [
       { id: 'c', kind: 'card', label: 'Card', animation: { effect: 'rise', trigger: 'scroll' }, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },

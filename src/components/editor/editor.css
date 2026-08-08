@@ -1599,6 +1599,14 @@
   font-size: 12px;
 }
 
+/* A set image fills the block's width and shows at its natural aspect. */
+.pv-image-set {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
 .pv-divider {
   height: 1px;
   background: var(--line);
