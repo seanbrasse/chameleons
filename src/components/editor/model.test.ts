@@ -330,6 +330,28 @@ describe('containers and the tree', () => {
     }
   });
 
+  it('the splitHero preset sets a text column beside an image, without overlap', () => {
+    const [box, heading, tagline, button, image] = makePreset('splitHero', 5);
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    expect(heading?.size).toBe('xl');
+    expect(image?.kind).toBe('image');
+    // every child nests in the hero and rises on load
+    for (const child of [heading, tagline, button, image]) {
+      expect(child?.parentId).toBe(box?.id);
+      expect(child?.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the text column sits entirely to the left of the image column
+    const textRight = Math.max(
+      heading!.placement.col + heading!.placement.colSpan - 1,
+      tagline!.placement.col + tagline!.placement.colSpan - 1,
+      button!.placement.col + button!.placement.colSpan - 1,
+    );
+    expect(textRight).toBeLessThan(image!.placement.col);
+    // and the image stays within the grid
+    expect(image!.placement.col + image!.placement.colSpan - 1).toBeLessThanOrEqual(GRID_COLS);
+  });
+
   it('the featureGrid preset lays three staggered cards under a heading', () => {
     const group = makePreset('featureGrid', 5);
     const [box] = group;
