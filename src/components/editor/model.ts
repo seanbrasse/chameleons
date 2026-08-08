@@ -702,6 +702,7 @@ export type PresetKind =
   | 'ctaBand'
   | 'testimonial'
   | 'statsBand'
+  | 'steps'
   | 'logoCloud'
   | 'faq'
   | 'checklist'
@@ -720,6 +721,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'ctaBand', label: 'CTA band', hint: 'A full-width gradient call-to-action: centered heading, line and button' },
   { preset: 'testimonial', label: 'Testimonial', hint: 'A ringed card holding a large quote and an attribution line' },
   { preset: 'statsBand', label: 'Stats band', hint: 'A full-width row of big metric numbers with labels that stagger in' },
+  { preset: 'steps', label: 'Process steps', hint: 'A heading over a row of numbered steps, each a badge number, title and line' },
   { preset: 'logoCloud', label: 'Logo cloud', hint: 'A "trusted by" heading over a row of ringed wordmark tiles that stagger in' },
   { preset: 'faq', label: 'FAQ', hint: 'A heading over a stack of question-and-answer pairs that stagger in' },
   { preset: 'checklist', label: 'Checklist', hint: 'A heading over a column of rows, each a badge tick beside a line of text' },
@@ -1079,6 +1081,53 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     });
     const rowSpan = 5 + items.length * rowStep;
     box.placement = clampPlacement({ col: 1, colSpan: half, row, rowSpan });
+    return blocks;
+  }
+
+  if (preset === 'steps') {
+    // A "how it works" band: a heading over a row of numbered steps, each a
+    // centred badge number over a title and a line. It reuses the badge as a
+    // step marker; columns are spaced by the stats-band math and stagger in on
+    // load.
+    const gap = 2;
+    const startCol = 3;
+    const contentSpan = GRID_COLS - 4;
+    const colSpan = Math.max(6, Math.floor((contentSpan - gap * 2) / 3));
+    const badgeSpan = 3;
+    const box = makeBlock('container', 'Steps', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 13 });
+    box.stagger = true;
+    box.locked = true;
+    const heading = presetChild('heading', 'Title', 'How it works', box.id, { col: startCol, colSpan: contentSpan, row: row + 2 });
+    heading.size = 'lg';
+    heading.align = 'center';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const steps = [
+      { n: '1', title: 'Brief', body: 'Tell us what you need and who it’s for.' },
+      { n: '2', title: 'Build', body: 'We design and develop it, start to finish.' },
+      { n: '3', title: 'Launch', body: 'Go live, then refine with real feedback.' },
+    ];
+    const blocks: Block[] = [box, heading];
+    const base = row + 6;
+    steps.forEach((s, i) => {
+      const col = startCol + i * (colSpan + gap);
+      const badge = presetChild('badge', 'Step', s.n, box.id, {
+        col: col + Math.floor((colSpan - badgeSpan) / 2),
+        colSpan: badgeSpan,
+        row: base,
+        rowSpan: 2,
+      });
+      badge.align = 'center';
+      badge.animation = { effect: 'rise', trigger: 'load' };
+      const title = presetChild('heading', 'Title', s.title, box.id, { col, colSpan, row: base + 2 });
+      title.size = 'sm';
+      title.align = 'center';
+      title.animation = { effect: 'rise', trigger: 'load' };
+      const body = presetChild('text', 'Text', s.body, box.id, { col, colSpan, row: base + 4, rowSpan: 2 });
+      body.align = 'center';
+      body.animation = { effect: 'rise', trigger: 'load' };
+      blocks.push(badge, title, body);
+    });
     return blocks;
   }
 
