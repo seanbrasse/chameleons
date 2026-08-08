@@ -193,6 +193,9 @@ export type Block = {
   /** When true, a container / card becomes a frosted-glass panel: a translucent
    *  fill that blurs whatever sits behind it. Only meaningful on a container. */
   glass?: boolean;
+  /** When true, a container / card carries a subtle film-grain texture over its
+   *  surface. Only meaningful on a container. */
+  grain?: boolean;
   /** When true, a container's animated children enter in sequence rather than
    *  all at once — each one delayed a step further than the last. Only
    *  meaningful on a container. */

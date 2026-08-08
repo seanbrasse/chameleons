@@ -720,6 +720,20 @@
   background: rgba(18, 18, 24, 0.4);
 }
 
+/* Film grain: a fractal-noise texture laid over the surface by a pseudo-element,
+   kept faint and blended so it reads as tactile grain rather than static. It
+   inherits the corner radius and never intercepts the pointer. */
+.ed-block.is-container.ed-grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+
 /* Gradient text: paint the block's gradient (a bare .ed-bg-* background) through
    the glyphs by clipping the background to the text and making the fill
    transparent. Applied to a text block's body alongside an .ed-bg-* class. */
