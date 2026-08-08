@@ -131,6 +131,10 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const [editingId, setEditingId] = useState<string | null>(null);
   /** The palette search query — filters both the Elements and Components lists. */
   const [paletteQuery, setPaletteQuery] = useState('');
+  /** The left panel's view: the element/component palette, or the layer tree.
+   *  Selecting something on the canvas swaps to Layers; clearing swaps back. */
+  const [leftTab, setLeftTab] = useState<'elements' | 'layers'>('elements');
+  const hadSelectionRef = useRef(false);
   /** The open right-click menu: its viewport position and the block it acts on.
    *  Null when closed. */
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; id: string } | null>(null);
@@ -286,6 +290,17 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       // Storage full or blocked — the layout simply isn't remembered.
     }
   }, [blocks, pages, activePageId, gutter, guide, theme, pageBg, storageKey]);
+
+  // Selecting an element swaps the left panel to Layers; clearing the selection
+  // swaps it back to the palette. Only fires on the transition, so a manual tab
+  // choice sticks until the selection next appears or clears.
+  useEffect(() => {
+    const has = selection.length > 0;
+    if (has !== hadSelectionRef.current) {
+      hadSelectionRef.current = has;
+      setLeftTab(has ? 'layers' : 'elements');
+    }
+  }, [selection]);
 
   // Esc closes an open block modal.
   useEffect(() => {
@@ -1950,7 +1965,27 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     <div className="ed">
       {/* ── left: elements ─────────────────────────────────────────── */}
       <aside className="ed-panel ed-left">
-        <div className="ed-panel-head">Elements</div>
+        <div className="ed-panel-tabs" role="tablist" aria-label="Left panel">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={leftTab === 'elements'}
+            className={`ed-panel-tab${leftTab === 'elements' ? ' is-active' : ''}`}
+            onClick={() => setLeftTab('elements')}
+          >
+            Elements
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={leftTab === 'layers'}
+            className={`ed-panel-tab${leftTab === 'layers' ? ' is-active' : ''}`}
+            onClick={() => setLeftTab('layers')}
+          >
+            Layers
+          </button>
+        </div>
+        {leftTab === 'elements' ? (
         <div className="ed-palette">
           <input
             type="search"
@@ -2021,15 +2056,16 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
             );
           })()}
         </div>
+        ) : (
         <div className="ed-outline">
           <div className="ed-panel-subhead">
-            Layers
             <span className="ed-panel-subnote">front → back</span>
           </div>
           <div className="ed-outline-tree">
             {[...childrenOf(blocks, null)].reverse().map((b) => renderOutline(b, 0))}
           </div>
         </div>
+        )}
       </aside>
 
       {/* ── centre: artboard ───────────────────────────────────────── */}

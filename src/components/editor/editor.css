@@ -65,6 +65,45 @@
   background: var(--panel);
 }
 
+/* The left panel's Elements / Layers tabs — selecting on the canvas flips
+   between them. Sticky so they stay reachable while the list scrolls. */
+.ed-panel-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--panel-line);
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  z-index: 2;
+}
+
+.ed-panel-tab {
+  flex: 1;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-sm);
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.ed-panel-tab:hover {
+  color: var(--ink-soft);
+  background: #fff;
+}
+
+.ed-panel-tab.is-active {
+  color: var(--ink);
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
 /* ── palette ──────────────────────────────────────────────────────── */
 
 .ed-palette {
