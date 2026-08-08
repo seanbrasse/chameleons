@@ -789,12 +789,26 @@
 .ed-artboard.is-preview .ed-block.pv-ease-spring { --anim-ease: cubic-bezier(0.34, 1.56, 0.64, 1); }
 .ed-artboard.is-preview .ed-block.pv-ease-linear { --anim-ease: linear; }
 
-/* On load: play the entrance once as the preview mounts. */
-.ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-fade { animation: pv-anim-fade var(--anim-dur, 0.5s) var(--anim-ease, ease) both; }
-.ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-rise { animation: pv-anim-rise var(--anim-dur, 0.5s) var(--anim-ease, ease) both; }
-.ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-zoom { animation: pv-anim-zoom var(--anim-dur, 0.5s) var(--anim-ease, ease) both; }
-.ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-slide { animation: pv-anim-slide var(--anim-dur, 0.5s) var(--anim-ease, ease) both; }
-.ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-blur { animation: pv-anim-blur var(--anim-dur, 0.5s) var(--anim-ease, ease) both; }
+/* Stagger: a container hands each animated child a --anim-delay one step longer
+   than the last, so they cascade in rather than arriving together. Ordered by
+   DOM position; the step is capped past the eighth child so a long list still
+   finishes promptly. */
+.ed-artboard.is-preview .ed-block.pv-stagger > .ed-block-body > .ed-block:nth-child(1) { --anim-delay: 0ms; }
+.ed-artboard.is-preview .ed-block.pv-stagger > .ed-block-body > .ed-block:nth-child(2) { --anim-delay: 90ms; }
+.ed-artboard.is-preview .ed-block.pv-stagger > .ed-block-body > .ed-block:nth-child(3) { --anim-delay: 180ms; }
+.ed-artboard.is-preview .ed-block.pv-stagger > .ed-block-body > .ed-block:nth-child(4) { --anim-delay: 270ms; }
+.ed-artboard.is-preview .ed-block.pv-stagger > .ed-block-body > .ed-block:nth-child(5) { --anim-delay: 360ms; }
+.ed-artboard.is-preview .ed-block.pv-stagger > .ed-block-body > .ed-block:nth-child(6) { --anim-delay: 450ms; }
+.ed-artboard.is-preview .ed-block.pv-stagger > .ed-block-body > .ed-block:nth-child(7) { --anim-delay: 540ms; }
+.ed-artboard.is-preview .ed-block.pv-stagger > .ed-block-body > .ed-block:nth-child(n + 8) { --anim-delay: 630ms; }
+
+/* On load: play the entrance once as the preview mounts. --anim-delay (set by a
+   stagger container on each child) offsets the start; absent it is 0ms. */
+.ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-fade { animation: pv-anim-fade var(--anim-dur, 0.5s) var(--anim-ease, ease) var(--anim-delay, 0ms) both; }
+.ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-rise { animation: pv-anim-rise var(--anim-dur, 0.5s) var(--anim-ease, ease) var(--anim-delay, 0ms) both; }
+.ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-zoom { animation: pv-anim-zoom var(--anim-dur, 0.5s) var(--anim-ease, ease) var(--anim-delay, 0ms) both; }
+.ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-slide { animation: pv-anim-slide var(--anim-dur, 0.5s) var(--anim-ease, ease) var(--anim-delay, 0ms) both; }
+.ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-blur { animation: pv-anim-blur var(--anim-dur, 0.5s) var(--anim-ease, ease) var(--anim-delay, 0ms) both; }
 
 /* On scroll: start hidden, then transition in when the observer adds .is-in. */
 .ed-artboard.is-preview .ed-block.pv-anim-scroll {
@@ -802,6 +816,7 @@
   transition: opacity var(--anim-dur, 0.5s) var(--anim-ease, ease),
     transform var(--anim-dur, 0.5s) var(--anim-ease, ease),
     filter var(--anim-dur, 0.5s) var(--anim-ease, ease);
+  transition-delay: var(--anim-delay, 0ms);
 }
 .ed-artboard.is-preview .ed-block.pv-anim-scroll.pv-anim-rise { transform: translateY(18px); }
 .ed-artboard.is-preview .ed-block.pv-anim-scroll.pv-anim-zoom { transform: scale(0.94); }
