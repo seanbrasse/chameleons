@@ -701,6 +701,7 @@ export type PresetKind =
   | 'ctaBand'
   | 'testimonial'
   | 'statsBand'
+  | 'logoCloud'
   | 'pricingTable'
   | 'contactForm'
   | 'contactModal';
@@ -713,6 +714,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'ctaBand', label: 'CTA band', hint: 'A full-width gradient call-to-action: centered heading, line and button' },
   { preset: 'testimonial', label: 'Testimonial', hint: 'A ringed card holding a large quote and an attribution line' },
   { preset: 'statsBand', label: 'Stats band', hint: 'A full-width row of big metric numbers with labels that stagger in' },
+  { preset: 'logoCloud', label: 'Logo cloud', hint: 'A "trusted by" heading over a row of ringed wordmark tiles that stagger in' },
   { preset: 'pricingTable', label: 'Pricing table', hint: 'Three tier cards with prices and buttons; the middle one is highlighted' },
   { preset: 'contactForm', label: 'Contact form', hint: 'A card with name, email and message fields' },
   { preset: 'contactModal', label: 'Contact modal', hint: 'A button that opens the contact form in a modal' },
@@ -922,6 +924,48 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       label.align = 'center';
       label.animation = { effect: 'rise', trigger: 'load' };
       blocks.push(num, label);
+    });
+    return blocks;
+  }
+
+  if (preset === 'logoCloud') {
+    // A "trusted by" band: a small centred heading over a row of five ringed
+    // tiles, each holding a centred wordmark. The classic social-proof logo
+    // strip — hairline rings stand in for real logos, and the tiles stagger in
+    // on load. Column math evenly spaces the five tiles, mirroring statsBand.
+    const gap = 2;
+    const startCol = 3;
+    const contentSpan = GRID_COLS - 4;
+    const tileSpan = Math.max(4, Math.floor((contentSpan - gap * 4) / 5));
+    const box = makeBlock('container', 'Logos', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 10 });
+    box.stagger = true;
+    box.locked = true;
+    const heading = presetChild('heading', 'Title', 'Trusted by teams everywhere', box.id, {
+      col: startCol,
+      colSpan: contentSpan,
+      row: row + 2,
+    });
+    heading.size = 'sm';
+    heading.align = 'center';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const blocks: Block[] = [box, heading];
+    const tileRow = row + 5;
+    const marks = ['Acme', 'Globex', 'Umbra', 'Initech', 'Hooli'];
+    marks.forEach((mark, i) => {
+      const col = startCol + i * (tileSpan + gap);
+      const tile = makeBlock('card', mark, tileRow);
+      tile.parentId = box.id;
+      tile.placement = clampPlacement({ col, colSpan: tileSpan, row: tileRow, rowSpan: 3 });
+      tile.ring = 'hairline';
+      tile.animation = { effect: 'rise', trigger: 'load' };
+      const wordmark = presetChild('heading', 'Wordmark', mark, tile.id, {
+        col,
+        colSpan: tileSpan,
+        row: tileRow + 1,
+      });
+      wordmark.align = 'center';
+      blocks.push(tile, wordmark);
     });
     return blocks;
   }
