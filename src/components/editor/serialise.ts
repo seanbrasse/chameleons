@@ -32,6 +32,7 @@ import {
   isRingLevel,
   isElevation,
   isDividerStyle,
+  isDividerWeight,
   isBadgeTone,
   isButtonVariant,
   isImageRadius,
@@ -92,6 +93,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           ...(block.ring !== undefined ? { ring: block.ring } : {}),
           ...(block.elevation !== undefined ? { elevation: block.elevation } : {}),
           ...(block.dividerStyle !== undefined && block.dividerStyle !== 'solid' ? { dividerStyle: block.dividerStyle } : {}),
+          ...(block.dividerWeight !== undefined && block.dividerWeight !== 'thin' ? { dividerWeight: block.dividerWeight } : {}),
           ...(block.badgeTone !== undefined && block.badgeTone !== 'accent' ? { badgeTone: block.badgeTone } : {}),
           ...(block.buttonVariant !== undefined && block.buttonVariant !== 'solid' ? { buttonVariant: block.buttonVariant } : {}),
           ...(block.imageUrl !== undefined ? { imageUrl: block.imageUrl } : {}),
@@ -187,6 +189,7 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     if (isRingLevel(props.ring)) block.ring = props.ring;
     if (isElevation(props.elevation)) block.elevation = props.elevation;
     if (isDividerStyle(props.dividerStyle) && props.dividerStyle !== 'solid') block.dividerStyle = props.dividerStyle;
+    if (isDividerWeight(props.dividerWeight) && props.dividerWeight !== 'thin') block.dividerWeight = props.dividerWeight;
     if (isBadgeTone(props.badgeTone) && props.badgeTone !== 'accent') block.badgeTone = props.badgeTone;
     if (isButtonVariant(props.buttonVariant) && props.buttonVariant !== 'solid') block.buttonVariant = props.buttonVariant;
     if (typeof props.imageUrl === 'string') block.imageUrl = props.imageUrl;

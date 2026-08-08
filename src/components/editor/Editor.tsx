@@ -46,6 +46,7 @@ import {
   RING_LEVELS,
   ELEVATIONS,
   DIVIDER_STYLES,
+  DIVIDER_WEIGHTS,
   BADGE_TONES,
   BUTTON_VARIANTS,
   IMAGE_RADII,
@@ -2520,6 +2521,26 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               </label>
             ) : null}
 
+            {selected.kind === 'divider' ? (
+              <label className="ed-field">
+                <span className="ed-field-label">Weight</span>
+                <select
+                  value={selected.dividerWeight ?? 'thin'}
+                  onChange={(e) =>
+                    update(selected.id, {
+                      dividerWeight: e.target.value === 'thin' ? undefined : (e.target.value as (typeof DIVIDER_WEIGHTS)[number]),
+                    })
+                  }
+                >
+                  {DIVIDER_WEIGHTS.map((w) => (
+                    <option key={w} value={w}>
+                      {w[0]!.toUpperCase() + w.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
             {selected.kind === 'badge' ? (
               <label className="ed-field">
                 <span className="ed-field-label">Tone</span>
@@ -3522,7 +3543,7 @@ function BlockPreview({
         <div
           className={`pv-divider${
             block.dividerStyle && block.dividerStyle !== 'solid' ? ` pv-divider-${block.dividerStyle}` : ''
-          }`}
+          }${block.dividerWeight && block.dividerWeight !== 'thin' ? ` pv-divider-w-${block.dividerWeight}` : ''}`}
         />
       );
     default:
