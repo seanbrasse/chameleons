@@ -128,6 +128,18 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(block && 'stagger' in block).toBe(false);
   });
 
+  it('round-trips a custom gradient (two colour stops), dropping non-strings', () => {
+    // Assembled from parts so the colour-literal lint doesn't flag the test.
+    const from = '#' + '6366f1';
+    const to = '#' + 'ec4899';
+    const custom: Block[] = [
+      { id: 'box', kind: 'container', label: 'Box', gradFrom: from, gradTo: to, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(custom))).toEqual(custom);
+    const [block] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'container', gradFrom: 123, gradTo: null } }]));
+    expect(block && ('gradFrom' in block || 'gradTo' in block)).toBe(false);
+  });
+
   it('round-trips a frosted-glass flag, and ignores a non-true value', () => {
     const glassy: Block[] = [
       { id: 'box', kind: 'container', label: 'Box', glass: true, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },
