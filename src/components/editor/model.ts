@@ -154,6 +154,8 @@ export type Block = {
   align?: TextAlign;
   /** The type family for a text primitive. Absent means the builder's sans. */
   font?: FontChoice;
+  /** The display size (type scale) for a text primitive. Absent means medium. */
+  size?: TextSize;
   /** A CSS colour for a text primitive's words. Absent means the default ink. */
   color?: string;
   /** A CSS background colour for a container / card. Absent means its default
@@ -343,6 +345,13 @@ export type FontChoice = 'sans' | 'serif' | 'mono';
 export const FONT_CHOICES: readonly FontChoice[] = ['sans', 'serif', 'mono'];
 export function isFontChoice(value: unknown): value is FontChoice {
   return typeof value === 'string' && (FONT_CHOICES as readonly string[]).includes(value);
+}
+
+/** Display size for a text block — a type scale, with the multipliers in CSS. */
+export type TextSize = 'sm' | 'md' | 'lg' | 'xl';
+export const TEXT_SIZES: readonly TextSize[] = ['sm', 'md', 'lg', 'xl'];
+export function isTextSize(value: unknown): value is TextSize {
+  return typeof value === 'string' && (TEXT_SIZES as readonly string[]).includes(value);
 }
 
 /** Corner radius for a container / card — the concrete pixels live in the CSS. */

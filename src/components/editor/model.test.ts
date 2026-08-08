@@ -10,6 +10,7 @@ import {
   isBlockKind,
   isContainer,
   isFontChoice,
+  isTextSize,
   isGradientKind,
   isInput,
   isPageTheme,
@@ -120,6 +121,15 @@ describe('validation guards', () => {
     expect(isFontChoice('mono')).toBe(true);
     expect(isFontChoice('comic')).toBe(false);
     expect(isFontChoice(null)).toBe(false);
+  });
+
+  it('isTextSize', () => {
+    expect(isTextSize('sm')).toBe(true);
+    expect(isTextSize('md')).toBe(true);
+    expect(isTextSize('lg')).toBe(true);
+    expect(isTextSize('xl')).toBe(true);
+    expect(isTextSize('huge')).toBe(false);
+    expect(isTextSize(3)).toBe(false);
   });
 
   it('isRadiusLevel', () => {

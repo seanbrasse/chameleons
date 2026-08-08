@@ -44,6 +44,7 @@ import {
   PAGE_THEMES,
   RADIUS_LEVELS,
   TEXT_ALIGNS,
+  TEXT_SIZES,
   withoutParent,
   type Animation,
   type Block,
@@ -1550,7 +1551,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       >
         {isEditMode ? <span className="ed-block-tag">{block.label}</span> : null}
         <div
-          className={`ed-block-body${canAlign(block) && block.font ? ` ed-font-${block.font}` : ''}`}
+          className={`ed-block-body${canAlign(block) && block.font ? ` ed-font-${block.font}` : ''}${canAlign(block) && block.size ? ` ed-size-${block.size}` : ''}`}
           style={{
             ...bodyScale,
             textAlign: canAlign(block) ? block.align : undefined,
@@ -2022,6 +2023,24 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                         onClick={() => update(selected.id, { font: f === 'sans' ? undefined : f })}
                       >
                         Ag
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="ed-field">
+                  <span className="ed-field-label">Size</span>
+                  <div className="ed-arrange">
+                    {TEXT_SIZES.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        className={`ed-arrange-btn${(selected.size ?? 'md') === s ? ' is-on' : ''}`}
+                        title={`${s.toUpperCase()} type`}
+                        aria-label={`${s} size`}
+                        aria-pressed={(selected.size ?? 'md') === s}
+                        onClick={() => update(selected.id, { size: s === 'md' ? undefined : s })}
+                      >
+                        {s.toUpperCase()}
                       </button>
                     ))}
                   </div>

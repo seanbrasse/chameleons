@@ -559,6 +559,20 @@
   font-family: ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', Menlo, Consolas, monospace;
 }
 
+/* Display-type scale a text block can choose. Each level sets a multiplier the
+   preview type reads through calc(), so 'md' is the untouched base size. */
+.ed-size-sm {
+  --type-scale: 0.82;
+}
+
+.ed-size-lg {
+  --type-scale: 1.4;
+}
+
+.ed-size-xl {
+  --type-scale: 2;
+}
+
 /* A container: a box that holds other blocks. It carries no padding of its own
    so a child's placement lands exactly where dropped; its frame is an inset
    ring (no layout inset) and its children live in the body, which clips them —
@@ -1678,19 +1692,19 @@
 }
 
 .pv-heading {
-  font-size: 20px;
+  font-size: calc(20px * var(--type-scale, 1));
   font-weight: 700;
 }
 
 .pv-text {
   margin: 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--type-scale, 1));
   color: var(--ink-soft);
 }
 
 .pv-button {
   display: inline-block;
-  font-size: 13px;
+  font-size: calc(13px * var(--type-scale, 1));
   padding: 6px 14px;
   border-radius: 999px;
   background: var(--ink);
