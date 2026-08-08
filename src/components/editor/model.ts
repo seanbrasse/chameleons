@@ -748,6 +748,7 @@ export type PresetKind =
   | 'splitHero'
   | 'eyebrowHero'
   | 'heroActions'
+  | 'editorialHero'
   | 'about'
   | 'gradientHero'
   | 'featureGrid'
@@ -787,6 +788,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'splitHero', label: 'Split hero', hint: 'A two-column intro: heading, tagline and button beside an image' },
   { preset: 'eyebrowHero', label: 'Eyebrow hero', hint: 'A hero led by a badge eyebrow over a big heading, tagline and button' },
   { preset: 'heroActions', label: 'Hero + actions', hint: 'A hero with a big heading, tagline and a solid + ghost button pair' },
+  { preset: 'editorialHero', label: 'Editorial hero', hint: 'A minimal hero: a large light-weight centred heading, tagline and ghost button' },
   { preset: 'about', label: 'About / bio', hint: 'A portrait beside an About heading, a bio paragraph and a detail line' },
   { preset: 'gradientHero', label: 'Gradient hero', hint: 'A gradient panel with big gradient type that staggers in on load' },
   { preset: 'featureGrid', label: 'Feature grid', hint: 'A heading over a row of three cards that stagger in on load' },
@@ -953,6 +955,42 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     secondary.buttonVariant = 'ghost';
     secondary.animation = { effect: 'rise', trigger: 'load' };
     return [box, heading, tagline, primary, secondary];
+  }
+
+  if (preset === 'editorialHero') {
+    // A minimal, editorial hero: a large light-weight display heading centred
+    // over a relaxed-leading tagline and a single ghost button. It leans on the
+    // type controls — light weight, relaxed leading — for a quiet, modern feel
+    // distinct from the bold-headline heroes. Everything centres and rises in.
+    const box = makeBlock('container', 'Hero', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 13 });
+    box.stagger = true;
+    box.locked = true;
+    const heading = presetChild('heading', 'Title', 'Considered work, simply shown', box.id, { col: 3, colSpan: GRID_COLS - 4, row: row + 2 });
+    heading.size = 'xl';
+    heading.weight = 'light';
+    heading.align = 'center';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const taglineSpan = Math.round(GRID_COLS * 0.55);
+    const taglineCol = Math.round((GRID_COLS - taglineSpan) / 2) + 1;
+    const tagline = presetChild('text', 'Tagline', 'A quiet, modern portfolio that lets the work speak.', box.id, {
+      col: taglineCol,
+      colSpan: taglineSpan,
+      row: row + 6,
+      rowSpan: 3,
+    });
+    tagline.align = 'center';
+    tagline.leading = 'relaxed';
+    tagline.animation = { effect: 'rise', trigger: 'load' };
+    const btnSpan = 8;
+    const button = presetChild('button', 'Button', 'View work', box.id, {
+      col: Math.round((GRID_COLS - btnSpan) / 2) + 1,
+      colSpan: btnSpan,
+      row: row + 10,
+    });
+    button.buttonVariant = 'ghost';
+    button.animation = { effect: 'rise', trigger: 'load' };
+    return [box, heading, tagline, button];
   }
 
   if (preset === 'about') {
