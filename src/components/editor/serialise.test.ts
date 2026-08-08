@@ -179,6 +179,17 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(junk && 'textCase' in junk).toBe(false);
   });
 
+  it('round-trips line height, and drops normal (the default) and junk', () => {
+    const led: Block[] = [
+      { id: 't', kind: 'text', label: 'Text', leading: 'relaxed', placement: { col: 1, colSpan: 8, row: 1 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(led))).toEqual(led);
+    const [asNormal] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'text', leading: 'normal' } }]));
+    expect(asNormal && 'leading' in asNormal).toBe(false);
+    const [junk] = fromLayoutDocument(doc([{ id: 'b', props: { kind: 'text', leading: 'airy' } }]));
+    expect(junk && 'leading' in junk).toBe(false);
+  });
+
   it('round-trips opacity, and drops one out of the 0–1 range', () => {
     const faint: Block[] = [
       { id: 'h', kind: 'heading', label: 'Heading', opacity: 0.4, placement: { col: 1, colSpan: 8, row: 1 } },
