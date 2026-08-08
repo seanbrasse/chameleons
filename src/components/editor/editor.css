@@ -72,6 +72,28 @@
   margin: 0 0 6px 4px;
 }
 
+/* The Components search box — filters the preset groups as you type. */
+.ed-palette-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.ed-palette-search:focus {
+  outline: none;
+  border-color: var(--sel);
+}
+.ed-palette-empty {
+  padding: 8px 4px;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
 .ed-palette-item {
   width: 100%;
   display: flex;

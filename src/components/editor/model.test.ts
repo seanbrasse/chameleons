@@ -28,6 +28,7 @@ import {
   PRESETS,
   PRESET_GROUP_ORDER,
   presetGroup,
+  presetMatches,
   isGuide,
   isGutter,
   makeBlock,
@@ -288,6 +289,22 @@ describe('containers and the tree', () => {
     // at least a couple of groups are actually populated (grouping is meaningful)
     const used = new Set(PRESETS.map((p) => presetGroup(p.preset)));
     expect(used.size).toBeGreaterThan(3);
+  });
+
+  it('presetMatches filters presets by label, hint, group, case-insensitively', () => {
+    const hero = PRESETS.find((p) => p.preset === 'hero')!;
+    // empty / whitespace query matches everything
+    expect(presetMatches(hero, '')).toBe(true);
+    expect(presetMatches(hero, '   ')).toBe(true);
+    // case-insensitive label match
+    expect(presetMatches(hero, 'HERO')).toBe(true);
+    // group-name match (hero is in the Heroes group)
+    expect(presetMatches(hero, 'heroes')).toBe(true);
+    // a clearly-unrelated query does not match
+    expect(presetMatches(hero, 'zzzznope')).toBe(false);
+    // hint match: the footer preset's hint mentions "copyright"
+    const footer = PRESETS.find((p) => p.preset === 'footer')!;
+    expect(presetMatches(footer, 'copyright')).toBe(true);
   });
 
   it('isPresetKind validates preset names', () => {
