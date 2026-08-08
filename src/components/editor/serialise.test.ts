@@ -281,10 +281,11 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(block && 'animation' in block).toBe(false);
   });
 
-  it('round-trips the slide and blur entrance effects', () => {
+  it('round-trips the slide, blur, and flip entrance effects', () => {
     const animated: Block[] = [
       { id: 's', kind: 'card', label: 'Slide', animation: { effect: 'slide', trigger: 'load' }, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 4 } },
       { id: 'b', kind: 'card', label: 'Blur', animation: { effect: 'blur', trigger: 'scroll' }, placement: { col: 1, colSpan: 8, row: 5, rowSpan: 4 } },
+      { id: 'f', kind: 'card', label: 'Flip', animation: { effect: 'flip', trigger: 'load' }, placement: { col: 1, colSpan: 8, row: 9, rowSpan: 4 } },
     ];
     expect(fromLayoutDocument(toLayoutDocument(animated))).toEqual(animated);
   });
