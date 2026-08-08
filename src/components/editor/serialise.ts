@@ -29,6 +29,7 @@ import {
   isContentSource,
   isFontChoice,
   isGlowLevel,
+  isRingLevel,
   isGradientKind,
   isRadiusLevel,
   isTextAlign,
@@ -74,6 +75,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           ...(block.radius !== undefined ? { radius: block.radius } : {}),
           ...(block.gradient !== undefined ? { gradient: block.gradient } : {}),
           ...(block.glow !== undefined ? { glow: block.glow } : {}),
+          ...(block.ring !== undefined ? { ring: block.ring } : {}),
           ...(block.imageUrl !== undefined ? { imageUrl: block.imageUrl } : {}),
           ...(block.text !== undefined ? { text: block.text } : {}),
         },
@@ -149,6 +151,7 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     if (isRadiusLevel(props.radius)) block.radius = props.radius;
     if (isGradientKind(props.gradient)) block.gradient = props.gradient;
     if (isGlowLevel(props.glow)) block.glow = props.glow;
+    if (isRingLevel(props.ring)) block.ring = props.ring;
     if (typeof props.imageUrl === 'string') block.imageUrl = props.imageUrl;
     if (typeof props.text === 'string') block.text = props.text;
     blocks.push(block);

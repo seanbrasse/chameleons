@@ -43,6 +43,7 @@ import {
   newBlockId,
   FONT_CHOICES,
   GLOW_LEVELS,
+  RING_LEVELS,
   GRADIENTS,
   PAGE_THEMES,
   RADIUS_LEVELS,
@@ -1559,7 +1560,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       >
         {isEditMode ? <span className="ed-block-tag">{block.label}</span> : null}
         <div
-          className={`ed-block-body${canAlign(block) && block.font ? ` ed-font-${block.font}` : ''}${canAlign(block) && block.size ? ` ed-size-${block.size}` : ''}${canAlign(block) && block.tracking && block.tracking !== 'normal' ? ` ed-track-${block.tracking}` : ''}${canAlign(block) && block.textGradient ? ` ed-bg-${block.textGradient} ed-text-clip` : ''}`}
+          className={`ed-block-body${canAlign(block) && block.font ? ` ed-font-${block.font}` : ''}${canAlign(block) && block.size ? ` ed-size-${block.size}` : ''}${canAlign(block) && block.tracking && block.tracking !== 'normal' ? ` ed-track-${block.tracking}` : ''}${canAlign(block) && block.textGradient ? ` ed-bg-${block.textGradient} ed-text-clip` : ''}${cont && block.ring ? ` ed-ring-${block.ring}` : ''}`}
           style={{
             ...bodyScale,
             textAlign: canAlign(block) ? block.align : undefined,
@@ -2234,6 +2235,34 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                         onClick={() => update(selected.id, { glow: g })}
                       >
                         {g === 'soft' ? '◌' : '◉'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="ed-field">
+                  <span className="ed-field-label">Ring</span>
+                  <div className="ed-arrange">
+                    <button
+                      type="button"
+                      className={`ed-arrange-btn${selected.ring === undefined ? ' is-on' : ''}`}
+                      title="No ring"
+                      aria-label="No ring"
+                      aria-pressed={selected.ring === undefined}
+                      onClick={() => update(selected.id, { ring: undefined })}
+                    >
+                      Off
+                    </button>
+                    {RING_LEVELS.map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        className={`ed-arrange-btn${selected.ring === r ? ' is-on' : ''}`}
+                        title={`${r[0]!.toUpperCase()}${r.slice(1)} ring`}
+                        aria-label={`${r} ring`}
+                        aria-pressed={selected.ring === r}
+                        onClick={() => update(selected.id, { ring: r })}
+                      >
+                        {r === 'hairline' ? '▫' : '◻'}
                       </button>
                     ))}
                   </div>
