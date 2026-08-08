@@ -622,6 +622,23 @@ describe('containers and the tree', () => {
     expect(spans[1]!.end).toBeLessThan(spans[2]!.start);
   });
 
+  it('the figure preset sets a rounded image over a centred caption', () => {
+    const [box, image, caption] = makePreset('figure', 5);
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    // the image is rounded and sits above the caption
+    expect(image?.kind).toBe('image');
+    expect(image?.imageRadius).toBe('md');
+    expect(caption?.kind).toBe('text');
+    expect(caption?.align).toBe('center');
+    expect(image!.placement.row).toBeLessThan(caption!.placement.row);
+    // both nest in the box and rise on load
+    for (const child of [image, caption]) {
+      expect(child?.parentId).toBe(box?.id);
+      expect(child?.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+  });
+
   it('the banner preset pairs a message and an inline button in a ringed bar', () => {
     const [box, message, button] = makePreset('banner', 5);
     expect(box?.kind).toBe('container');
