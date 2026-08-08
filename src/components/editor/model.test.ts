@@ -26,6 +26,8 @@ import {
   lockedRootOf,
   makePreset,
   PRESETS,
+  PRESET_GROUP_ORDER,
+  presetGroup,
   isGuide,
   isGutter,
   makeBlock,
@@ -275,6 +277,17 @@ describe('containers and the tree', () => {
     expect(children.every((c) => c.parentId === card!.id)).toBe(true);
     // the card really is the parent of all of them
     expect(descendantIds(group, card!.id).size).toBe(children.length);
+  });
+
+  it('every preset is filed under a known group in the ordered list', () => {
+    for (const { preset } of PRESETS) {
+      const g = presetGroup(preset);
+      expect(typeof g).toBe('string');
+      expect(PRESET_GROUP_ORDER).toContain(g);
+    }
+    // at least a couple of groups are actually populated (grouping is meaningful)
+    const used = new Set(PRESETS.map((p) => presetGroup(p.preset)));
+    expect(used.size).toBeGreaterThan(3);
   });
 
   it('isPresetKind validates preset names', () => {
