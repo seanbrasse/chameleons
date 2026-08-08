@@ -44,6 +44,7 @@ import {
   FONT_CHOICES,
   GLOW_LEVELS,
   RING_LEVELS,
+  ELEVATIONS,
   DIVIDER_STYLES,
   BADGE_TONES,
   BUTTON_VARIANTS,
@@ -1552,7 +1553,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         data-block-id={block.id}
         aria-label={`${block.label} block`}
         data-anim-trigger={anim?.trigger === 'scroll' ? 'scroll' : undefined}
-        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${cont ? ` ed-radius-${block.radius ?? 'md'}` : ''}${cont && block.gradient ? ` ed-bg-${block.gradient}` : ''}${cont && block.glow ? ` ed-glow-${block.glow}` : ''}${cont && block.glass ? ' ed-glass' : ''}${cont && block.grain ? ' ed-grain' : ''}${cont && block.auroraBorder ? ' ed-aurora-border' : ''}${cont && block.stagger ? ' pv-stagger' : ''}${block.parentId !== undefined ? ' is-nested' : ''}${isLocked ? ' is-locked' : ''}${inLocked ? ' in-locked' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId ? ' is-trigger' : ''}${isSelected(block.id) ? ' is-selected' : ''}${dropTargetId === block.id ? ' is-drop-target' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
+        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${cont ? ` ed-radius-${block.radius ?? 'md'}` : ''}${cont && block.gradient ? ` ed-bg-${block.gradient}` : ''}${cont && block.glow ? ` ed-glow-${block.glow}` : ''}${cont && block.elevation ? ` ed-elev-${block.elevation}` : ''}${cont && block.glass ? ' ed-glass' : ''}${cont && block.grain ? ' ed-grain' : ''}${cont && block.auroraBorder ? ' ed-aurora-border' : ''}${cont && block.stagger ? ' pv-stagger' : ''}${block.parentId !== undefined ? ' is-nested' : ''}${isLocked ? ' is-locked' : ''}${inLocked ? ' in-locked' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId ? ' is-trigger' : ''}${isSelected(block.id) ? ' is-selected' : ''}${dropTargetId === block.id ? ' is-drop-target' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
         style={{
           left: (free ? free.left : box.left) - origin.left,
           top: (free ? free.top : box.top) - origin.top,
@@ -2308,6 +2309,34 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                         onClick={() => update(selected.id, { ring: r })}
                       >
                         {r === 'hairline' ? '▫' : '◻'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="ed-field">
+                  <span className="ed-field-label">Shadow</span>
+                  <div className="ed-arrange">
+                    <button
+                      type="button"
+                      className={`ed-arrange-btn${selected.elevation === undefined ? ' is-on' : ''}`}
+                      title="No shadow"
+                      aria-label="No shadow"
+                      aria-pressed={selected.elevation === undefined}
+                      onClick={() => update(selected.id, { elevation: undefined })}
+                    >
+                      Off
+                    </button>
+                    {ELEVATIONS.map((e) => (
+                      <button
+                        key={e}
+                        type="button"
+                        className={`ed-arrange-btn${selected.elevation === e ? ' is-on' : ''}`}
+                        title={`${e.toUpperCase()} shadow`}
+                        aria-label={`${e} shadow`}
+                        aria-pressed={selected.elevation === e}
+                        onClick={() => update(selected.id, { elevation: e })}
+                      >
+                        {e.toUpperCase()}
                       </button>
                     ))}
                   </div>

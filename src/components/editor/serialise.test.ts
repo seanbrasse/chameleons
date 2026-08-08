@@ -324,6 +324,15 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(junk && 'buttonVariant' in junk).toBe(false);
   });
 
+  it('round-trips an elevation, and drops a bad one', () => {
+    const lifted: Block[] = [
+      { id: 'e', kind: 'card', label: 'Card', elevation: 'md', placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(lifted))).toEqual(lifted);
+    const [junk] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'card', elevation: 'huge' } }]));
+    expect(junk && 'elevation' in junk).toBe(false);
+  });
+
   it('round-trips a ring, and drops a bad one', () => {
     const ringed: Block[] = [
       { id: 'c', kind: 'card', label: 'Card', ring: 'bold', placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },

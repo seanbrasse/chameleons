@@ -30,6 +30,7 @@ import {
   isFontChoice,
   isGlowLevel,
   isRingLevel,
+  isElevation,
   isDividerStyle,
   isBadgeTone,
   isButtonVariant,
@@ -85,6 +86,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           ...(block.gradient !== undefined ? { gradient: block.gradient } : {}),
           ...(block.glow !== undefined ? { glow: block.glow } : {}),
           ...(block.ring !== undefined ? { ring: block.ring } : {}),
+          ...(block.elevation !== undefined ? { elevation: block.elevation } : {}),
           ...(block.dividerStyle !== undefined && block.dividerStyle !== 'solid' ? { dividerStyle: block.dividerStyle } : {}),
           ...(block.badgeTone !== undefined && block.badgeTone !== 'accent' ? { badgeTone: block.badgeTone } : {}),
           ...(block.buttonVariant !== undefined && block.buttonVariant !== 'solid' ? { buttonVariant: block.buttonVariant } : {}),
@@ -176,6 +178,7 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     if (isGradientKind(props.gradient)) block.gradient = props.gradient;
     if (isGlowLevel(props.glow)) block.glow = props.glow;
     if (isRingLevel(props.ring)) block.ring = props.ring;
+    if (isElevation(props.elevation)) block.elevation = props.elevation;
     if (isDividerStyle(props.dividerStyle) && props.dividerStyle !== 'solid') block.dividerStyle = props.dividerStyle;
     if (isBadgeTone(props.badgeTone) && props.badgeTone !== 'accent') block.badgeTone = props.badgeTone;
     if (isButtonVariant(props.buttonVariant) && props.buttonVariant !== 'solid') block.buttonVariant = props.buttonVariant;
