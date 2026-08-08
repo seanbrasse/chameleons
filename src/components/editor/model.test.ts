@@ -371,8 +371,31 @@ describe('containers and the tree', () => {
     }
   });
 
+  it('the statsBand preset lays four staggered metric columns side by side', () => {
+    const group = makePreset('statsBand', 5);
+    const [box] = group;
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    // four big numbers, each centre-aligned and rising on load
+    const numbers = group.filter((b) => b.label === 'Number');
+    expect(numbers).toHaveLength(4);
+    for (const n of numbers) {
+      expect(n.size).toBe('xl');
+      expect(n.align).toBe('center');
+      expect(n.parentId).toBe(box?.id);
+      expect(n.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the columns sit side by side, never overlapping
+    const spans = numbers
+      .map((n) => ({ start: n.placement.col, end: n.placement.col + n.placement.colSpan - 1 }))
+      .sort((a, b) => a.start - b.start);
+    for (let i = 1; i < spans.length; i++) {
+      expect(spans[i - 1]!.end).toBeLessThan(spans[i]!.start);
+    }
+  });
+
   it('every preset lands in bounds and selects its first block', () => {
-    const kinds = ['animatedCard', 'hero', 'gradientHero', 'featureGrid', 'ctaBand', 'testimonial', 'contactForm', 'contactModal'] as const;
+    const kinds = ['animatedCard', 'hero', 'gradientHero', 'featureGrid', 'ctaBand', 'testimonial', 'statsBand', 'contactForm', 'contactModal'] as const;
     for (const preset of kinds) {
       const group = makePreset(preset, 40);
       expect(group.length).toBeGreaterThan(0);

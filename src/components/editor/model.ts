@@ -692,6 +692,7 @@ export type PresetKind =
   | 'featureGrid'
   | 'ctaBand'
   | 'testimonial'
+  | 'statsBand'
   | 'contactForm'
   | 'contactModal';
 
@@ -702,6 +703,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'featureGrid', label: 'Feature grid', hint: 'A heading over a row of three cards that stagger in on load' },
   { preset: 'ctaBand', label: 'CTA band', hint: 'A full-width gradient call-to-action: centered heading, line and button' },
   { preset: 'testimonial', label: 'Testimonial', hint: 'A ringed card holding a large quote and an attribution line' },
+  { preset: 'statsBand', label: 'Stats band', hint: 'A full-width row of big metric numbers with labels that stagger in' },
   { preset: 'contactForm', label: 'Contact form', hint: 'A card with name, email and message fields' },
   { preset: 'contactModal', label: 'Contact modal', hint: 'A button that opens the contact form in a modal' },
 ];
@@ -879,6 +881,39 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     attribution.size = 'sm';
     attribution.animation = { effect: 'rise', trigger: 'load' };
     return [card, quote, attribution];
+  }
+
+  if (preset === 'statsBand') {
+    // A full-width band showing four big metrics, each a large number over a
+    // small label. The columns are evenly spaced by column math and stagger in
+    // on load — the classic "by the numbers" section.
+    const gap = 2;
+    const startCol = 3;
+    const contentSpan = GRID_COLS - 4;
+    const statSpan = Math.max(6, Math.floor((contentSpan - gap * 3) / 4));
+    const box = makeBlock('container', 'Stats', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 9 });
+    box.stagger = true;
+    box.locked = true;
+    const stats = [
+      { num: '120+', label: 'Projects shipped' },
+      { num: '8 yrs', label: 'Experience' },
+      { num: '40+', label: 'Happy clients' },
+      { num: '12', label: 'Awards' },
+    ];
+    const blocks: Block[] = [box];
+    stats.forEach((s, i) => {
+      const col = startCol + i * (statSpan + gap);
+      const num = presetChild('heading', 'Number', s.num, box.id, { col, colSpan: statSpan, row: row + 2 });
+      num.size = 'xl';
+      num.align = 'center';
+      num.animation = { effect: 'rise', trigger: 'load' };
+      const label = presetChild('text', 'Label', s.label, box.id, { col, colSpan: statSpan, row: row + 5, rowSpan: 2 });
+      label.align = 'center';
+      label.animation = { effect: 'rise', trigger: 'load' };
+      blocks.push(num, label);
+    });
+    return blocks;
   }
 
   if (preset === 'contactForm') {
