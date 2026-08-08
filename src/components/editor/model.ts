@@ -161,6 +161,8 @@ export type Block = {
   bg?: string;
   /** Corner radius for a container / card. Absent means its default rounding. */
   radius?: RadiusLevel;
+  /** The image source URL for an `image` block. Absent shows the placeholder. */
+  imageUrl?: string;
   /** The container this block nests inside, if any. A block with a `parentId`
    *  renders inside that container — clipped to it, and carried when it moves or
    *  scales. Placement stays in absolute artboard cells regardless of nesting;

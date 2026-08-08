@@ -2035,6 +2035,19 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               </label>
             ) : null}
 
+            {selected.kind === 'image' ? (
+              <label className="ed-field">
+                <span className="ed-field-label">Image URL</span>
+                <input
+                  value={selected.imageUrl ?? ''}
+                  placeholder="https://…"
+                  onChange={(e) =>
+                    update(selected.id, { imageUrl: e.target.value.trim() === '' ? undefined : e.target.value.trim() })
+                  }
+                />
+              </label>
+            ) : null}
+
             {isContainer(selected.kind) ? (
               <>
                 <div className="ed-field">
@@ -2996,7 +3009,12 @@ function BlockPreview({
         />
       );
     case 'image':
-      return <div className="pv-image">Image</div>;
+      return block.imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- a user-pasted URL isn't a next/image host; same as the templates.
+        <img className="pv-image pv-image-set" src={block.imageUrl} alt={block.label} />
+      ) : (
+        <div className="pv-image">Image</div>
+      );
     case 'divider':
       return <div className="pv-divider" />;
     default:
