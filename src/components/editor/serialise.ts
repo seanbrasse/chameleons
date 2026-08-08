@@ -36,6 +36,7 @@ import {
   isTextAlign,
   isTextSize,
   isTrackingLevel,
+  isTextCase,
   sanitizeParents,
   type Animation,
   type Block,
@@ -71,6 +72,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           ...(block.font !== undefined ? { font: block.font } : {}),
           ...(block.size !== undefined ? { size: block.size } : {}),
           ...(block.tracking !== undefined && block.tracking !== 'normal' ? { tracking: block.tracking } : {}),
+          ...(block.textCase !== undefined && block.textCase !== 'none' ? { textCase: block.textCase } : {}),
           ...(block.color !== undefined ? { color: block.color } : {}),
           ...(block.textGradient !== undefined ? { textGradient: block.textGradient } : {}),
           ...(block.bg !== undefined ? { bg: block.bg } : {}),
@@ -157,6 +159,7 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     if (isFontChoice(props.font)) block.font = props.font;
     if (isTextSize(props.size)) block.size = props.size;
     if (isTrackingLevel(props.tracking) && props.tracking !== 'normal') block.tracking = props.tracking;
+    if (isTextCase(props.textCase) && props.textCase !== 'none') block.textCase = props.textCase;
     if (typeof props.color === 'string') block.color = props.color;
     if (isGradientKind(props.textGradient)) block.textGradient = props.textGradient;
     if (typeof props.bg === 'string') block.bg = props.bg;

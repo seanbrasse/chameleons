@@ -51,6 +51,7 @@ import {
   TEXT_ALIGNS,
   TEXT_SIZES,
   TRACKING_LEVELS,
+  TEXT_CASES,
   withoutParent,
   type Animation,
   type Block,
@@ -1565,7 +1566,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       >
         {isEditMode ? <span className="ed-block-tag">{block.label}</span> : null}
         <div
-          className={`ed-block-body${canAlign(block) && block.font ? ` ed-font-${block.font}` : ''}${canAlign(block) && block.size ? ` ed-size-${block.size}` : ''}${canAlign(block) && block.tracking && block.tracking !== 'normal' ? ` ed-track-${block.tracking}` : ''}${canAlign(block) && block.textGradient ? ` ed-bg-${block.textGradient} ed-text-clip` : ''}${cont && block.ring ? ` ed-ring-${block.ring}` : ''}`}
+          className={`ed-block-body${canAlign(block) && block.font ? ` ed-font-${block.font}` : ''}${canAlign(block) && block.size ? ` ed-size-${block.size}` : ''}${canAlign(block) && block.tracking && block.tracking !== 'normal' ? ` ed-track-${block.tracking}` : ''}${canAlign(block) && block.textCase && block.textCase !== 'none' ? ` ed-case-${block.textCase}` : ''}${canAlign(block) && block.textGradient ? ` ed-bg-${block.textGradient} ed-text-clip` : ''}${cont && block.ring ? ` ed-ring-${block.ring}` : ''}`}
           style={{
             ...bodyScale,
             textAlign: canAlign(block) ? block.align : undefined,
@@ -2074,6 +2075,24 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                         onClick={() => update(selected.id, { tracking: t === 'normal' ? undefined : t })}
                       >
                         {t.charAt(0).toUpperCase() + t.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="ed-field">
+                  <span className="ed-field-label">Case</span>
+                  <div className="ed-arrange">
+                    {TEXT_CASES.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        className={`ed-arrange-btn${(selected.textCase ?? 'none') === c ? ' is-on' : ''}`}
+                        title={`${c} case`}
+                        aria-label={`${c} case`}
+                        aria-pressed={(selected.textCase ?? 'none') === c}
+                        onClick={() => update(selected.id, { textCase: c === 'none' ? undefined : c })}
+                      >
+                        {c === 'none' ? 'Aa' : c === 'upper' ? 'AA' : c === 'lower' ? 'aa' : 'Ab'}
                       </button>
                     ))}
                   </div>
