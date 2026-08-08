@@ -779,6 +779,7 @@ export type PresetKind =
   | 'pricingTable'
   | 'priceCard'
   | 'newsletter'
+  | 'navBar'
   | 'footer'
   | 'contactSplit'
   | 'contactForm'
@@ -819,6 +820,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'pricingTable', label: 'Pricing table', hint: 'Three tier cards with prices and buttons; the middle one is highlighted' },
   { preset: 'priceCard', label: 'Price card', hint: 'One featured plan: a badge, price, benefits checklist and a button' },
   { preset: 'newsletter', label: 'Newsletter signup', hint: 'A ringed card with a heading, a line and an inline email field and subscribe button' },
+  { preset: 'navBar', label: 'Nav bar', hint: 'A thin top nav: a brand wordmark left, underlined text links right' },
   { preset: 'footer', label: 'Footer', hint: 'A full-width footer: three columns of links over a centred copyright line' },
   { preset: 'contactSplit', label: 'Contact split', hint: "A heading and intro beside stacked name, email and message fields" },
   { preset: 'contactForm', label: 'Contact form', hint: 'A card with name, email and message fields' },
@@ -2027,6 +2029,41 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     });
     button.animation = { effect: 'rise', trigger: 'load' };
     return [card, heading, line, email, button];
+  }
+
+  if (preset === 'navBar') {
+    // A thin top navigation: a brand wordmark on the left and a right-aligned
+    // cluster of underlined text links. It puts the underline option to work as
+    // the link affordance — the strip that sits at the very top of a page.
+    // Distinct from the announcement bar (a message and a button).
+    const box = makeBlock('container', 'Nav', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 5 });
+    box.stagger = true;
+    box.locked = true;
+    const brandSpan = Math.max(8, Math.round(GRID_COLS * 0.25));
+    const brand = presetChild('heading', 'Brand', 'Studio', box.id, { col: 3, colSpan: brandSpan, row: row + 1, rowSpan: 2 });
+    brand.size = 'sm';
+    brand.animation = { effect: 'rise', trigger: 'load' };
+    const links = ['Work', 'About', 'Contact'];
+    const linkSpan = 6;
+    const gap = 2;
+    const clusterWidth = links.length * linkSpan + (links.length - 1) * gap;
+    const startCol = Math.max(3 + brandSpan + 1, GRID_COLS - 1 - clusterWidth);
+    const blocks: Block[] = [box, brand];
+    links.forEach((label, i) => {
+      const link = presetChild('text', label, label, box.id, {
+        col: startCol + i * (linkSpan + gap),
+        colSpan: linkSpan,
+        row: row + 1,
+        rowSpan: 2,
+      });
+      link.size = 'sm';
+      link.align = 'center';
+      link.underline = true;
+      link.animation = { effect: 'rise', trigger: 'load' };
+      blocks.push(link);
+    });
+    return blocks;
   }
 
   if (preset === 'footer') {

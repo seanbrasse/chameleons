@@ -749,6 +749,32 @@ describe('containers and the tree', () => {
     }
   });
 
+  it('the navBar preset sets a brand left of underlined text links', () => {
+    const group = makePreset('navBar', 5);
+    const [box, brand] = group;
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    expect(brand?.kind).toBe('heading');
+    const links = group.filter((b) => b.kind === 'text');
+    expect(links).toHaveLength(3);
+    // every link is an underlined text block that rises on load
+    for (const link of links) {
+      expect(link.parentId).toBe(box?.id);
+      expect(link.underline).toBe(true);
+      expect(link.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the brand sits entirely to the left of the link cluster, and links stay in the grid
+    const brandEnd = brand!.placement.col + brand!.placement.colSpan - 1;
+    const spans = links
+      .map((l) => ({ start: l.placement.col, end: l.placement.col + l.placement.colSpan - 1 }))
+      .sort((a, b) => a.start - b.start);
+    expect(brandEnd).toBeLessThan(spans[0]!.start);
+    for (let i = 1; i < spans.length; i++) {
+      expect(spans[i - 1]!.end).toBeLessThan(spans[i]!.start);
+    }
+    expect(spans[spans.length - 1]!.end).toBeLessThanOrEqual(GRID_COLS);
+  });
+
   it('the footer preset lays three link columns over a centred copyright', () => {
     const group = makePreset('footer', 5);
     const [box] = group;
