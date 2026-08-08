@@ -29,6 +29,7 @@ import {
   PRESET_GROUP_ORDER,
   presetGroup,
   presetMatches,
+  queryMatches,
   isGuide,
   isGutter,
   makeBlock,
@@ -289,6 +290,16 @@ describe('containers and the tree', () => {
     // at least a couple of groups are actually populated (grouping is meaningful)
     const used = new Set(PRESETS.map((p) => presetGroup(p.preset)));
     expect(used.size).toBeGreaterThan(3);
+  });
+
+  it('queryMatches does a trimmed, case-insensitive substring match over fields', () => {
+    expect(queryMatches(['Heading', 'A paragraph'], '')).toBe(true);
+    expect(queryMatches(['Heading', 'A paragraph'], '  ')).toBe(true);
+    expect(queryMatches(['Heading', 'A paragraph'], 'HEAD')).toBe(true);
+    expect(queryMatches(['Heading', 'A paragraph'], 'paragraph')).toBe(true);
+    expect(queryMatches(['Heading', 'A paragraph'], '  head  ')).toBe(true);
+    expect(queryMatches(['Heading', 'A paragraph'], 'nope')).toBe(false);
+    expect(queryMatches([], 'x')).toBe(false);
   });
 
   it('presetMatches filters presets by label, hint, group, case-insensitively', () => {

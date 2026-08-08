@@ -936,18 +936,19 @@ export function presetGroup(preset: PresetKind): string {
   return PRESET_GROUP_OF[preset];
 }
 
-/** Whether a preset matches a palette search query — a case-insensitive,
- *  whitespace-trimmed substring match against the label, the hint and the
- *  group name. An empty query matches everything, so the search box starts
- *  showing the full palette. */
-export function presetMatches(item: { label: string; hint: string; preset: PresetKind }, query: string): boolean {
+/** Whether any of `fields` contains the query — a case-insensitive,
+ *  whitespace-trimmed substring match. An empty query matches everything, so a
+ *  search box starts by showing the full palette. Shared by both palettes. */
+export function queryMatches(fields: readonly string[], query: string): boolean {
   const q = query.trim().toLowerCase();
   if (q === '') return true;
-  return (
-    item.label.toLowerCase().includes(q) ||
-    item.hint.toLowerCase().includes(q) ||
-    presetGroup(item.preset).toLowerCase().includes(q)
-  );
+  return fields.some((f) => f.toLowerCase().includes(q));
+}
+
+/** Whether a preset matches a palette search query — matches its label, hint
+ *  and group name. */
+export function presetMatches(item: { label: string; hint: string; preset: PresetKind }, query: string): boolean {
+  return queryMatches([item.label, item.hint, presetGroup(item.preset)], query);
 }
 
 /** A child block wired to `parentId`, placed at an absolute cell. */
