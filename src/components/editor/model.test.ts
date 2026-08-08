@@ -583,6 +583,22 @@ describe('containers and the tree', () => {
     expect(Math.abs(leftGap - rightGap)).toBeLessThanOrEqual(1);
   });
 
+  it('the scrollReveal preset reveals its centred lines on scroll into view', () => {
+    const [box, heading, subhead, line] = makePreset('scrollReveal', 5);
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    expect(heading?.size).toBe('lg');
+    // every element is centre-aligned and rises on scroll (not on load)
+    for (const child of [heading, subhead, line]) {
+      expect(child?.parentId).toBe(box?.id);
+      expect(child?.align).toBe('center');
+      expect(child?.animation).toEqual({ effect: 'rise', trigger: 'scroll' });
+    }
+    // the heading sits above the subhead, which sits above the line
+    expect(heading!.placement.row).toBeLessThan(subhead!.placement.row);
+    expect(subhead!.placement.row).toBeLessThan(line!.placement.row);
+  });
+
   it('the logoCloud preset lays five ringed wordmark tiles under a heading', () => {
     const group = makePreset('logoCloud', 5);
     const [box, heading] = group;
