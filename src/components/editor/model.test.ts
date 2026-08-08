@@ -775,6 +775,34 @@ describe('containers and the tree', () => {
     expect(spans[spans.length - 1]!.end).toBeLessThanOrEqual(GRID_COLS);
   });
 
+  it('the navCta preset sets a brand, underlined links and a CTA button', () => {
+    const group = makePreset('navCta', 5);
+    const [box, brand] = group;
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    expect(brand?.kind).toBe('heading');
+    const links = group.filter((b) => b.kind === 'text');
+    const button = group.find((b) => b.kind === 'button');
+    expect(links).toHaveLength(2);
+    expect(button).toBeDefined();
+    // links are underlined; every child rises on load
+    for (const link of links) expect(link.underline).toBe(true);
+    for (const b of group.slice(1)) {
+      expect(b.parentId).toBe(box?.id);
+      expect(b.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // brand sits left of the cluster; links then the button, in order, within the grid
+    const items = [...links, button!].sort((a, b) => a.placement.col - b.placement.col);
+    const brandEnd = brand!.placement.col + brand!.placement.colSpan - 1;
+    expect(brandEnd).toBeLessThan(items[0]!.placement.col);
+    for (let i = 1; i < items.length; i++) {
+      expect(items[i - 1]!.placement.col + items[i - 1]!.placement.colSpan - 1).toBeLessThan(items[i]!.placement.col);
+    }
+    expect(button!.placement.col + button!.placement.colSpan - 1).toBeLessThanOrEqual(GRID_COLS);
+    // the button is the right-most item
+    expect(items[items.length - 1]).toBe(button);
+  });
+
   it('the footer preset lays three link columns over a centred copyright', () => {
     const group = makePreset('footer', 5);
     const [box] = group;
