@@ -208,6 +208,15 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(notUnderlined && 'underline' in notUnderlined).toBe(false);
   });
 
+  it('round-trips an italic flag, and drops a non-true value', () => {
+    const em: Block[] = [
+      { id: 'i', kind: 'text', label: 'Text', italic: true, placement: { col: 1, colSpan: 8, row: 1 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(em))).toEqual(em);
+    const [notItalic] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'text', italic: 1 } }]));
+    expect(notItalic && 'italic' in notItalic).toBe(false);
+  });
+
   it('round-trips a font weight, and drops a bad one', () => {
     const weighted: Block[] = [
       { id: 'h', kind: 'heading', label: 'Heading', weight: 'light', placement: { col: 1, colSpan: 8, row: 1 } },
