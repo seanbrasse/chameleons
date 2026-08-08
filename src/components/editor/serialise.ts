@@ -30,6 +30,7 @@ import {
   isFontChoice,
   isGlowLevel,
   isRingLevel,
+  isDividerStyle,
   isGradientKind,
   isRadiusLevel,
   isTextAlign,
@@ -77,6 +78,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           ...(block.gradient !== undefined ? { gradient: block.gradient } : {}),
           ...(block.glow !== undefined ? { glow: block.glow } : {}),
           ...(block.ring !== undefined ? { ring: block.ring } : {}),
+          ...(block.dividerStyle !== undefined && block.dividerStyle !== 'solid' ? { dividerStyle: block.dividerStyle } : {}),
           ...(block.imageUrl !== undefined ? { imageUrl: block.imageUrl } : {}),
           ...(block.text !== undefined ? { text: block.text } : {}),
         },
@@ -162,6 +164,7 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     if (isGradientKind(props.gradient)) block.gradient = props.gradient;
     if (isGlowLevel(props.glow)) block.glow = props.glow;
     if (isRingLevel(props.ring)) block.ring = props.ring;
+    if (isDividerStyle(props.dividerStyle) && props.dividerStyle !== 'solid') block.dividerStyle = props.dividerStyle;
     if (typeof props.imageUrl === 'string') block.imageUrl = props.imageUrl;
     if (typeof props.text === 'string') block.text = props.text;
     blocks.push(block);

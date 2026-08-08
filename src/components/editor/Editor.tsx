@@ -44,6 +44,7 @@ import {
   FONT_CHOICES,
   GLOW_LEVELS,
   RING_LEVELS,
+  DIVIDER_STYLES,
   GRADIENTS,
   PAGE_THEMES,
   RADIUS_LEVELS,
@@ -2384,6 +2385,26 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               />
             </label>
 
+            {selected.kind === 'divider' ? (
+              <label className="ed-field">
+                <span className="ed-field-label">Line</span>
+                <select
+                  value={selected.dividerStyle ?? 'solid'}
+                  onChange={(e) =>
+                    update(selected.id, {
+                      dividerStyle: e.target.value === 'solid' ? undefined : (e.target.value as (typeof DIVIDER_STYLES)[number]),
+                    })
+                  }
+                >
+                  {DIVIDER_STYLES.map((s) => (
+                    <option key={s} value={s}>
+                      {s[0]!.toUpperCase() + s.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
             <label className="ed-field">
               <span className="ed-field-label">Animation</span>
               <select
@@ -3308,7 +3329,13 @@ function BlockPreview({
         <div className="pv-image">Image</div>
       );
     case 'divider':
-      return <div className="pv-divider" />;
+      return (
+        <div
+          className={`pv-divider${
+            block.dividerStyle && block.dividerStyle !== 'solid' ? ` pv-divider-${block.dividerStyle}` : ''
+          }`}
+        />
+      );
     default:
       return null;
   }
