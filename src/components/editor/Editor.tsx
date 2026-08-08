@@ -8,6 +8,7 @@ import type { LayoutDocument } from '@/templates/layout';
 import './editor.css';
 import { fromLayoutDocument, toLayoutDocument } from './serialise';
 import {
+  ANIM_EASES,
   ANIM_EFFECTS,
   ANIM_SPEEDS,
   ANIM_TRIGGERS,
@@ -1532,7 +1533,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     // marked so the observer above can reveal it in view.
     const anim = !isEditMode && block.animation ? block.animation : null;
     const animClass = anim
-      ? ` pv-anim pv-anim-${anim.effect} pv-anim-${anim.trigger} pv-speed-${anim.speed ?? 'normal'}`
+      ? ` pv-anim pv-anim-${anim.effect} pv-anim-${anim.trigger} pv-speed-${anim.speed ?? 'normal'} pv-ease-${anim.ease ?? 'smooth'}`
       : '';
     return (
       <div
@@ -2263,6 +2264,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                             effect: e.target.value as Animation['effect'],
                             trigger: selected.animation?.trigger ?? 'load',
                             ...(selected.animation?.speed ? { speed: selected.animation.speed } : {}),
+                            ...(selected.animation?.ease ? { ease: selected.animation.ease } : {}),
                           },
                   })
                 }
@@ -2287,6 +2289,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                         effect: selected.animation!.effect,
                         trigger: e.target.value as Animation['trigger'],
                         ...(selected.animation!.speed ? { speed: selected.animation!.speed } : {}),
+                        ...(selected.animation!.ease ? { ease: selected.animation!.ease } : {}),
                       },
                     })
                   }
@@ -2312,6 +2315,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                         effect: selected.animation!.effect,
                         trigger: selected.animation!.trigger,
                         ...(speed && speed !== 'normal' ? { speed } : {}),
+                        ...(selected.animation!.ease ? { ease: selected.animation!.ease } : {}),
                       },
                     });
                   }}
@@ -2319,6 +2323,32 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                   {ANIM_SPEEDS.map((s) => (
                     <option key={s.value} value={s.value}>
                       {s.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
+            {selected.animation ? (
+              <label className="ed-field">
+                <span className="ed-field-label">Curve</span>
+                <select
+                  value={selected.animation.ease ?? 'smooth'}
+                  onChange={(e) => {
+                    const ease = e.target.value as Animation['ease'];
+                    update(selected.id, {
+                      animation: {
+                        effect: selected.animation!.effect,
+                        trigger: selected.animation!.trigger,
+                        ...(selected.animation!.speed ? { speed: selected.animation!.speed } : {}),
+                        ...(ease && ease !== 'smooth' ? { ease } : {}),
+                      },
+                    });
+                  }}
+                >
+                  {ANIM_EASES.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
                     </option>
                   ))}
                 </select>

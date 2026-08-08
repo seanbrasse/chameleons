@@ -233,6 +233,17 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(block?.animation).toEqual({ effect: 'fade', trigger: 'load' });
   });
 
+  it('round-trips an animation curve, and drops a bad one', () => {
+    const curved: Block[] = [
+      { id: 'c', kind: 'card', label: 'Card', animation: { effect: 'zoom', trigger: 'load', speed: 'slow', ease: 'spring' }, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 4 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(curved))).toEqual(curved);
+    const [block] = fromLayoutDocument(
+      doc([{ id: 'a', props: { kind: 'text', animation: { effect: 'fade', trigger: 'load', ease: 'bouncy' } } }]),
+    );
+    expect(block?.animation).toEqual({ effect: 'fade', trigger: 'load' });
+  });
+
   it('round-trips modal role and trigger wiring', () => {
     const wired: Block[] = [
       { id: 'panel', kind: 'card', label: 'Panel', asModal: true, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },
