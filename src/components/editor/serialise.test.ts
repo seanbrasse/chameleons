@@ -137,6 +137,15 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(block && 'glass' in block).toBe(false);
   });
 
+  it('round-trips a film-grain flag, and ignores a non-true value', () => {
+    const grainy: Block[] = [
+      { id: 'box', kind: 'container', label: 'Box', grain: true, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(grainy))).toEqual(grainy);
+    const [block] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'container', grain: 'on' } }]));
+    expect(block && 'grain' in block).toBe(false);
+  });
+
   it('round-trips a text alignment, and drops a bad one', () => {
     const aligned: Block[] = [
       { id: 't', kind: 'text', label: 'Text', align: 'center', placement: { col: 1, colSpan: 8, row: 1 } },
