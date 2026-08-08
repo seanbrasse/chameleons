@@ -260,6 +260,17 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(block && 'glow' in block).toBe(false);
   });
 
+  it('round-trips a divider style, and drops solid (the default) and junk', () => {
+    const ruled: Block[] = [
+      { id: 'd', kind: 'divider', label: 'Divider', dividerStyle: 'gradient', placement: { col: 1, colSpan: 8, row: 1 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(ruled))).toEqual(ruled);
+    const [asSolid] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'divider', dividerStyle: 'solid' } }]));
+    expect(asSolid && 'dividerStyle' in asSolid).toBe(false);
+    const [junk] = fromLayoutDocument(doc([{ id: 'b', props: { kind: 'divider', dividerStyle: 'wavy' } }]));
+    expect(junk && 'dividerStyle' in junk).toBe(false);
+  });
+
   it('round-trips a ring, and drops a bad one', () => {
     const ringed: Block[] = [
       { id: 'c', kind: 'card', label: 'Card', ring: 'bold', placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },

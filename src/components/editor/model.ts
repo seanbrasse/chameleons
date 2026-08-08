@@ -185,6 +185,8 @@ export type Block = {
   ring?: RingLevel;
   /** The image source URL for an `image` block. Absent shows the placeholder. */
   imageUrl?: string;
+  /** The line style for a `divider` block. Absent means a solid hairline. */
+  dividerStyle?: DividerStyle;
   /** The container this block nests inside, if any. A block with a `parentId`
    *  renders inside that container — clipped to it, and carried when it moves or
    *  scales. Placement stays in absolute artboard cells regardless of nesting;
@@ -420,6 +422,15 @@ export type TrackingLevel = 'tight' | 'normal' | 'wide' | 'wider';
 export const TRACKING_LEVELS: readonly TrackingLevel[] = ['tight', 'normal', 'wide', 'wider'];
 export function isTrackingLevel(value: unknown): value is TrackingLevel {
   return typeof value === 'string' && (TRACKING_LEVELS as readonly string[]).includes(value);
+}
+
+/** Line style for a divider — a solid hairline, a dashed or dotted rule, or a
+ *  gradient hairline that fades at both ends. The concrete strokes live in the
+ *  editor CSS as `.pv-divider-<style>` classes; absence means solid. */
+export type DividerStyle = 'solid' | 'dashed' | 'dotted' | 'gradient';
+export const DIVIDER_STYLES: readonly DividerStyle[] = ['solid', 'dashed', 'dotted', 'gradient'];
+export function isDividerStyle(value: unknown): value is DividerStyle {
+  return typeof value === 'string' && (DIVIDER_STYLES as readonly string[]).includes(value);
 }
 
 /** Corner radius for a container / card — the concrete pixels live in the CSS. */

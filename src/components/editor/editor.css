@@ -1884,6 +1884,23 @@
   background: var(--line);
 }
 
+/* Divider styles. Dashed and dotted swap the fill for a stroked top border;
+   the gradient rule is a hairline that dissolves at both ends — a soft, modern
+   separator that reads well under a heading. */
+.pv-divider-dashed {
+  height: 0;
+  background: none;
+  border-top: 1.5px dashed var(--line);
+}
+.pv-divider-dotted {
+  height: 0;
+  background: none;
+  border-top: 2px dotted var(--line);
+}
+.pv-divider-gradient {
+  background: linear-gradient(90deg, transparent 0%, var(--line) 25%, var(--line) 75%, transparent 100%);
+}
+
 /* ── inline text editing ──────────────────────────────────────────── */
 
 .pv-edit {
