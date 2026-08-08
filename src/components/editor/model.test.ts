@@ -317,8 +317,28 @@ describe('containers and the tree', () => {
     }
   });
 
+  it('the featureGrid preset lays three staggered cards under a heading', () => {
+    const group = makePreset('featureGrid', 5);
+    const [box] = group;
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    const cards = group.filter((b) => b.kind === 'card');
+    expect(cards).toHaveLength(3);
+    // every card is a direct child of the outer container and rises on load
+    for (const card of cards) {
+      expect(card.parentId).toBe(box?.id);
+      expect(card.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the three cards sit side by side, never overlapping in columns
+    const spans = cards
+      .map((c) => ({ start: c.placement.col, end: c.placement.col + c.placement.colSpan - 1 }))
+      .sort((a, b) => a.start - b.start);
+    expect(spans[0]!.end).toBeLessThan(spans[1]!.start);
+    expect(spans[1]!.end).toBeLessThan(spans[2]!.start);
+  });
+
   it('every preset lands in bounds and selects its first block', () => {
-    const kinds = ['animatedCard', 'hero', 'gradientHero', 'contactForm', 'contactModal'] as const;
+    const kinds = ['animatedCard', 'hero', 'gradientHero', 'featureGrid', 'contactForm', 'contactModal'] as const;
     for (const preset of kinds) {
       const group = makePreset(preset, 40);
       expect(group.length).toBeGreaterThan(0);
