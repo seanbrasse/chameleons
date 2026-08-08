@@ -21,6 +21,7 @@ import type { LayoutDocument, LayoutNode } from '@/templates/layout';
 
 import { LAYOUT_VERSION } from '@/templates/layout';
 import {
+  isAnimEase,
   isAnimEffect,
   isAnimSpeed,
   isAnimTrigger,
@@ -111,6 +112,7 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
         effect: a.effect,
         trigger: a.trigger,
         ...(isAnimSpeed(a.speed) ? { speed: a.speed } : {}),
+        ...(isAnimEase(a.ease) ? { ease: a.ease } : {}),
       };
     }
     if (props.asModal === true) block.asModal = true;
