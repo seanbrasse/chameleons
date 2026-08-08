@@ -11,6 +11,7 @@ import {
   isContainer,
   isFontChoice,
   isTextSize,
+  isGlowLevel,
   isGradientKind,
   isInput,
   isPageTheme,
@@ -147,6 +148,13 @@ describe('validation guards', () => {
     expect(isGradientKind('night')).toBe(true);
     expect(isGradientKind('rainbow')).toBe(false);
     expect(isGradientKind(undefined)).toBe(false);
+  });
+
+  it('isGlowLevel', () => {
+    expect(isGlowLevel('soft')).toBe(true);
+    expect(isGlowLevel('strong')).toBe(true);
+    expect(isGlowLevel('none')).toBe(false);
+    expect(isGlowLevel(undefined)).toBe(false);
   });
 
   it('canAlign covers text primitives only', () => {

@@ -165,6 +165,8 @@ export type Block = {
   radius?: RadiusLevel;
   /** A gradient surface for a container / card. Overrides `bg` when set. */
   gradient?: GradientKind;
+  /** A soft outer glow behind a container / card. Absent means no glow. */
+  glow?: GlowLevel;
   /** The image source URL for an `image` block. Absent shows the placeholder. */
   imageUrl?: string;
   /** The container this block nests inside, if any. A block with a `parentId`
@@ -375,6 +377,15 @@ export const GRADIENTS: { value: GradientKind; label: string }[] = [
 ];
 export function isGradientKind(value: unknown): value is GradientKind {
   return typeof value === 'string' && GRADIENTS.some((g) => g.value === value);
+}
+
+/** A soft outer glow behind a container / card — a signature modern touch. The
+ *  concrete halos live in the editor CSS as `.ed-glow-<level>` classes; absence
+ *  means no glow. */
+export type GlowLevel = 'soft' | 'strong';
+export const GLOW_LEVELS: readonly GlowLevel[] = ['soft', 'strong'];
+export function isGlowLevel(value: unknown): value is GlowLevel {
+  return typeof value === 'string' && (GLOW_LEVELS as readonly string[]).includes(value);
 }
 
 /** Whether alignment applies to a block — the same set as free text, plus a

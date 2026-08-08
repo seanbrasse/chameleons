@@ -40,6 +40,7 @@ import {
   maxCol,
   newBlockId,
   FONT_CHOICES,
+  GLOW_LEVELS,
   GRADIENTS,
   PAGE_THEMES,
   RADIUS_LEVELS,
@@ -1536,7 +1537,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         data-block-id={block.id}
         aria-label={`${block.label} block`}
         data-anim-trigger={anim?.trigger === 'scroll' ? 'scroll' : undefined}
-        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${cont ? ` ed-radius-${block.radius ?? 'md'}` : ''}${cont && block.gradient ? ` ed-bg-${block.gradient}` : ''}${block.parentId !== undefined ? ' is-nested' : ''}${isLocked ? ' is-locked' : ''}${inLocked ? ' in-locked' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId ? ' is-trigger' : ''}${isSelected(block.id) ? ' is-selected' : ''}${dropTargetId === block.id ? ' is-drop-target' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
+        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${cont ? ` ed-radius-${block.radius ?? 'md'}` : ''}${cont && block.gradient ? ` ed-bg-${block.gradient}` : ''}${cont && block.glow ? ` ed-glow-${block.glow}` : ''}${block.parentId !== undefined ? ' is-nested' : ''}${isLocked ? ' is-locked' : ''}${inLocked ? ' in-locked' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId ? ' is-trigger' : ''}${isSelected(block.id) ? ' is-selected' : ''}${dropTargetId === block.id ? ' is-drop-target' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
         style={{
           left: (free ? free.left : box.left) - origin.left,
           top: (free ? free.top : box.top) - origin.top,
@@ -2155,6 +2156,34 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                         onClick={() => update(selected.id, { radius: r === 'md' ? undefined : r })}
                       >
                         {r === 'none' ? '⬛' : r === 'sm' ? '◻' : r === 'md' ? '▢' : '⬭'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="ed-field">
+                  <span className="ed-field-label">Glow</span>
+                  <div className="ed-arrange">
+                    <button
+                      type="button"
+                      className={`ed-arrange-btn${selected.glow === undefined ? ' is-on' : ''}`}
+                      title="No glow"
+                      aria-label="No glow"
+                      aria-pressed={selected.glow === undefined}
+                      onClick={() => update(selected.id, { glow: undefined })}
+                    >
+                      Off
+                    </button>
+                    {GLOW_LEVELS.map((g) => (
+                      <button
+                        key={g}
+                        type="button"
+                        className={`ed-arrange-btn${selected.glow === g ? ' is-on' : ''}`}
+                        title={`${g[0]!.toUpperCase()}${g.slice(1)} glow`}
+                        aria-label={`${g} glow`}
+                        aria-pressed={selected.glow === g}
+                        onClick={() => update(selected.id, { glow: g })}
+                      >
+                        {g === 'soft' ? '◌' : '◉'}
                       </button>
                     ))}
                   </div>
