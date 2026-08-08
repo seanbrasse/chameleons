@@ -705,6 +705,7 @@ export type PresetKind =
   | 'gradientHero'
   | 'featureGrid'
   | 'featureList'
+  | 'valueProps'
   | 'teamGrid'
   | 'comparison'
   | 'gallery'
@@ -739,6 +740,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'gradientHero', label: 'Gradient hero', hint: 'A gradient panel with big gradient type that staggers in on load' },
   { preset: 'featureGrid', label: 'Feature grid', hint: 'A heading over a row of three cards that stagger in on load' },
   { preset: 'featureList', label: 'Feature + list', hint: 'A heading and paragraph beside a benefits checklist of badge ticks' },
+  { preset: 'valueProps', label: 'Value props', hint: 'A heading over two cards, each a badge, a title and a line' },
   { preset: 'teamGrid', label: 'Team grid', hint: 'A heading over a row of member cards, each an avatar, name and role' },
   { preset: 'comparison', label: 'Before / after', hint: 'A heading over two panels, each a label and an image, side by side' },
   { preset: 'gallery', label: 'Gallery', hint: 'A heading over a 2×3 grid of image tiles that stagger in' },
@@ -1001,6 +1003,48 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       const text = presetChild('text', 'Item', item, box.id, { col: textCol, colSpan: textSpan, row: r, rowSpan: 2 });
       text.animation = { effect: 'rise', trigger: 'load' };
       blocks.push(marker, text);
+    });
+    return blocks;
+  }
+
+  if (preset === 'valueProps') {
+    // Two "pillars" side by side: a heading over two cards, each led by a badge
+    // accent above a title and a line. Fewer, larger cards than the feature grid
+    // — the two-reasons layout. The cards split the width with a gutter so they
+    // never overlap, and everything staggers in on load.
+    const gap = 2;
+    const startCol = 3;
+    const contentSpan = GRID_COLS - 4;
+    const cardSpan = Math.max(10, Math.floor((contentSpan - gap) / 2));
+    const box = makeBlock('container', 'Values', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 15 });
+    box.stagger = true;
+    box.locked = true;
+    const heading = presetChild('heading', 'Title', 'Why work with me', box.id, { col: startCol, colSpan: contentSpan, row: row + 2 });
+    heading.size = 'lg';
+    heading.align = 'center';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const props = [
+      { tag: 'Craft', title: 'Design that lasts', body: 'Considered, modern interfaces built to age well.' },
+      { tag: 'Speed', title: 'Shipped in days', body: 'From first idea to a site that’s live, fast.' },
+    ];
+    const blocks: Block[] = [box, heading];
+    const cardRow = row + 6;
+    props.forEach((p, i) => {
+      const col = startCol + i * (cardSpan + gap);
+      const card = makeBlock('card', p.title, cardRow);
+      card.parentId = box.id;
+      card.placement = clampPlacement({ col, colSpan: cardSpan, row: cardRow, rowSpan: 8 });
+      card.ring = 'hairline';
+      card.animation = { effect: 'rise', trigger: 'load' };
+      const badge = presetChild('badge', 'Tag', p.tag, card.id, { col: col + 1, colSpan: 6, row: cardRow + 1, rowSpan: 2 });
+      badge.animation = { effect: 'rise', trigger: 'load' };
+      const title = presetChild('heading', 'Title', p.title, card.id, { col: col + 1, colSpan: cardSpan - 2, row: cardRow + 3 });
+      title.size = 'sm';
+      title.animation = { effect: 'rise', trigger: 'load' };
+      const body = presetChild('text', 'Text', p.body, card.id, { col: col + 1, colSpan: cardSpan - 2, row: cardRow + 5, rowSpan: 2 });
+      body.animation = { effect: 'rise', trigger: 'load' };
+      blocks.push(card, badge, title, body);
     });
     return blocks;
   }
