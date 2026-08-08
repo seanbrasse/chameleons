@@ -52,6 +52,7 @@ import {
   TEXT_SIZES,
   TRACKING_LEVELS,
   TEXT_CASES,
+  LEADING_LEVELS,
   withoutParent,
   type Animation,
   type Block,
@@ -1566,7 +1567,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       >
         {isEditMode ? <span className="ed-block-tag">{block.label}</span> : null}
         <div
-          className={`ed-block-body${canAlign(block) && block.font ? ` ed-font-${block.font}` : ''}${canAlign(block) && block.size ? ` ed-size-${block.size}` : ''}${canAlign(block) && block.tracking && block.tracking !== 'normal' ? ` ed-track-${block.tracking}` : ''}${canAlign(block) && block.textCase && block.textCase !== 'none' ? ` ed-case-${block.textCase}` : ''}${canAlign(block) && block.textGradient ? ` ed-bg-${block.textGradient} ed-text-clip` : ''}${cont && block.ring ? ` ed-ring-${block.ring}` : ''}`}
+          className={`ed-block-body${canAlign(block) && block.font ? ` ed-font-${block.font}` : ''}${canAlign(block) && block.size ? ` ed-size-${block.size}` : ''}${canAlign(block) && block.tracking && block.tracking !== 'normal' ? ` ed-track-${block.tracking}` : ''}${canAlign(block) && block.textCase && block.textCase !== 'none' ? ` ed-case-${block.textCase}` : ''}${canAlign(block) && block.leading && block.leading !== 'normal' ? ` ed-lead-${block.leading}` : ''}${canAlign(block) && block.textGradient ? ` ed-bg-${block.textGradient} ed-text-clip` : ''}${cont && block.ring ? ` ed-ring-${block.ring}` : ''}`}
           style={{
             ...bodyScale,
             textAlign: canAlign(block) ? block.align : undefined,
@@ -2093,6 +2094,24 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                         onClick={() => update(selected.id, { textCase: c === 'none' ? undefined : c })}
                       >
                         {c === 'none' ? 'Aa' : c === 'upper' ? 'AA' : c === 'lower' ? 'aa' : 'Ab'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="ed-field">
+                  <span className="ed-field-label">Leading</span>
+                  <div className="ed-arrange">
+                    {LEADING_LEVELS.map((l) => (
+                      <button
+                        key={l}
+                        type="button"
+                        className={`ed-arrange-btn${(selected.leading ?? 'normal') === l ? ' is-on' : ''}`}
+                        title={`${l} line height`}
+                        aria-label={`${l} leading`}
+                        aria-pressed={(selected.leading ?? 'normal') === l}
+                        onClick={() => update(selected.id, { leading: l === 'normal' ? undefined : l })}
+                      >
+                        {l.charAt(0).toUpperCase() + l.slice(1)}
                       </button>
                     ))}
                   </div>

@@ -169,6 +169,9 @@ export type Block = {
   /** Letter case for a text primitive. Absent leaves the typed case as-is —
    *  uppercase pairs with wide tracking for the classic eyebrow label. */
   textCase?: TextCase;
+  /** Line height (leading) for a text primitive. Absent means normal — tighter
+   *  leading suits big display headings, looser suits multi-line body copy. */
+  leading?: LeadingLevel;
   /** A CSS colour for a text primitive's words. Absent means the default ink. */
   color?: string;
   /** A gradient that paints a text primitive's words (clipped to the glyphs).
@@ -433,6 +436,14 @@ export type TextCase = 'none' | 'upper' | 'lower' | 'caps';
 export const TEXT_CASES: readonly TextCase[] = ['none', 'upper', 'lower', 'caps'];
 export function isTextCase(value: unknown): value is TextCase {
   return typeof value === 'string' && (TEXT_CASES as readonly string[]).includes(value);
+}
+
+/** Line height (leading) for a text block — the concrete values live in the CSS.
+ *  'normal' is the untouched default and is stored as absent. */
+export type LeadingLevel = 'tight' | 'normal' | 'relaxed';
+export const LEADING_LEVELS: readonly LeadingLevel[] = ['tight', 'normal', 'relaxed'];
+export function isLeadingLevel(value: unknown): value is LeadingLevel {
+  return typeof value === 'string' && (LEADING_LEVELS as readonly string[]).includes(value);
 }
 
 /** Line style for a divider — a solid hairline, a dashed or dotted rule, or a
