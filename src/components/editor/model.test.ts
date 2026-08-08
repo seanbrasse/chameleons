@@ -401,6 +401,32 @@ describe('containers and the tree', () => {
     }
   });
 
+  it('the faq preset stacks question/answer pairs under a heading', () => {
+    const group = makePreset('faq', 5);
+    const [box, heading] = group;
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    expect(heading?.size).toBe('lg');
+    // the title plus one heading per question; answers are text blocks
+    const questions = group.filter((b) => b.kind === 'heading' && b !== heading);
+    const answers = group.filter((b) => b.kind === 'text');
+    expect(questions.length).toBeGreaterThanOrEqual(3);
+    expect(questions).toHaveLength(answers.length);
+    // every child nests in the box and rises on load
+    for (const b of group.slice(1)) {
+      expect(b.parentId).toBe(box?.id);
+      expect(b.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // each answer sits directly below its question, never above it
+    for (const q of questions) {
+      const a = answers.find((t) => t.placement.row > q.placement.row && t.placement.row <= q.placement.row + 3);
+      expect(a).toBeDefined();
+    }
+    // the container is tall enough to hold the last pair
+    const lastRow = Math.max(...answers.map((a) => a.placement.row + (a.placement.rowSpan ?? 1) - 1));
+    expect(box!.placement.row + (box!.placement.rowSpan ?? 1) - 1).toBeGreaterThanOrEqual(lastRow);
+  });
+
   it('the checklist preset pairs a badge tick with a line of text per row', () => {
     const group = makePreset('checklist', 5);
     const [box, heading] = group;
