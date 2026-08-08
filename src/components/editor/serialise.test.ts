@@ -199,6 +199,15 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(junk && 'leading' in junk).toBe(false);
   });
 
+  it('round-trips an underline flag, and drops a non-true value', () => {
+    const linked: Block[] = [
+      { id: 'l', kind: 'text', label: 'Text', underline: true, placement: { col: 1, colSpan: 8, row: 1 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(linked))).toEqual(linked);
+    const [notUnderlined] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'text', underline: 'yes' } }]));
+    expect(notUnderlined && 'underline' in notUnderlined).toBe(false);
+  });
+
   it('round-trips a font weight, and drops a bad one', () => {
     const weighted: Block[] = [
       { id: 'h', kind: 'heading', label: 'Heading', weight: 'light', placement: { col: 1, colSpan: 8, row: 1 } },
