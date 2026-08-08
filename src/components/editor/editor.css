@@ -769,30 +769,47 @@
   to { opacity: 1; transform: none; }
 }
 
+@keyframes pv-anim-slide {
+  from { opacity: 0; transform: translateX(-28px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes pv-anim-blur {
+  from { opacity: 0; filter: blur(12px); }
+  to { opacity: 1; filter: blur(0); }
+}
+
 /* On load: play the entrance once as the preview mounts. */
 .ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-fade { animation: pv-anim-fade 0.5s ease both; }
 .ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-rise { animation: pv-anim-rise 0.5s ease both; }
 .ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-zoom { animation: pv-anim-zoom 0.5s ease both; }
+.ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-slide { animation: pv-anim-slide 0.5s ease both; }
+.ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-blur { animation: pv-anim-blur 0.6s ease both; }
 
 /* On scroll: start hidden, then transition in when the observer adds .is-in. */
 .ed-artboard.is-preview .ed-block.pv-anim-scroll {
   opacity: 0;
-  transition: opacity 0.5s ease, transform 0.5s ease;
+  transition: opacity 0.5s ease, transform 0.5s ease, filter 0.5s ease;
 }
 .ed-artboard.is-preview .ed-block.pv-anim-scroll.pv-anim-rise { transform: translateY(18px); }
 .ed-artboard.is-preview .ed-block.pv-anim-scroll.pv-anim-zoom { transform: scale(0.94); }
+.ed-artboard.is-preview .ed-block.pv-anim-scroll.pv-anim-slide { transform: translateX(-28px); }
+.ed-artboard.is-preview .ed-block.pv-anim-scroll.pv-anim-blur { filter: blur(12px); }
 .ed-artboard.is-preview .ed-block.pv-anim-scroll.is-in {
   opacity: 1;
   transform: none;
+  filter: none;
 }
 
 /* On hover: a small, reversible lift/emphasis. */
 .ed-artboard.is-preview .ed-block.pv-anim-hover {
-  transition: transform 0.25s ease, opacity 0.25s ease;
+  transition: transform 0.25s ease, opacity 0.25s ease, filter 0.25s ease;
 }
 .ed-artboard.is-preview .ed-block.pv-anim-hover.pv-anim-rise:hover { transform: translateY(-6px); }
 .ed-artboard.is-preview .ed-block.pv-anim-hover.pv-anim-zoom:hover { transform: scale(1.03); }
 .ed-artboard.is-preview .ed-block.pv-anim-hover.pv-anim-fade:hover { opacity: 0.75; }
+.ed-artboard.is-preview .ed-block.pv-anim-hover.pv-anim-slide:hover { transform: translateX(6px); }
+.ed-artboard.is-preview .ed-block.pv-anim-hover.pv-anim-blur:hover { filter: blur(2px); }
 
 /* Form inputs — leaf primitives that render a real field. */
 .pv-input,

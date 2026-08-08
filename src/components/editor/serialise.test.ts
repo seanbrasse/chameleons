@@ -214,6 +214,14 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(block && 'animation' in block).toBe(false);
   });
 
+  it('round-trips the slide and blur entrance effects', () => {
+    const animated: Block[] = [
+      { id: 's', kind: 'card', label: 'Slide', animation: { effect: 'slide', trigger: 'load' }, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 4 } },
+      { id: 'b', kind: 'card', label: 'Blur', animation: { effect: 'blur', trigger: 'scroll' }, placement: { col: 1, colSpan: 8, row: 5, rowSpan: 4 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(animated))).toEqual(animated);
+  });
+
   it('round-trips modal role and trigger wiring', () => {
     const wired: Block[] = [
       { id: 'panel', kind: 'card', label: 'Panel', asModal: true, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },
