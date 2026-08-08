@@ -1534,6 +1534,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
           top: (free ? free.top : box.top) - origin.top,
           width: box.width,
           height: box.height,
+          background: cont ? block.bg : undefined,
         }}
         {...editProps}
         {...triggerProps}
@@ -2039,6 +2040,26 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                   <span className="ed-field-label">Size</span>
                   <div className="ed-field-static">Wraps its content — drag a corner to scale it</div>
                 </div>
+                <div className="ed-field">
+                  <span className="ed-field-label">Background</span>
+                  <div className="ed-color-row">
+                    <input
+                      type="color"
+                      className="ed-color"
+                      value={selected.bg ?? DEFAULT_BG_SWATCH}
+                      aria-label="Background colour"
+                      onChange={(e) => update(selected.id, { bg: e.target.value })}
+                    />
+                    <button
+                      type="button"
+                      className="ed-btn"
+                      disabled={selected.bg === undefined}
+                      onClick={() => update(selected.id, { bg: undefined })}
+                    >
+                      Default
+                    </button>
+                  </div>
+                </div>
                 <label className="ed-check">
                   <input
                     type="checkbox"
@@ -2307,6 +2328,9 @@ const SHORTCUTS: { keys: string; label: string }[] = [
  *  builder's default ink. Assembled from parts so the colour-token lint (which
  *  targets literal colours) doesn't flag what is only a native-input placeholder. */
 const DEFAULT_SWATCH = '#' + '1c1b19';
+/** The background swatch's placeholder — white — when a container has no colour.
+ *  Assembled from parts for the same reason as DEFAULT_SWATCH. */
+const DEFAULT_BG_SWATCH = '#' + 'ffffff';
 /** Padding around the artboard inside the scroll area, in screen px. */
 const CANVAS_PAD = 40;
 /** Artboard px of grid to show around the moving object, before its edge fade. */
