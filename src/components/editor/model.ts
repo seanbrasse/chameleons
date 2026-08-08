@@ -868,6 +868,74 @@ export function isPresetKind(value: unknown): value is PresetKind {
   return typeof value === 'string' && PRESETS.some((p) => p.preset === value);
 }
 
+/** The preset palette is large enough to want sections. Each preset maps to a
+ *  category (the Record makes the mapping exhaustive — a new preset won't
+ *  typecheck until it's filed), and PRESET_GROUP_ORDER fixes the display order.
+ *  The palette renders presets grouped by these, in this order. */
+export const PRESET_GROUP_ORDER: readonly string[] = [
+  'Heroes',
+  'Navigation',
+  'Sections',
+  'Media',
+  'Content',
+  'Social proof',
+  'Pricing',
+  'Calls to action',
+  'Forms',
+  'Building blocks',
+];
+const PRESET_GROUP_OF: Record<PresetKind, string> = {
+  hero: 'Heroes',
+  splitHero: 'Heroes',
+  eyebrowHero: 'Heroes',
+  heroActions: 'Heroes',
+  editorialHero: 'Heroes',
+  gradientHero: 'Heroes',
+  statHero: 'Heroes',
+  navBar: 'Navigation',
+  navCta: 'Navigation',
+  banner: 'Navigation',
+  featureGrid: 'Sections',
+  featureList: 'Sections',
+  valueProps: 'Sections',
+  floatingCards: 'Sections',
+  teamGrid: 'Sections',
+  statsBand: 'Sections',
+  steps: 'Sections',
+  logoCloud: 'Sections',
+  comparison: 'Sections',
+  scrollReveal: 'Sections',
+  gallery: 'Media',
+  figure: 'Media',
+  faq: 'Content',
+  faqTwoColumn: 'Content',
+  checklist: 'Content',
+  labeledDivider: 'Content',
+  about: 'Content',
+  testimonial: 'Social proof',
+  testimonialRow: 'Social proof',
+  testimonialAvatar: 'Social proof',
+  quoteBand: 'Social proof',
+  socialRow: 'Social proof',
+  segmented: 'Social proof',
+  statusPills: 'Social proof',
+  pricingTable: 'Pricing',
+  priceCard: 'Pricing',
+  pricingCompare: 'Pricing',
+  ctaBand: 'Calls to action',
+  ctaButtons: 'Calls to action',
+  callout: 'Calls to action',
+  newsletter: 'Forms',
+  contactSplit: 'Forms',
+  contactForm: 'Forms',
+  contactModal: 'Forms',
+  footer: 'Forms',
+  animatedCard: 'Building blocks',
+};
+export function presetGroup(preset: PresetKind): string {
+  return PRESET_GROUP_OF[preset];
+}
+
 /** A child block wired to `parentId`, placed at an absolute cell. */
 function presetChild(
   kind: BlockKind,

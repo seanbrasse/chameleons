@@ -26,6 +26,8 @@ import {
   MIN_GAP_ROWS,
   PALETTE,
   PRESETS,
+  PRESET_GROUP_ORDER,
+  presetGroup,
   makePreset,
   canAlign,
   childrenOf,
@@ -1649,26 +1651,28 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               ))}
             </div>
           ))}
-          <div className="ed-palette-group">
-            <div className="ed-palette-label">Components</div>
-            {PRESETS.map((item) => (
-              <button
-                key={item.preset}
-                type="button"
-                className="ed-palette-item"
-                onClick={() => addPreset(item.preset)}
-                title={item.hint}
-              >
-                <span className="ed-palette-glyph" aria-hidden="true">
-                  ✦
-                </span>
-                <span className="ed-palette-name">{item.label}</span>
-                <span className="ed-palette-add" aria-hidden="true">
-                  +
-                </span>
-              </button>
-            ))}
-          </div>
+          {PRESET_GROUP_ORDER.filter((g) => PRESETS.some((p) => presetGroup(p.preset) === g)).map((g) => (
+            <div className="ed-palette-group" key={g}>
+              <div className="ed-palette-label">{g}</div>
+              {PRESETS.filter((item) => presetGroup(item.preset) === g).map((item) => (
+                <button
+                  key={item.preset}
+                  type="button"
+                  className="ed-palette-item"
+                  onClick={() => addPreset(item.preset)}
+                  title={item.hint}
+                >
+                  <span className="ed-palette-glyph" aria-hidden="true">
+                    ✦
+                  </span>
+                  <span className="ed-palette-name">{item.label}</span>
+                  <span className="ed-palette-add" aria-hidden="true">
+                    +
+                  </span>
+                </button>
+              ))}
+            </div>
+          ))}
         </div>
         <div className="ed-outline">
           <div className="ed-panel-subhead">Outline</div>
