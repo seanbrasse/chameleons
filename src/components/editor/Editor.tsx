@@ -116,6 +116,11 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const [editingId, setEditingId] = useState<string | null>(null);
   /** The palette search query — filters both the Elements and Components lists. */
   const [paletteQuery, setPaletteQuery] = useState('');
+  /** The open right-click menu: its viewport position and the block it acts on.
+   *  Null when closed. */
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; id: string } | null>(null);
+  /** Whether the clipboard holds a copied subtree — gates the menu's Paste. */
+  const [clipReady, setClipReady] = useState(false);
   /** True while a block is being dragged — the grid guides show only then. */
   const [arranging, setArranging] = useState(false);
   /** The id of the block currently being dragged, for its lifted styling. */
@@ -446,6 +451,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     const src = selectedSubtrees();
     if (src.length === 0) return false;
     clipboardRef.current = src;
+    setClipReady(true);
     return true;
   };
   const pasteClipboard = () => {
@@ -906,6 +912,19 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       group,
     };
     e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  // Right-click opens the context menu on the resolved target (the locked
+  // component root if the click landed inside one). If the target isn't already
+  // part of a multi-selection, it becomes the sole selection first, so the menu
+  // always acts on what was clicked.
+  const onBlockContext = (e: React.PointerEvent | React.MouseEvent, block: Block) => {
+    if (!isEditMode) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const target = lockedRootOf(blocks, block.id) ?? block;
+    if (!selection.includes(target.id)) setSelectedId(target.id);
+    setCtxMenu({ x: e.clientX, y: e.clientY, id: target.id });
   };
 
   const onBlockMove = (e: React.PointerEvent) => {
@@ -1556,6 +1575,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
           onPointerDown: (e: React.PointerEvent) => onBlockDown(e, block),
           onPointerMove: (e: React.PointerEvent) => onBlockMove(e),
           onPointerUp: (e: React.PointerEvent) => onBlockUp(e),
+          onContextMenu: (e: React.MouseEvent) => onBlockContext(e, block),
           onFocus: () => setSelectedId((lockedRootOf(blocks, block.id) ?? block).id),
           onDoubleClick: () => {
             // Inside a locked component, a double-click selects the component
@@ -1655,6 +1675,9 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       </div>
     );
   };
+
+  // The block the right-click menu acts on, resolved when it is open.
+  const ctxBlock = ctxMenu ? blocks.find((x) => x.id === ctxMenu.id) : null;
 
   return (
     <div className="ed">
@@ -2918,6 +2941,34 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         )}
       </aside>
 
+      {ctxMenu && ctxBlock ? (
+        <ContextMenu
+          x={ctxMenu.x}
+          y={ctxMenu.y}
+          count={selection.length}
+          isBox={isContainer(ctxBlock.kind)}
+          canUngroup={isContainer(ctxBlock.kind) && childrenOf(blocks, ctxBlock.id).length > 0}
+          hasParent={ctxBlock.parentId !== undefined}
+          locked={ctxBlock.locked === true}
+          hidden={ctxBlock.hidden === true}
+          clipReady={clipReady}
+          onClose={() => setCtxMenu(null)}
+          actions={{
+            duplicate: () => duplicateSelection(),
+            copy: () => copySelection(),
+            paste: () => pasteClipboard(),
+            toFront: () => restack(ctxBlock.id, true),
+            toBack: () => restack(ctxBlock.id, false),
+            group: () => groupSelection(),
+            ungroup: () => ungroup(ctxBlock.id),
+            toggleLock: () => update(ctxBlock.id, { locked: ctxBlock.locked ? undefined : true }),
+            detach: () => detach(ctxBlock.id),
+            toggleHide: () => update(ctxBlock.id, { hidden: !ctxBlock.hidden }),
+            remove: () => (selection.length > 1 ? removeMany(selection) : remove(ctxBlock.id)),
+          }}
+        />
+      ) : null}
+
       {modalProject ? (
         <ProjectModal
           project={modalProject}
@@ -2925,6 +2976,137 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
           onClose={() => setModalProject(null)}
         />
       ) : null}
+    </div>
+  );
+}
+
+/** One row in the right-click menu. */
+type CtxItem = { label: string; keys?: string; danger?: boolean; disabled?: boolean; run: () => void };
+
+/** The commands the menu can fire, supplied by the editor bound to the target. */
+type CtxActions = {
+  duplicate: () => void;
+  copy: () => void;
+  paste: () => void;
+  toFront: () => void;
+  toBack: () => void;
+  group: () => void;
+  ungroup: () => void;
+  toggleLock: () => void;
+  detach: () => void;
+  toggleHide: () => void;
+  remove: () => void;
+};
+
+/**
+ * The floating right-click menu. Opens at the cursor, flips back from the
+ * viewport edges once measured, and closes on Escape, a click outside, or after
+ * any item runs. A full-screen backdrop swallows the click-away (and the native
+ * menu on a second right-click) without letting it reach the canvas.
+ *
+ * It assembles its own rows from the target's shape (whether it's a box, nested,
+ * locked, hidden) so the ref-reading action callbacks stay opaque props rather
+ * than render-time computation.
+ */
+function ContextMenu({
+  x,
+  y,
+  count,
+  isBox,
+  canUngroup,
+  hasParent,
+  locked,
+  hidden,
+  clipReady,
+  actions,
+  onClose,
+}: {
+  x: number;
+  y: number;
+  count: number;
+  isBox: boolean;
+  canUngroup: boolean;
+  hasParent: boolean;
+  locked: boolean;
+  hidden: boolean;
+  clipReady: boolean;
+  actions: CtxActions;
+  onClose: () => void;
+}) {
+  const multi = count > 1;
+  const groups: CtxItem[][] = [
+    [
+      { label: multi ? `Duplicate ${count} items` : 'Duplicate', keys: '⌘D', run: actions.duplicate },
+      { label: 'Copy', keys: '⌘C', run: actions.copy },
+      { label: 'Paste', keys: '⌘V', run: actions.paste, disabled: !clipReady },
+    ],
+    [
+      { label: 'Bring to front', keys: ']', run: actions.toFront },
+      { label: 'Send to back', keys: '[', run: actions.toBack },
+    ],
+    [
+      ...(multi ? [{ label: `Group ${count} items`, keys: '⌘G', run: actions.group }] : []),
+      ...(canUngroup ? [{ label: 'Ungroup', keys: '⌘⇧G', run: actions.ungroup }] : []),
+      ...(isBox ? [{ label: locked ? 'Unlock' : 'Lock', run: actions.toggleLock }] : []),
+      ...(hasParent ? [{ label: 'Detach from container', run: actions.detach }] : []),
+      { label: hidden ? 'Show' : 'Hide', run: actions.toggleHide },
+    ],
+    [{ label: multi ? `Delete ${count} items` : 'Delete', keys: '⌫', danger: true, run: actions.remove }],
+  ].filter((g) => g.length > 0);
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ x, y });
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const nx = Math.min(x, window.innerWidth - r.width - 8);
+    const ny = Math.min(y, window.innerHeight - r.height - 8);
+    setPos({ x: Math.max(8, nx), y: Math.max(8, ny) });
+  }, [x, y]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div
+      className="ed-menu-backdrop"
+      onPointerDown={onClose}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onClose();
+      }}
+    >
+      <div
+        ref={ref}
+        className="ed-menu"
+        role="menu"
+        style={{ left: pos.x, top: pos.y }}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        {groups.map((g, gi) => (
+          <div className="ed-menu-group" key={gi}>
+            {g.map((it, ii) => (
+              <button
+                key={ii}
+                type="button"
+                role="menuitem"
+                className={`ed-menu-item${it.danger ? ' is-danger' : ''}`}
+                disabled={it.disabled}
+                onClick={() => {
+                  it.run();
+                  onClose();
+                }}
+              >
+                <span className="ed-menu-label">{it.label}</span>
+                {it.keys ? <span className="ed-menu-keys">{it.keys}</span> : null}
+              </button>
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
