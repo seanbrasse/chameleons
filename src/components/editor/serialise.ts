@@ -62,6 +62,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           ...(block.grain ? { grain: true } : {}),
           ...(block.stagger ? { stagger: true } : {}),
           ...(block.scale !== undefined && block.scale !== 1 ? { scale: block.scale } : {}),
+          ...(block.opacity !== undefined && block.opacity !== 1 ? { opacity: block.opacity } : {}),
           ...(block.align !== undefined ? { align: block.align } : {}),
           ...(block.font !== undefined ? { font: block.font } : {}),
           ...(block.size !== undefined ? { size: block.size } : {}),
@@ -127,6 +128,14 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     if (props.stagger === true) block.stagger = true;
     if (typeof props.scale === 'number' && Number.isFinite(props.scale) && props.scale > 0) {
       block.scale = props.scale;
+    }
+    if (
+      typeof props.opacity === 'number' &&
+      Number.isFinite(props.opacity) &&
+      props.opacity >= 0 &&
+      props.opacity <= 1
+    ) {
+      block.opacity = props.opacity;
     }
     if (isTextAlign(props.align)) block.align = props.align;
     if (isFontChoice(props.font)) block.font = props.font;

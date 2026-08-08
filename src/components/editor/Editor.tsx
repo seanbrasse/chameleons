@@ -1550,6 +1550,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
           // A gradient or glass surface (a CSS class) wins over a solid colour, so
           // drop the inline fill when one is set and let the class paint it.
           background: cont && !block.gradient && !block.glass ? block.bg : undefined,
+          // Leave the hidden affordance (its own faded style) to the class.
+          opacity: block.hidden ? undefined : block.opacity,
         }}
         {...editProps}
         {...triggerProps}
@@ -2299,6 +2301,22 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                 Detach from container
               </button>
             ) : null}
+
+            <label className="ed-field">
+              <span className="ed-field-label">
+                Opacity — {Math.round((selected.opacity ?? 1) * 100)}%
+              </span>
+              <input
+                type="range"
+                min={10}
+                max={100}
+                value={Math.round((selected.opacity ?? 1) * 100)}
+                onChange={(e) => {
+                  const pct = Number(e.target.value);
+                  update(selected.id, { opacity: pct >= 100 ? undefined : pct / 100 });
+                }}
+              />
+            </label>
 
             <label className="ed-field">
               <span className="ed-field-label">Animation</span>
