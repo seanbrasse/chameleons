@@ -2060,25 +2060,33 @@
 }
 
 .pv-divider {
-  height: 1px;
+  height: var(--rule-w, 1px);
   background: var(--line);
 }
 
 /* Divider styles. Dashed and dotted swap the fill for a stroked top border;
    the gradient rule is a hairline that dissolves at both ends — a soft, modern
-   separator that reads well under a heading. */
+   separator that reads well under a heading. The line weight flows through the
+   --rule-w custom property, so a heavier rule works for every style. */
 .pv-divider-dashed {
   height: 0;
   background: none;
-  border-top: 1.5px dashed var(--line);
+  border-top: var(--rule-w, 1.5px) dashed var(--line);
 }
 .pv-divider-dotted {
   height: 0;
   background: none;
-  border-top: 2px dotted var(--line);
+  border-top: var(--rule-w, 2px) dotted var(--line);
 }
 .pv-divider-gradient {
   background: linear-gradient(90deg, transparent 0%, var(--line) 25%, var(--line) 75%, transparent 100%);
+}
+/* Divider weight — thin is the classless default; these set a heavier rule. */
+.pv-divider-w-medium {
+  --rule-w: 2px;
+}
+.pv-divider-w-thick {
+  --rule-w: 4px;
 }
 
 /* ── inline text editing ──────────────────────────────────────────── */

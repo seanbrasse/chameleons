@@ -320,6 +320,17 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(junk && 'dividerStyle' in junk).toBe(false);
   });
 
+  it('round-trips a divider weight, and drops thin (the default) and junk', () => {
+    const ruled: Block[] = [
+      { id: 'd', kind: 'divider', label: 'Divider', dividerWeight: 'thick', placement: { col: 1, colSpan: 8, row: 1 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(ruled))).toEqual(ruled);
+    const [asThin] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'divider', dividerWeight: 'thin' } }]));
+    expect(asThin && 'dividerWeight' in asThin).toBe(false);
+    const [junk] = fromLayoutDocument(doc([{ id: 'b', props: { kind: 'divider', dividerWeight: 'heavy' } }]));
+    expect(junk && 'dividerWeight' in junk).toBe(false);
+  });
+
   it('round-trips a badge tone, and drops accent (the default) and junk', () => {
     const toned: Block[] = [
       { id: 'b', kind: 'badge', label: 'Badge', badgeTone: 'positive', placement: { col: 1, colSpan: 3, row: 1 } },

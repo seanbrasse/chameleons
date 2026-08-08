@@ -204,6 +204,8 @@ export type Block = {
   imageRadius?: ImageRadius;
   /** The line style for a `divider` block. Absent means a solid hairline. */
   dividerStyle?: DividerStyle;
+  /** The line weight for a `divider` block. Absent means the thin default. */
+  dividerWeight?: DividerWeight;
   /** The colour tone for a `badge` block. Absent means the accent tone. */
   badgeTone?: BadgeTone;
   /** The visual style for a `button` block. Absent means the solid fill. */
@@ -484,6 +486,15 @@ export type DividerStyle = 'solid' | 'dashed' | 'dotted' | 'gradient';
 export const DIVIDER_STYLES: readonly DividerStyle[] = ['solid', 'dashed', 'dotted', 'gradient'];
 export function isDividerStyle(value: unknown): value is DividerStyle {
   return typeof value === 'string' && (DIVIDER_STYLES as readonly string[]).includes(value);
+}
+
+/** Line weight for a `divider` — thin (the default hairline), medium or thick.
+ *  The concrete widths live in the editor CSS as `.pv-divider-w-<weight>`
+ *  classes (via a `--rule-w` custom property); absence means the thin default. */
+export type DividerWeight = 'thin' | 'medium' | 'thick';
+export const DIVIDER_WEIGHTS: readonly DividerWeight[] = ['thin', 'medium', 'thick'];
+export function isDividerWeight(value: unknown): value is DividerWeight {
+  return typeof value === 'string' && (DIVIDER_WEIGHTS as readonly string[]).includes(value);
 }
 
 /** The colour tone for a `badge` — accent (the default), a neutral grey, or a
