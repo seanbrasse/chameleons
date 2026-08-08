@@ -814,6 +814,28 @@ describe('containers and the tree', () => {
     expect(heading!.placement.row).toBeLessThan(body!.placement.row);
   });
 
+  it('the testimonialRow preset sets two ringed quote cards side by side', () => {
+    const group = makePreset('testimonialRow', 5);
+    const [box] = group;
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    const cards = group.filter((b) => b.kind === 'card');
+    expect(cards).toHaveLength(2);
+    for (const card of cards) {
+      expect(card.parentId).toBe(box?.id);
+      expect(card.ring).toBe('hairline');
+      expect(card.animation).toEqual({ effect: 'rise', trigger: 'load' });
+      // each card nests a quote and an attribution (both text)
+      const kids = group.filter((b) => b.parentId === card.id);
+      expect(kids.filter((k) => k.kind === 'text')).toHaveLength(2);
+    }
+    // the two cards sit side by side, never overlapping in columns
+    const spans = cards
+      .map((c) => ({ start: c.placement.col, end: c.placement.col + c.placement.colSpan - 1 }))
+      .sort((a, b) => a.start - b.start);
+    expect(spans[0]!.end).toBeLessThan(spans[1]!.start);
+  });
+
   it('the quoteBand preset centres a gradient pull-quote and attribution on a band', () => {
     const [box, quote, attribution] = makePreset('quoteBand', 5);
     expect(box?.kind).toBe('container');
