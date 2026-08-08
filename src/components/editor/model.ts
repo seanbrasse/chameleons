@@ -711,6 +711,7 @@ export type PresetKind =
   | 'testimonial'
   | 'quoteBand'
   | 'socialRow'
+  | 'callout'
   | 'statsBand'
   | 'steps'
   | 'logoCloud'
@@ -738,6 +739,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'testimonial', label: 'Testimonial', hint: 'A ringed card holding a large quote and an attribution line' },
   { preset: 'quoteBand', label: 'Quote band', hint: 'A full-width gradient band with a large centred pull-quote and attribution' },
   { preset: 'socialRow', label: 'Social links', hint: 'A heading over a centred cluster of small profile buttons' },
+  { preset: 'callout', label: 'Callout', hint: 'A ringed card with a badge label, a heading and a line — a tip or note box' },
   { preset: 'statsBand', label: 'Stats band', hint: 'A full-width row of big metric numbers with labels that stagger in' },
   { preset: 'steps', label: 'Process steps', hint: 'A heading over a row of numbered steps, each a badge number, title and line' },
   { preset: 'logoCloud', label: 'Logo cloud', hint: 'A "trusted by" heading over a row of ringed wordmark tiles that stagger in' },
@@ -1242,6 +1244,34 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       blocks.push(button);
     });
     return blocks;
+  }
+
+  if (preset === 'callout') {
+    // A tip / note box: a compact, hairline-ringed card holding a small badge
+    // label over a heading and a line. It stacks a badge accent, a title and
+    // body copy — the inline highlight that flags something worth noticing.
+    // Distinct from the testimonial (a quote card). Everything rises on load.
+    const card = makeBlock('card', 'Callout', row);
+    card.placement = clampPlacement({ col: 1, colSpan: half, row, rowSpan: 9 });
+    card.ring = 'hairline';
+    card.stagger = true;
+    card.locked = true;
+    const innerCol = 3;
+    const innerSpan = half - 4;
+    const badge = presetChild('badge', 'Label', 'Tip', card.id, { col: innerCol, colSpan: 5, row: row + 1, rowSpan: 2 });
+    badge.animation = { effect: 'rise', trigger: 'load' };
+    const heading = presetChild('heading', 'Title', 'Good to know', card.id, { col: innerCol, colSpan: innerSpan, row: row + 3 });
+    heading.size = 'sm';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const body = presetChild(
+      'text',
+      'Text',
+      'A short note that highlights something useful — a tip, a caveat or a detail worth calling out.',
+      card.id,
+      { col: innerCol, colSpan: innerSpan, row: row + 5, rowSpan: 3 },
+    );
+    body.animation = { effect: 'rise', trigger: 'load' };
+    return [card, badge, heading, body];
   }
 
   if (preset === 'statsBand') {
