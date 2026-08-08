@@ -717,6 +717,7 @@ export type PresetKind =
   | 'callout'
   | 'statsBand'
   | 'steps'
+  | 'statHero'
   | 'logoCloud'
   | 'faq'
   | 'checklist'
@@ -748,6 +749,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'callout', label: 'Callout', hint: 'A ringed card with a badge label, a heading and a line — a tip or note box' },
   { preset: 'statsBand', label: 'Stats band', hint: 'A full-width row of big metric numbers with labels that stagger in' },
   { preset: 'steps', label: 'Process steps', hint: 'A heading over a row of numbered steps, each a badge number, title and line' },
+  { preset: 'statHero', label: 'Stat hero', hint: 'One big focal metric centred over a label and a supporting line' },
   { preset: 'logoCloud', label: 'Logo cloud', hint: 'A "trusted by" heading over a row of ringed wordmark tiles that stagger in' },
   { preset: 'faq', label: 'FAQ', hint: 'A heading over a stack of question-and-answer pairs that stagger in' },
   { preset: 'checklist', label: 'Checklist', hint: 'A heading over a column of rows, each a badge tick beside a line of text' },
@@ -1380,6 +1382,37 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       blocks.push(num, label);
     });
     return blocks;
+  }
+
+  if (preset === 'statHero') {
+    // A single focal metric: one huge centred number over a label and a
+    // supporting line. Distinct from the stats band (a row of four) — this puts
+    // all the weight on one number, the way a landing page leads with its
+    // headline figure. Everything centres and rises in on load.
+    const box = makeBlock('container', 'Stat', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 11 });
+    box.stagger = true;
+    box.locked = true;
+    const number = presetChild('heading', 'Number', '98%', box.id, { col: 3, colSpan: GRID_COLS - 4, row: row + 2 });
+    number.size = 'xl';
+    number.align = 'center';
+    number.animation = { effect: 'rise', trigger: 'load' };
+    const labelSpan = Math.round(GRID_COLS * 0.6);
+    const labelCol = Math.round((GRID_COLS - labelSpan) / 2) + 1;
+    const label = presetChild('heading', 'Label', 'of users would recommend us', box.id, { col: labelCol, colSpan: labelSpan, row: row + 6 });
+    label.size = 'sm';
+    label.align = 'center';
+    label.animation = { effect: 'rise', trigger: 'load' };
+    const support = presetChild('text', 'Support', 'Measured across thousands of projects shipped last year.', box.id, {
+      col: labelCol,
+      colSpan: labelSpan,
+      row: row + 8,
+      rowSpan: 2,
+    });
+    support.size = 'sm';
+    support.align = 'center';
+    support.animation = { effect: 'rise', trigger: 'load' };
+    return [box, number, label, support];
   }
 
   if (preset === 'logoCloud') {
