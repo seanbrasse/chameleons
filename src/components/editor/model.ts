@@ -158,6 +158,9 @@ export type Block = {
   size?: TextSize;
   /** A CSS colour for a text primitive's words. Absent means the default ink. */
   color?: string;
+  /** A gradient that paints a text primitive's words (clipped to the glyphs).
+   *  Absent means a solid `color`. Reuses the surface gradient set. */
+  textGradient?: GradientKind;
   /** A CSS background colour for a container / card. Absent means its default
    *  surface (a card's white, a bare container's faint tint). */
   bg?: string;
