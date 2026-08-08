@@ -708,6 +708,7 @@ export type PresetKind =
   | 'banner'
   | 'ctaBand'
   | 'testimonial'
+  | 'quoteBand'
   | 'statsBand'
   | 'steps'
   | 'logoCloud'
@@ -732,6 +733,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'banner', label: 'Announcement bar', hint: 'A thin ringed bar: a short message beside an inline button' },
   { preset: 'ctaBand', label: 'CTA band', hint: 'A full-width gradient call-to-action: centered heading, line and button' },
   { preset: 'testimonial', label: 'Testimonial', hint: 'A ringed card holding a large quote and an attribution line' },
+  { preset: 'quoteBand', label: 'Quote band', hint: 'A full-width gradient band with a large centred pull-quote and attribution' },
   { preset: 'statsBand', label: 'Stats band', hint: 'A full-width row of big metric numbers with labels that stagger in' },
   { preset: 'steps', label: 'Process steps', hint: 'A heading over a row of numbered steps, each a badge number, title and line' },
   { preset: 'logoCloud', label: 'Logo cloud', hint: 'A "trusted by" heading over a row of ringed wordmark tiles that stagger in' },
@@ -1128,6 +1130,41 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     attribution.size = 'sm';
     attribution.animation = { effect: 'rise', trigger: 'load' };
     return [card, quote, attribution];
+  }
+
+  if (preset === 'quoteBand') {
+    // A full-bleed pull-quote: a gradient band whose large centred quote and
+    // attribution read via a light text gradient clipped to the glyphs (the same
+    // mechanism as the CTA band). Distinct from the testimonial card — this is a
+    // bold statement banner. Both lines rise in on load.
+    const box = makeBlock('container', 'Quote', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 13 });
+    box.gradient = 'violet';
+    box.stagger = true;
+    box.locked = true;
+    const quote = presetChild(
+      'text',
+      'Quote',
+      '“Design is not just what it looks like — design is how it works.”',
+      box.id,
+      { col: 3, colSpan: GRID_COLS - 4, row: row + 3, rowSpan: 4 },
+    );
+    quote.size = 'lg';
+    quote.align = 'center';
+    quote.textGradient = 'mint';
+    quote.animation = { effect: 'rise', trigger: 'load' };
+    const attrSpan = Math.round(GRID_COLS * 0.5);
+    const attribution = presetChild('text', 'Attribution', '— A guiding principle', box.id, {
+      col: Math.round((GRID_COLS - attrSpan) / 2) + 1,
+      colSpan: attrSpan,
+      row: row + 9,
+      rowSpan: 2,
+    });
+    attribution.size = 'sm';
+    attribution.align = 'center';
+    attribution.textGradient = 'mint';
+    attribution.animation = { effect: 'rise', trigger: 'load' };
+    return [box, quote, attribution];
   }
 
   if (preset === 'statsBand') {

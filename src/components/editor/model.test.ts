@@ -647,6 +647,26 @@ describe('containers and the tree', () => {
     }
   });
 
+  it('the quoteBand preset centres a gradient pull-quote and attribution on a band', () => {
+    const [box, quote, attribution] = makePreset('quoteBand', 5);
+    expect(box?.kind).toBe('container');
+    expect(box?.gradient).toBe('violet');
+    expect(box?.stagger).toBe(true);
+    // quote and attribution are centre-aligned and read via a light text gradient
+    for (const child of [quote, attribution]) {
+      expect(child?.parentId).toBe(box?.id);
+      expect(child?.align).toBe('center');
+      expect(child?.textGradient).toBe('mint');
+      expect(child?.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the quote sits above the attribution
+    expect(quote!.placement.row).toBeLessThan(attribution!.placement.row);
+    // the attribution is centred: equal margin either side of its span
+    const leftGap = attribution!.placement.col - 1;
+    const rightGap = GRID_COLS - (attribution!.placement.col + attribution!.placement.colSpan - 1);
+    expect(Math.abs(leftGap - rightGap)).toBeLessThanOrEqual(1);
+  });
+
   it('the statsBand preset lays four staggered metric columns side by side', () => {
     const group = makePreset('statsBand', 5);
     const [box] = group;
