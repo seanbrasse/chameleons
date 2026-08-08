@@ -917,6 +917,7 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     const button = presetChild('button', 'Button', 'Get in touch', box.id, { col: leftCol, colSpan: 8, row: row + 11 });
     button.animation = { effect: 'rise', trigger: 'load' };
     const image = presetChild('image', 'Image', '', box.id, { col: rightCol, colSpan: rightSpan, row: row + 2, rowSpan: 12 });
+    image.imageRadius = 'md';
     image.animation = { effect: 'rise', trigger: 'load' };
     return [box, heading, tagline, button, image];
   }
@@ -1026,6 +1027,7 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     const textCol = imgCol + imgSpan + gutter;
     const textSpan = Math.max(10, GRID_COLS - textCol - 1);
     const portrait = presetChild('image', 'Portrait', '', box.id, { col: imgCol, colSpan: imgSpan, row: row + 2, rowSpan: 10 });
+    portrait.imageRadius = 'lg';
     portrait.animation = { effect: 'rise', trigger: 'load' };
     const heading = presetChild('heading', 'Title', 'About me', box.id, { col: textCol, colSpan: textSpan, row: row + 2 });
     heading.size = 'lg';
@@ -1309,6 +1311,7 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       caption.size = 'sm';
       caption.align = 'center';
       const image = presetChild('image', 'Image', '', card.id, { col: col + 1, colSpan: panelSpan - 2, row: cardRow + 3, rowSpan: 5 });
+      image.imageRadius = 'md';
       blocks.push(card, caption, image);
     });
     return blocks;
@@ -1339,6 +1342,7 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       for (let c = 0; c < 3; c++) {
         const col = startCol + c * (colSpan + gap);
         const tile = presetChild('image', 'Image', '', box.id, { col, colSpan, row: tileRow, rowSpan: tileH });
+        tile.imageRadius = 'md';
         tile.animation = { effect: 'rise', trigger: 'load' };
         blocks.push(tile);
       }
