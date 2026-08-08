@@ -398,6 +398,29 @@ describe('containers and the tree', () => {
     expect(spans[1]!.end).toBeLessThan(spans[2]!.start);
   });
 
+  it('the comparison preset sets two labelled image panels side by side', () => {
+    const group = makePreset('comparison', 5);
+    const [box, heading] = group;
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    expect(heading?.align).toBe('center');
+    const panels = group.filter((b) => b.kind === 'card');
+    expect(panels).toHaveLength(2);
+    for (const panel of panels) {
+      expect(panel.parentId).toBe(box?.id);
+      expect(panel.animation).toEqual({ effect: 'rise', trigger: 'load' });
+      // each panel nests a label heading and an image
+      const kids = group.filter((b) => b.parentId === panel.id);
+      expect(kids.filter((k) => k.kind === 'heading')).toHaveLength(1);
+      expect(kids.filter((k) => k.kind === 'image')).toHaveLength(1);
+    }
+    // the two panels sit side by side, never overlapping in columns
+    const spans = panels
+      .map((p) => ({ start: p.placement.col, end: p.placement.col + p.placement.colSpan - 1 }))
+      .sort((a, b) => a.start - b.start);
+    expect(spans[0]!.end).toBeLessThan(spans[1]!.start);
+  });
+
   it('the logoCloud preset lays five ringed wordmark tiles under a heading', () => {
     const group = makePreset('logoCloud', 5);
     const [box, heading] = group;

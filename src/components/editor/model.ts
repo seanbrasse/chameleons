@@ -701,6 +701,7 @@ export type PresetKind =
   | 'gradientHero'
   | 'featureGrid'
   | 'teamGrid'
+  | 'comparison'
   | 'ctaBand'
   | 'testimonial'
   | 'statsBand'
@@ -721,6 +722,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'gradientHero', label: 'Gradient hero', hint: 'A gradient panel with big gradient type that staggers in on load' },
   { preset: 'featureGrid', label: 'Feature grid', hint: 'A heading over a row of three cards that stagger in on load' },
   { preset: 'teamGrid', label: 'Team grid', hint: 'A heading over a row of member cards, each an avatar, name and role' },
+  { preset: 'comparison', label: 'Before / after', hint: 'A heading over two panels, each a label and an image, side by side' },
   { preset: 'ctaBand', label: 'CTA band', hint: 'A full-width gradient call-to-action: centered heading, line and button' },
   { preset: 'testimonial', label: 'Testimonial', hint: 'A ringed card holding a large quote and an attribution line' },
   { preset: 'statsBand', label: 'Stats band', hint: 'A full-width row of big metric numbers with labels that stagger in' },
@@ -913,6 +915,41 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       role.size = 'sm';
       role.align = 'center';
       blocks.push(card, avatar, name, role);
+    });
+    return blocks;
+  }
+
+  if (preset === 'comparison') {
+    // A before/after showcase: a heading over two side-by-side panels, each a
+    // label over an image tile. The two panels split the content width with a
+    // gutter so they never overlap, and both stagger in on load — the classic
+    // transformation / case-study surface.
+    const gap = 2;
+    const startCol = 3;
+    const contentSpan = GRID_COLS - 4;
+    const panelSpan = Math.max(8, Math.floor((contentSpan - gap) / 2));
+    const box = makeBlock('container', 'Comparison', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 16 });
+    box.stagger = true;
+    box.locked = true;
+    const heading = presetChild('heading', 'Title', 'Before & after', box.id, { col: startCol, colSpan: contentSpan, row: row + 2 });
+    heading.size = 'lg';
+    heading.align = 'center';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const panels = ['Before', 'After'];
+    const blocks: Block[] = [box, heading];
+    const cardRow = row + 6;
+    panels.forEach((label, i) => {
+      const col = startCol + i * (panelSpan + gap);
+      const card = makeBlock('card', label, cardRow);
+      card.parentId = box.id;
+      card.placement = clampPlacement({ col, colSpan: panelSpan, row: cardRow, rowSpan: 9 });
+      card.animation = { effect: 'rise', trigger: 'load' };
+      const caption = presetChild('heading', 'Label', label, card.id, { col: col + 1, colSpan: panelSpan - 2, row: cardRow + 1 });
+      caption.size = 'sm';
+      caption.align = 'center';
+      const image = presetChild('image', 'Image', '', card.id, { col: col + 1, colSpan: panelSpan - 2, row: cardRow + 3, rowSpan: 5 });
+      blocks.push(card, caption, image);
     });
     return blocks;
   }
