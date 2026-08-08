@@ -794,6 +794,39 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
 }
 
+/* Aurora border: a flowing gradient frame drawn by a pseudo-element that sits
+   above the surface but is masked to just the rim, so only a 2px gradient
+   border shows. It inherits the corner radius, never intercepts the pointer,
+   and drifts only in Preview (a static rim while editing, like the other
+   entrance-driven effects). */
+.ed-block.is-container.ed-aurora-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(90deg, #7028e4, #2af598, #009efd, #ff5e7e, #7028e4);
+  background-size: 300% 100%;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+.ed-artboard.is-preview .ed-block.is-container.ed-aurora-border::before {
+  animation: ed-aurora 6s linear infinite;
+}
+@keyframes ed-aurora {
+  to {
+    background-position: 300% 0;
+  }
+}
+
 /* Gradient text: paint the block's gradient (a bare .ed-bg-* background) through
    the glyphs by clipping the background to the text and making the fill
    transparent. Applied to a text block's body alongside an .ed-bg-* class. */

@@ -146,6 +146,15 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(block && 'grain' in block).toBe(false);
   });
 
+  it('round-trips an aurora-border flag, and ignores a non-true value', () => {
+    const aurora: Block[] = [
+      { id: 'box', kind: 'container', label: 'Box', auroraBorder: true, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(aurora))).toEqual(aurora);
+    const [block] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'container', auroraBorder: 'yes' } }]));
+    expect(block && 'auroraBorder' in block).toBe(false);
+  });
+
   it('round-trips letter-spacing, and drops normal (the default) and junk', () => {
     const tracked: Block[] = [
       { id: 't', kind: 'text', label: 'Text', tracking: 'wider', placement: { col: 1, colSpan: 8, row: 1 } },

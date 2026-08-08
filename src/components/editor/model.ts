@@ -217,6 +217,9 @@ export type Block = {
   /** When true, a container / card carries a subtle film-grain texture over its
    *  surface. Only meaningful on a container. */
   grain?: boolean;
+  /** When true, a container / card is framed by a flowing gradient border that
+   *  drifts in Preview. Only meaningful on a container. */
+  auroraBorder?: boolean;
   /** When true, a container's animated children enter in sequence rather than
    *  all at once — each one delayed a step further than the last. Only
    *  meaningful on a container. */
