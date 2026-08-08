@@ -350,6 +350,35 @@ describe('containers and the tree', () => {
     expect(spans[1]!.end).toBeLessThan(spans[2]!.start);
   });
 
+  it('the logoCloud preset lays five ringed wordmark tiles under a heading', () => {
+    const group = makePreset('logoCloud', 5);
+    const [box, heading] = group;
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    expect(heading?.align).toBe('center');
+    const tiles = group.filter((b) => b.kind === 'card');
+    expect(tiles).toHaveLength(5);
+    // every tile is a hairline-ringed direct child of the band and rises on load
+    for (const tile of tiles) {
+      expect(tile.parentId).toBe(box?.id);
+      expect(tile.ring).toBe('hairline');
+      expect(tile.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // each tile carries one centred wordmark heading nested inside it
+    for (const tile of tiles) {
+      const wordmark = group.find((b) => b.parentId === tile.id);
+      expect(wordmark?.kind).toBe('heading');
+      expect(wordmark?.align).toBe('center');
+    }
+    // the tiles sit side by side, never overlapping in columns
+    const spans = tiles
+      .map((t) => ({ start: t.placement.col, end: t.placement.col + t.placement.colSpan - 1 }))
+      .sort((a, b) => a.start - b.start);
+    for (let i = 1; i < spans.length; i++) {
+      expect(spans[i - 1]!.end).toBeLessThan(spans[i]!.start);
+    }
+  });
+
   it('the ctaBand preset centres a heading, line and button on a gradient band', () => {
     const [box, heading, line, button] = makePreset('ctaBand', 5);
     expect(box?.kind).toBe('container');
