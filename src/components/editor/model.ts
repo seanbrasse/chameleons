@@ -702,6 +702,7 @@ export type PresetKind =
   | 'testimonial'
   | 'statsBand'
   | 'logoCloud'
+  | 'checklist'
   | 'pricingTable'
   | 'newsletter'
   | 'contactForm'
@@ -716,6 +717,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'testimonial', label: 'Testimonial', hint: 'A ringed card holding a large quote and an attribution line' },
   { preset: 'statsBand', label: 'Stats band', hint: 'A full-width row of big metric numbers with labels that stagger in' },
   { preset: 'logoCloud', label: 'Logo cloud', hint: 'A "trusted by" heading over a row of ringed wordmark tiles that stagger in' },
+  { preset: 'checklist', label: 'Checklist', hint: 'A heading over a column of rows, each a badge tick beside a line of text' },
   { preset: 'pricingTable', label: 'Pricing table', hint: 'Three tier cards with prices and buttons; the middle one is highlighted' },
   { preset: 'newsletter', label: 'Newsletter signup', hint: 'A ringed card with a heading, a line and an inline email field and subscribe button' },
   { preset: 'contactForm', label: 'Contact form', hint: 'A card with name, email and message fields' },
@@ -969,6 +971,44 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       wordmark.align = 'center';
       blocks.push(tile, wordmark);
     });
+    return blocks;
+  }
+
+  if (preset === 'checklist') {
+    // A "what's included" list: a heading over a column of rows, each pairing a
+    // small badge tick with a line of text. It puts the badge primitive to work
+    // as an accent marker; the rows stagger in on load. Marker and text share a
+    // row, spans set so they never overlap within the container's inner width.
+    const box = makeBlock('container', 'Checklist', row);
+    const innerCol = 3;
+    const innerSpan = half - 4;
+    const markerSpan = 3;
+    const rowGap = 1;
+    const textCol = innerCol + markerSpan + rowGap;
+    const textSpan = Math.max(6, innerSpan - markerSpan - rowGap);
+    box.stagger = true;
+    box.locked = true;
+    const heading = presetChild('heading', 'Title', "What's included", box.id, {
+      col: innerCol,
+      colSpan: innerSpan,
+      row: row + 2,
+    });
+    heading.size = 'lg';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const items = ['Unlimited projects', 'Custom domain', 'Priority support', 'Analytics dashboard'];
+    const blocks: Block[] = [box, heading];
+    const rowStep = 3;
+    items.forEach((item, i) => {
+      const r = row + 5 + i * rowStep;
+      const marker = presetChild('badge', 'Tick', '✓', box.id, { col: innerCol, colSpan: markerSpan, row: r, rowSpan: 2 });
+      marker.align = 'center';
+      marker.animation = { effect: 'rise', trigger: 'load' };
+      const text = presetChild('text', 'Item', item, box.id, { col: textCol, colSpan: textSpan, row: r, rowSpan: 2 });
+      text.animation = { effect: 'rise', trigger: 'load' };
+      blocks.push(marker, text);
+    });
+    const rowSpan = 5 + items.length * rowStep;
+    box.placement = clampPlacement({ col: 1, colSpan: half, row, rowSpan });
     return blocks;
   }
 

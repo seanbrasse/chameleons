@@ -379,6 +379,29 @@ describe('containers and the tree', () => {
     }
   });
 
+  it('the checklist preset pairs a badge tick with a line of text per row', () => {
+    const group = makePreset('checklist', 5);
+    const [box, heading] = group;
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    expect(heading?.kind).toBe('heading');
+    const ticks = group.filter((b) => b.kind === 'badge');
+    const items = group.filter((b) => b.kind === 'text');
+    expect(ticks.length).toBeGreaterThanOrEqual(3);
+    // one tick per text item, all nested in the box and rising on load
+    expect(ticks).toHaveLength(items.length);
+    for (const b of [...ticks, ...items]) {
+      expect(b.parentId).toBe(box?.id);
+      expect(b.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // each tick sits on the same row as a text item, to its left, never overlapping
+    for (const tick of ticks) {
+      const mate = items.find((t) => t.placement.row === tick.placement.row);
+      expect(mate).toBeDefined();
+      expect(tick.placement.col + tick.placement.colSpan - 1).toBeLessThan(mate!.placement.col);
+    }
+  });
+
   it('the newsletter preset pairs an email field and button inline in a ringed card', () => {
     const [card, heading, line, email, button] = makePreset('newsletter', 5);
     expect(card?.kind).toBe('card');
