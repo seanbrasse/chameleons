@@ -703,6 +703,7 @@ export type PresetKind =
   | 'testimonial'
   | 'statsBand'
   | 'logoCloud'
+  | 'faq'
   | 'checklist'
   | 'pricingTable'
   | 'newsletter'
@@ -719,6 +720,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'testimonial', label: 'Testimonial', hint: 'A ringed card holding a large quote and an attribution line' },
   { preset: 'statsBand', label: 'Stats band', hint: 'A full-width row of big metric numbers with labels that stagger in' },
   { preset: 'logoCloud', label: 'Logo cloud', hint: 'A "trusted by" heading over a row of ringed wordmark tiles that stagger in' },
+  { preset: 'faq', label: 'FAQ', hint: 'A heading over a stack of question-and-answer pairs that stagger in' },
   { preset: 'checklist', label: 'Checklist', hint: 'A heading over a column of rows, each a badge tick beside a line of text' },
   { preset: 'pricingTable', label: 'Pricing table', hint: 'Three tier cards with prices and buttons; the middle one is highlighted' },
   { preset: 'newsletter', label: 'Newsletter signup', hint: 'A ringed card with a heading, a line and an inline email field and subscribe button' },
@@ -999,6 +1001,44 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       wordmark.align = 'center';
       blocks.push(tile, wordmark);
     });
+    return blocks;
+  }
+
+  if (preset === 'faq') {
+    // A frequently-asked section: a heading over a stack of question/answer
+    // pairs, each a bold question line over its answer. The pairs stagger in on
+    // load. A single readable column; the container height follows the pair
+    // count so the drop is never clipped.
+    const box = makeBlock('container', 'FAQ', row);
+    const innerCol = 3;
+    const innerSpan = GRID_COLS - 4;
+    box.stagger = true;
+    box.locked = true;
+    const heading = presetChild('heading', 'Title', 'Frequently asked', box.id, {
+      col: innerCol,
+      colSpan: innerSpan,
+      row: row + 2,
+    });
+    heading.size = 'lg';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const pairs = [
+      { q: 'How long does it take?', a: 'Most projects go from brief to live within a week.' },
+      { q: 'Do you offer revisions?', a: 'Yes — every plan includes unlimited revisions until it’s right.' },
+      { q: 'Can I use my own domain?', a: 'Absolutely. Custom domains are supported on every tier.' },
+    ];
+    const blocks: Block[] = [box, heading];
+    const pairStep = 5;
+    pairs.forEach((p, i) => {
+      const r = row + 6 + i * pairStep;
+      const question = presetChild('heading', 'Question', p.q, box.id, { col: innerCol, colSpan: innerSpan, row: r });
+      question.size = 'sm';
+      question.animation = { effect: 'rise', trigger: 'load' };
+      const answer = presetChild('text', 'Answer', p.a, box.id, { col: innerCol, colSpan: innerSpan, row: r + 2, rowSpan: 2 });
+      answer.animation = { effect: 'rise', trigger: 'load' };
+      blocks.push(question, answer);
+    });
+    const rowSpan = 6 + pairs.length * pairStep;
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan });
     return blocks;
   }
 
