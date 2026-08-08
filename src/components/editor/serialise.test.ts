@@ -168,6 +168,17 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(tooFar && 'rotate' in tooFar).toBe(false);
   });
 
+  it('round-trips letter case, and drops none (the default) and junk', () => {
+    const cased: Block[] = [
+      { id: 't', kind: 'heading', label: 'Heading', textCase: 'upper', placement: { col: 1, colSpan: 8, row: 1 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(cased))).toEqual(cased);
+    const [asNone] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'text', textCase: 'none' } }]));
+    expect(asNone && 'textCase' in asNone).toBe(false);
+    const [junk] = fromLayoutDocument(doc([{ id: 'b', props: { kind: 'text', textCase: 'smallcaps' } }]));
+    expect(junk && 'textCase' in junk).toBe(false);
+  });
+
   it('round-trips opacity, and drops one out of the 0–1 range', () => {
     const faint: Block[] = [
       { id: 'h', kind: 'heading', label: 'Heading', opacity: 0.4, placement: { col: 1, colSpan: 8, row: 1 } },

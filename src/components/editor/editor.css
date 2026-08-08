@@ -588,6 +588,20 @@
   letter-spacing: 0.25em;
 }
 
+/* Letter case a text block can choose. 'none' is the untouched base and carries
+   no class. Uppercase paired with wide tracking is the classic eyebrow label. */
+.ed-case-upper {
+  text-transform: uppercase;
+}
+
+.ed-case-lower {
+  text-transform: lowercase;
+}
+
+.ed-case-caps {
+  text-transform: capitalize;
+}
+
 /* A soft outer glow behind a container / card — a signature modern touch. Painted
    with drop-shadow so it layers under the surface without touching the inset ring
    or selection box-shadow. Reads strongest on an opaque surface (a card or a

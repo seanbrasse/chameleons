@@ -166,6 +166,9 @@ export type Block = {
   /** Letter-spacing (tracking) for a text primitive. Absent means normal —
    *  wide tracking on a short uppercase label is a signature modern touch. */
   tracking?: TrackingLevel;
+  /** Letter case for a text primitive. Absent leaves the typed case as-is —
+   *  uppercase pairs with wide tracking for the classic eyebrow label. */
+  textCase?: TextCase;
   /** A CSS colour for a text primitive's words. Absent means the default ink. */
   color?: string;
   /** A gradient that paints a text primitive's words (clipped to the glyphs).
@@ -422,6 +425,14 @@ export type TrackingLevel = 'tight' | 'normal' | 'wide' | 'wider';
 export const TRACKING_LEVELS: readonly TrackingLevel[] = ['tight', 'normal', 'wide', 'wider'];
 export function isTrackingLevel(value: unknown): value is TrackingLevel {
   return typeof value === 'string' && (TRACKING_LEVELS as readonly string[]).includes(value);
+}
+
+/** Letter case for a text block — the concrete text-transform lives in the CSS.
+ *  'none' leaves the typed case untouched and is stored as absent. */
+export type TextCase = 'none' | 'upper' | 'lower' | 'caps';
+export const TEXT_CASES: readonly TextCase[] = ['none', 'upper', 'lower', 'caps'];
+export function isTextCase(value: unknown): value is TextCase {
+  return typeof value === 'string' && (TEXT_CASES as readonly string[]).includes(value);
 }
 
 /** Line style for a divider — a solid hairline, a dashed or dotted rule, or a
