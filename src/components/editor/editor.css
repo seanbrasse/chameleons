@@ -570,6 +570,25 @@
   pointer-events: none;
 }
 
+/* Corner-radius levels a container / card can choose (medium is the default).
+   Qualified with .is-container so they beat the card's own radius. */
+.ed-block.is-container.ed-radius-none,
+.ed-block.is-container.ed-radius-none > .ed-block-body {
+  border-radius: 0;
+}
+.ed-block.is-container.ed-radius-sm,
+.ed-block.is-container.ed-radius-sm > .ed-block-body {
+  border-radius: 4px;
+}
+.ed-block.is-container.ed-radius-md,
+.ed-block.is-container.ed-radius-md > .ed-block-body {
+  border-radius: 10px;
+}
+.ed-block.is-container.ed-radius-lg,
+.ed-block.is-container.ed-radius-lg > .ed-block-body {
+  border-radius: 20px;
+}
+
 /* A card is a container with finished chrome: a solid, rounded, lifted box
    rather than the container's bare layout ring. It still nests and clips. */
 .ed-block.is-card {

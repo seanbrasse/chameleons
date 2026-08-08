@@ -159,6 +159,8 @@ export type Block = {
   /** A CSS background colour for a container / card. Absent means its default
    *  surface (a card's white, a bare container's faint tint). */
   bg?: string;
+  /** Corner radius for a container / card. Absent means its default rounding. */
+  radius?: RadiusLevel;
   /** The container this block nests inside, if any. A block with a `parentId`
    *  renders inside that container — clipped to it, and carried when it moves or
    *  scales. Placement stays in absolute artboard cells regardless of nesting;
@@ -337,6 +339,13 @@ export type FontChoice = 'sans' | 'serif' | 'mono';
 export const FONT_CHOICES: readonly FontChoice[] = ['sans', 'serif', 'mono'];
 export function isFontChoice(value: unknown): value is FontChoice {
   return typeof value === 'string' && (FONT_CHOICES as readonly string[]).includes(value);
+}
+
+/** Corner radius for a container / card — the concrete pixels live in the CSS. */
+export type RadiusLevel = 'none' | 'sm' | 'md' | 'lg';
+export const RADIUS_LEVELS: readonly RadiusLevel[] = ['none', 'sm', 'md', 'lg'];
+export function isRadiusLevel(value: unknown): value is RadiusLevel {
+  return typeof value === 'string' && (RADIUS_LEVELS as readonly string[]).includes(value);
 }
 
 /** Whether alignment applies to a block — the same set as free text, plus a
