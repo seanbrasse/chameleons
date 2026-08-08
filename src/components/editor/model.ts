@@ -712,6 +712,7 @@ export type PresetKind =
   | 'ctaBand'
   | 'ctaButtons'
   | 'testimonial'
+  | 'testimonialRow'
   | 'quoteBand'
   | 'socialRow'
   | 'callout'
@@ -744,6 +745,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'ctaBand', label: 'CTA band', hint: 'A full-width gradient call-to-action: centered heading, line and button' },
   { preset: 'ctaButtons', label: 'CTA — two buttons', hint: 'A gradient call-to-action with a primary and secondary button side by side' },
   { preset: 'testimonial', label: 'Testimonial', hint: 'A ringed card holding a large quote and an attribution line' },
+  { preset: 'testimonialRow', label: 'Testimonials', hint: 'Two ringed quote cards side by side, each a quote and attribution' },
   { preset: 'quoteBand', label: 'Quote band', hint: 'A full-width gradient band with a large centred pull-quote and attribution' },
   { preset: 'socialRow', label: 'Social links', hint: 'A heading over a centred cluster of small profile buttons' },
   { preset: 'callout', label: 'Callout', hint: 'A ringed card with a badge label, a heading and a line — a tip or note box' },
@@ -1253,6 +1255,42 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     attribution.size = 'sm';
     attribution.animation = { effect: 'rise', trigger: 'load' };
     return [card, quote, attribution];
+  }
+
+  if (preset === 'testimonialRow') {
+    // Two ringed quote cards side by side — social proof at scale, the pair that
+    // reads as "people agree" where one card reads as "someone said". Each holds
+    // a quote over an attribution; the cards split the width with a gutter so
+    // they never overlap, and both rise in on load.
+    const gap = 2;
+    const startCol = 3;
+    const contentSpan = GRID_COLS - 4;
+    const cardSpan = Math.max(10, Math.floor((contentSpan - gap) / 2));
+    const box = makeBlock('container', 'Testimonials', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 14 });
+    box.stagger = true;
+    box.locked = true;
+    const quotes = [
+      { quote: '“The fastest I’ve ever gone from idea to a site I’m proud of.”', who: '— Alex Rivera, Design Lead' },
+      { quote: '“A genuine joy to work with, from first sketch to launch day.”', who: '— Sam Chen, Founder' },
+    ];
+    const blocks: Block[] = [box];
+    const cardRow = row + 2;
+    quotes.forEach((q, i) => {
+      const col = startCol + i * (cardSpan + gap);
+      const card = makeBlock('card', 'Testimonial', cardRow);
+      card.parentId = box.id;
+      card.placement = clampPlacement({ col, colSpan: cardSpan, row: cardRow, rowSpan: 10 });
+      card.ring = 'hairline';
+      card.animation = { effect: 'rise', trigger: 'load' };
+      const quote = presetChild('text', 'Quote', q.quote, card.id, { col: col + 1, colSpan: cardSpan - 2, row: cardRow + 1, rowSpan: 4 });
+      quote.animation = { effect: 'rise', trigger: 'load' };
+      const who = presetChild('text', 'Attribution', q.who, card.id, { col: col + 1, colSpan: cardSpan - 2, row: cardRow + 6, rowSpan: 2 });
+      who.size = 'sm';
+      who.animation = { effect: 'rise', trigger: 'load' };
+      blocks.push(card, quote, who);
+    });
+    return blocks;
   }
 
   if (preset === 'quoteBand') {
