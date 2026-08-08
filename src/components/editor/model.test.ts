@@ -148,6 +148,7 @@ describe('validation guards', () => {
 
   it('isGradientKind', () => {
     expect(isGradientKind('glow')).toBe(true);
+    expect(isGradientKind('ember')).toBe(true);
     expect(isGradientKind('ocean')).toBe(true);
     expect(isGradientKind('azure')).toBe(true);
     expect(isGradientKind('night')).toBe(true);

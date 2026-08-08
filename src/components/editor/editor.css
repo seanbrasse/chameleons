@@ -733,6 +733,9 @@
 .ed-bg-sunrise {
   background: linear-gradient(135deg, #ff9a56 0%, #ff5e7e 100%);
 }
+.ed-bg-ember {
+  background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+}
 .ed-bg-glow {
   background: radial-gradient(120% 90% at 50% 115%, #ff5252 0%, #7a1020 45%, #140a12 100%);
 }
@@ -753,6 +756,9 @@
 }
 .ed-block.is-container.ed-bg-sunrise {
   background: linear-gradient(135deg, #ff9a56 0%, #ff5e7e 100%);
+}
+.ed-block.is-container.ed-bg-ember {
+  background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
 }
 .ed-block.is-container.ed-bg-glow {
   background: radial-gradient(120% 90% at 50% 115%, #ff5252 0%, #7a1020 45%, #140a12 100%);
