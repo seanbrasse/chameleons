@@ -161,6 +161,8 @@ export type Block = {
   bg?: string;
   /** Corner radius for a container / card. Absent means its default rounding. */
   radius?: RadiusLevel;
+  /** A gradient surface for a container / card. Overrides `bg` when set. */
+  gradient?: GradientKind;
   /** The image source URL for an `image` block. Absent shows the placeholder. */
   imageUrl?: string;
   /** The container this block nests inside, if any. A block with a `parentId`
@@ -348,6 +350,22 @@ export type RadiusLevel = 'none' | 'sm' | 'md' | 'lg';
 export const RADIUS_LEVELS: readonly RadiusLevel[] = ['none', 'sm', 'md', 'lg'];
 export function isRadiusLevel(value: unknown): value is RadiusLevel {
   return typeof value === 'string' && (RADIUS_LEVELS as readonly string[]).includes(value);
+}
+
+/** A gradient surface for a container / card — the actual gradients live in the
+ *  editor CSS as `.ed-bg-<kind>` classes. A curated set, chosen for a modern,
+ *  Framer-ish look; overrides a solid background when set. */
+export type GradientKind = 'sunrise' | 'glow' | 'ocean' | 'violet' | 'night' | 'mint';
+export const GRADIENTS: { value: GradientKind; label: string }[] = [
+  { value: 'sunrise', label: 'Sunrise' },
+  { value: 'glow', label: 'Glow' },
+  { value: 'ocean', label: 'Ocean' },
+  { value: 'violet', label: 'Violet' },
+  { value: 'night', label: 'Night' },
+  { value: 'mint', label: 'Mint' },
+];
+export function isGradientKind(value: unknown): value is GradientKind {
+  return typeof value === 'string' && GRADIENTS.some((g) => g.value === value);
 }
 
 /** Whether alignment applies to a block — the same set as free text, plus a
