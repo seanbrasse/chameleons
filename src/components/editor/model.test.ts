@@ -857,6 +857,35 @@ describe('containers and the tree', () => {
     expect(Math.abs(leftGap - rightGap)).toBeLessThanOrEqual(2);
   });
 
+  it('the statusPills preset lays a centred row of badges across the tones', () => {
+    const group = makePreset('statusPills', 5);
+    const [box] = group;
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    const badges = group.filter((b) => b.kind === 'badge');
+    expect(badges).toHaveLength(4);
+    // one badge per tone: the accent default (no tone) plus warn, positive, neutral
+    const tones = badges.map((b) => b.badgeTone ?? 'accent').sort();
+    expect(tones).toEqual(['accent', 'neutral', 'positive', 'warn']);
+    // every badge nests in the box, shares one row, and rises on load
+    for (const b of badges) {
+      expect(b.parentId).toBe(box?.id);
+      expect(b.placement.row).toBe(badges[0]!.placement.row);
+      expect(b.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the pills never overlap and the cluster stays within the grid, roughly centred
+    const spans = badges
+      .map((b) => ({ start: b.placement.col, end: b.placement.col + b.placement.colSpan - 1 }))
+      .sort((a, b) => a.start - b.start);
+    for (let i = 1; i < spans.length; i++) {
+      expect(spans[i - 1]!.end).toBeLessThan(spans[i]!.start);
+    }
+    expect(spans[spans.length - 1]!.end).toBeLessThanOrEqual(GRID_COLS);
+    const leftGap = spans[0]!.start - 1;
+    const rightGap = GRID_COLS - spans[spans.length - 1]!.end;
+    expect(Math.abs(leftGap - rightGap)).toBeLessThanOrEqual(2);
+  });
+
   it('the callout preset stacks a badge, heading and line in a ringed card', () => {
     const [card, badge, heading, body] = makePreset('callout', 5);
     expect(card?.kind).toBe('card');

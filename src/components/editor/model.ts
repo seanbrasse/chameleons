@@ -727,6 +727,7 @@ export type PresetKind =
   | 'testimonialRow'
   | 'quoteBand'
   | 'socialRow'
+  | 'statusPills'
   | 'callout'
   | 'statsBand'
   | 'steps'
@@ -763,6 +764,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'testimonialRow', label: 'Testimonials', hint: 'Two ringed quote cards side by side, each a quote and attribution' },
   { preset: 'quoteBand', label: 'Quote band', hint: 'A full-width gradient band with a large centred pull-quote and attribution' },
   { preset: 'socialRow', label: 'Social links', hint: 'A heading over a centred cluster of small profile buttons' },
+  { preset: 'statusPills', label: 'Status pills', hint: 'A centred row of badges in each tone — a status / tag legend' },
   { preset: 'callout', label: 'Callout', hint: 'A ringed card with a badge label, a heading and a line — a tip or note box' },
   { preset: 'statsBand', label: 'Stats band', hint: 'A full-width row of big metric numbers with labels that stagger in' },
   { preset: 'steps', label: 'Process steps', hint: 'A heading over a row of numbered steps, each a badge number, title and line' },
@@ -1416,6 +1418,42 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       });
       button.animation = { effect: 'rise', trigger: 'load' };
       blocks.push(button);
+    });
+    return blocks;
+  }
+
+  if (preset === 'statusPills') {
+    // A row of badges, one per tone — the status / tag legend that the badge
+    // tones make possible. A centred cluster of pills ("New", "Beta", "Live",
+    // "Archived") that stagger in on load; the cluster is centred by column math
+    // so it never overflows the grid.
+    const gap = 2;
+    const contentSpan = GRID_COLS - 4;
+    const pills: { label: string; tone?: BadgeTone }[] = [
+      { label: 'New' },
+      { label: 'Beta', tone: 'warn' },
+      { label: 'Live', tone: 'positive' },
+      { label: 'Archived', tone: 'neutral' },
+    ];
+    const pillSpan = Math.max(4, Math.min(8, Math.floor((contentSpan - gap * (pills.length - 1)) / pills.length)));
+    const clusterWidth = pills.length * pillSpan + (pills.length - 1) * gap;
+    const startCol = Math.max(3, Math.round((GRID_COLS - clusterWidth) / 2) + 1);
+    const box = makeBlock('container', 'Status', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 6 });
+    box.stagger = true;
+    box.locked = true;
+    const blocks: Block[] = [box];
+    pills.forEach((p, i) => {
+      const badge = presetChild('badge', p.label, p.label, box.id, {
+        col: startCol + i * (pillSpan + gap),
+        colSpan: pillSpan,
+        row: row + 2,
+        rowSpan: 2,
+      });
+      badge.align = 'center';
+      if (p.tone) badge.badgeTone = p.tone;
+      badge.animation = { effect: 'rise', trigger: 'load' };
+      blocks.push(badge);
     });
     return blocks;
   }
