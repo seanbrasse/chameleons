@@ -32,6 +32,7 @@ import {
   isRingLevel,
   isDividerStyle,
   isBadgeTone,
+  isButtonVariant,
   isGradientKind,
   isRadiusLevel,
   isTextAlign,
@@ -86,6 +87,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           ...(block.ring !== undefined ? { ring: block.ring } : {}),
           ...(block.dividerStyle !== undefined && block.dividerStyle !== 'solid' ? { dividerStyle: block.dividerStyle } : {}),
           ...(block.badgeTone !== undefined && block.badgeTone !== 'accent' ? { badgeTone: block.badgeTone } : {}),
+          ...(block.buttonVariant !== undefined && block.buttonVariant !== 'solid' ? { buttonVariant: block.buttonVariant } : {}),
           ...(block.imageUrl !== undefined ? { imageUrl: block.imageUrl } : {}),
           ...(block.text !== undefined ? { text: block.text } : {}),
         },
@@ -176,6 +178,7 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     if (isRingLevel(props.ring)) block.ring = props.ring;
     if (isDividerStyle(props.dividerStyle) && props.dividerStyle !== 'solid') block.dividerStyle = props.dividerStyle;
     if (isBadgeTone(props.badgeTone) && props.badgeTone !== 'accent') block.badgeTone = props.badgeTone;
+    if (isButtonVariant(props.buttonVariant) && props.buttonVariant !== 'solid') block.buttonVariant = props.buttonVariant;
     if (typeof props.imageUrl === 'string') block.imageUrl = props.imageUrl;
     if (typeof props.text === 'string') block.text = props.text;
     blocks.push(block);

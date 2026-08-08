@@ -781,6 +781,9 @@ describe('containers and the tree', () => {
     expect(line?.align).toBe('center');
     expect(primary?.kind).toBe('button');
     expect(secondary?.kind).toBe('button');
+    // the secondary reads as a ghost button; the primary stays the solid default
+    expect(secondary?.buttonVariant).toBe('ghost');
+    expect(primary?.buttonVariant).toBeUndefined();
     // every child nests in the band and rises on load
     for (const child of [heading, line, primary, secondary]) {
       expect(child?.parentId).toBe(box?.id);

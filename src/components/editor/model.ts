@@ -197,6 +197,8 @@ export type Block = {
   dividerStyle?: DividerStyle;
   /** The colour tone for a `badge` block. Absent means the accent tone. */
   badgeTone?: BadgeTone;
+  /** The visual style for a `button` block. Absent means the solid fill. */
+  buttonVariant?: ButtonVariant;
   /** The container this block nests inside, if any. A block with a `parentId`
    *  renders inside that container — clipped to it, and carried when it moves or
    *  scales. Placement stays in absolute artboard cells regardless of nesting;
@@ -472,6 +474,16 @@ export type BadgeTone = 'accent' | 'neutral' | 'positive' | 'warn';
 export const BADGE_TONES: readonly BadgeTone[] = ['accent', 'neutral', 'positive', 'warn'];
 export function isBadgeTone(value: unknown): value is BadgeTone {
   return typeof value === 'string' && (BADGE_TONES as readonly string[]).includes(value);
+}
+
+/** The visual style for a `button` — a solid fill (the default), a ghost
+ *  outline, or a soft tinted fill. The concrete looks live in the editor CSS as
+ *  `.pv-button-<variant>` classes; absence means the solid fill. Lets a preset
+ *  or a user pair a solid primary with a ghost secondary. */
+export type ButtonVariant = 'solid' | 'ghost' | 'soft';
+export const BUTTON_VARIANTS: readonly ButtonVariant[] = ['solid', 'ghost', 'soft'];
+export function isButtonVariant(value: unknown): value is ButtonVariant {
+  return typeof value === 'string' && (BUTTON_VARIANTS as readonly string[]).includes(value);
 }
 
 /** Corner radius for a container / card — the concrete pixels live in the CSS. */
@@ -1285,6 +1297,7 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       colSpan: btnSpan,
       row: row + 8,
     });
+    secondary.buttonVariant = 'ghost';
     secondary.animation = { effect: 'rise', trigger: 'load' };
     return [box, heading, line, primary, secondary];
   }
