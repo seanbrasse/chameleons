@@ -781,6 +781,7 @@ export type PresetKind =
   | 'testimonialAvatar'
   | 'quoteBand'
   | 'socialRow'
+  | 'segmented'
   | 'statusPills'
   | 'callout'
   | 'statsBand'
@@ -825,6 +826,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'testimonialAvatar', label: 'Testimonial + avatar', hint: 'A quote card with a circular avatar, name and role beneath it' },
   { preset: 'quoteBand', label: 'Quote band', hint: 'A full-width gradient band with a large centred pull-quote and attribution' },
   { preset: 'socialRow', label: 'Social links', hint: 'A heading over a centred cluster of small profile buttons' },
+  { preset: 'segmented', label: 'Segmented control', hint: 'A centred row of pill buttons with one active — a tab bar' },
   { preset: 'statusPills', label: 'Status pills', hint: 'A centred row of badges in each tone — a status / tag legend' },
   { preset: 'callout', label: 'Callout', hint: 'A ringed card with a badge label, a heading and a line — a tip or note box' },
   { preset: 'statsBand', label: 'Stats band', hint: 'A full-width row of big metric numbers with labels that stagger in' },
@@ -1655,6 +1657,36 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       });
       button.animation = { effect: 'rise', trigger: 'load' };
       blocks.push(button);
+    });
+    return blocks;
+  }
+
+  if (preset === 'segmented') {
+    // A segmented control / tab bar: a centred row of pill buttons where the
+    // first reads as active (a soft tinted fill) and the rest as inactive
+    // (ghost outlines). It pairs the soft and ghost button variants in one
+    // component. The cluster is centred by column math and staggers in on load.
+    const gap = 1;
+    const contentSpan = GRID_COLS - 4;
+    const tabs = ['Overview', 'Features', 'Pricing'];
+    const tabSpan = Math.max(6, Math.min(12, Math.floor((contentSpan - gap * (tabs.length - 1)) / tabs.length)));
+    const clusterWidth = tabs.length * tabSpan + (tabs.length - 1) * gap;
+    const startCol = Math.max(3, Math.round((GRID_COLS - clusterWidth) / 2) + 1);
+    const box = makeBlock('container', 'Tabs', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 5 });
+    box.stagger = true;
+    box.locked = true;
+    const blocks: Block[] = [box];
+    tabs.forEach((label, i) => {
+      const tab = presetChild('button', label, label, box.id, {
+        col: startCol + i * (tabSpan + gap),
+        colSpan: tabSpan,
+        row: row + 2,
+        rowSpan: 2,
+      });
+      tab.buttonVariant = i === 0 ? 'soft' : 'ghost';
+      tab.animation = { effect: 'rise', trigger: 'load' };
+      blocks.push(tab);
     });
     return blocks;
   }

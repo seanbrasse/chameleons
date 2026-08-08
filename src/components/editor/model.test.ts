@@ -1014,6 +1014,32 @@ describe('containers and the tree', () => {
     expect(Math.abs(leftGap - rightGap)).toBeLessThanOrEqual(2);
   });
 
+  it('the segmented preset lays a centred tab row with one active soft button', () => {
+    const group = makePreset('segmented', 5);
+    const [box] = group;
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    const tabs = group.filter((b) => b.kind === 'button');
+    expect(tabs).toHaveLength(3);
+    // exactly one active (soft) tab; the rest are ghost outlines
+    expect(tabs.filter((t) => t.buttonVariant === 'soft')).toHaveLength(1);
+    expect(tabs.filter((t) => t.buttonVariant === 'ghost')).toHaveLength(2);
+    // the first tab is the active one
+    const byCol = [...tabs].sort((a, b) => a.placement.col - b.placement.col);
+    expect(byCol[0]!.buttonVariant).toBe('soft');
+    // every tab nests, shares a row, rises on load, and the row never overlaps
+    for (const t of tabs) {
+      expect(t.parentId).toBe(box?.id);
+      expect(t.placement.row).toBe(tabs[0]!.placement.row);
+      expect(t.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    const spans = byCol.map((t) => ({ start: t.placement.col, end: t.placement.col + t.placement.colSpan - 1 }));
+    for (let i = 1; i < spans.length; i++) {
+      expect(spans[i - 1]!.end).toBeLessThan(spans[i]!.start);
+    }
+    expect(spans[spans.length - 1]!.end).toBeLessThanOrEqual(GRID_COLS);
+  });
+
   it('the statusPills preset lays a centred row of badges across the tones', () => {
     const group = makePreset('statusPills', 5);
     const [box] = group;
