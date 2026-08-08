@@ -31,6 +31,7 @@ import {
   isGlowLevel,
   isRingLevel,
   isDividerStyle,
+  isBadgeTone,
   isGradientKind,
   isRadiusLevel,
   isTextAlign,
@@ -84,6 +85,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           ...(block.glow !== undefined ? { glow: block.glow } : {}),
           ...(block.ring !== undefined ? { ring: block.ring } : {}),
           ...(block.dividerStyle !== undefined && block.dividerStyle !== 'solid' ? { dividerStyle: block.dividerStyle } : {}),
+          ...(block.badgeTone !== undefined && block.badgeTone !== 'accent' ? { badgeTone: block.badgeTone } : {}),
           ...(block.imageUrl !== undefined ? { imageUrl: block.imageUrl } : {}),
           ...(block.text !== undefined ? { text: block.text } : {}),
         },
@@ -173,6 +175,7 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     if (isGlowLevel(props.glow)) block.glow = props.glow;
     if (isRingLevel(props.ring)) block.ring = props.ring;
     if (isDividerStyle(props.dividerStyle) && props.dividerStyle !== 'solid') block.dividerStyle = props.dividerStyle;
+    if (isBadgeTone(props.badgeTone) && props.badgeTone !== 'accent') block.badgeTone = props.badgeTone;
     if (typeof props.imageUrl === 'string') block.imageUrl = props.imageUrl;
     if (typeof props.text === 'string') block.text = props.text;
     blocks.push(block);

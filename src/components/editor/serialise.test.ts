@@ -302,6 +302,17 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(junk && 'dividerStyle' in junk).toBe(false);
   });
 
+  it('round-trips a badge tone, and drops accent (the default) and junk', () => {
+    const toned: Block[] = [
+      { id: 'b', kind: 'badge', label: 'Badge', badgeTone: 'positive', placement: { col: 1, colSpan: 3, row: 1 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(toned))).toEqual(toned);
+    const [asAccent] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'badge', badgeTone: 'accent' } }]));
+    expect(asAccent && 'badgeTone' in asAccent).toBe(false);
+    const [junk] = fromLayoutDocument(doc([{ id: 'c', props: { kind: 'badge', badgeTone: 'neon' } }]));
+    expect(junk && 'badgeTone' in junk).toBe(false);
+  });
+
   it('round-trips a ring, and drops a bad one', () => {
     const ringed: Block[] = [
       { id: 'c', kind: 'card', label: 'Card', ring: 'bold', placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },
