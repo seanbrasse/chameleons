@@ -394,6 +394,31 @@ describe('containers and the tree', () => {
     expect(primary!.placement.col + primary!.placement.colSpan - 1).toBeLessThan(secondary!.placement.col);
   });
 
+  it('the editorialHero preset uses a light heading, relaxed tagline and ghost button', () => {
+    const [box, heading, tagline, button] = makePreset('editorialHero', 5);
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    // the heading is a large, light-weight, centred display line
+    expect(heading?.size).toBe('xl');
+    expect(heading?.weight).toBe('light');
+    expect(heading?.align).toBe('center');
+    // the tagline is centred with relaxed leading
+    expect(tagline?.align).toBe('center');
+    expect(tagline?.leading).toBe('relaxed');
+    // the button is a centred ghost
+    expect(button?.kind).toBe('button');
+    expect(button?.buttonVariant).toBe('ghost');
+    // every child nests in the hero and rises on load
+    for (const child of [heading, tagline, button]) {
+      expect(child?.parentId).toBe(box?.id);
+      expect(child?.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the button is centred: equal margin either side of its span
+    const leftGap = button!.placement.col - 1;
+    const rightGap = GRID_COLS - (button!.placement.col + button!.placement.colSpan - 1);
+    expect(Math.abs(leftGap - rightGap)).toBeLessThanOrEqual(1);
+  });
+
   it('the about preset sets a portrait left of an About heading, bio and detail', () => {
     const [box, portrait, heading, bio, detail] = makePreset('about', 5);
     expect(box?.kind).toBe('container');
