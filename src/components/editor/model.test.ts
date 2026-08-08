@@ -639,6 +639,30 @@ describe('containers and the tree', () => {
     }
   });
 
+  it('the labeledDivider preset centres a label between two rules', () => {
+    const group = makePreset('labeledDivider', 5);
+    const [box] = group;
+    expect(box?.kind).toBe('container');
+    const rules = group.filter((b) => b.kind === 'divider');
+    const label = group.find((b) => b.kind === 'text');
+    expect(rules).toHaveLength(2);
+    expect(label).toBeDefined();
+    expect(label!.align).toBe('center');
+    // every child nests in the box and rises on load
+    for (const b of group.slice(1)) {
+      expect(b.parentId).toBe(box?.id);
+      expect(b.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // one rule sits left of the label, the other right, and all share a row
+    const sorted = [...rules].sort((a, b) => a.placement.col - b.placement.col);
+    const labelStart = label!.placement.col;
+    const labelEnd = label!.placement.col + label!.placement.colSpan - 1;
+    expect(sorted[0]!.placement.col + sorted[0]!.placement.colSpan - 1).toBeLessThan(labelStart);
+    expect(sorted[1]!.placement.col).toBeGreaterThan(labelEnd);
+    expect(sorted[1]!.placement.col + sorted[1]!.placement.colSpan - 1).toBeLessThanOrEqual(GRID_COLS);
+    expect(rules.every((r) => r.placement.row === label!.placement.row)).toBe(true);
+  });
+
   it('the banner preset pairs a message and an inline button in a ringed bar', () => {
     const [box, message, button] = makePreset('banner', 5);
     expect(box?.kind).toBe('container');
