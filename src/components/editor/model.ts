@@ -618,12 +618,19 @@ function defaultText(kind: BlockKind): string {
  * wired (nesting, and where relevant a modal trigger), so the palette can offer
  * a finished piece next to the raw primitives.
  */
-export type PresetKind = 'animatedCard' | 'hero' | 'gradientHero' | 'contactForm' | 'contactModal';
+export type PresetKind =
+  | 'animatedCard'
+  | 'hero'
+  | 'gradientHero'
+  | 'featureGrid'
+  | 'contactForm'
+  | 'contactModal';
 
 export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'animatedCard', label: 'Animated card', hint: 'A card that lifts on hover, holding a title, text and button' },
   { preset: 'hero', label: 'Hero', hint: 'A full-width intro: big heading, tagline and a button' },
   { preset: 'gradientHero', label: 'Gradient hero', hint: 'A gradient panel with big gradient type that staggers in on load' },
+  { preset: 'featureGrid', label: 'Feature grid', hint: 'A heading over a row of three cards that stagger in on load' },
   { preset: 'contactForm', label: 'Contact form', hint: 'A card with name, email and message fields' },
   { preset: 'contactModal', label: 'Contact modal', hint: 'A button that opens the contact form in a modal' },
 ];
@@ -699,6 +706,41 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     const button = presetChild('button', 'Button', 'Get started', box.id, { col: 3, colSpan: 8, row: row + 9 });
     button.animation = { effect: 'rise', trigger: 'load' };
     return [box, heading, tagline, button];
+  }
+
+  if (preset === 'featureGrid') {
+    // A heading over a row of three cards that stagger in on load — the classic
+    // "features" section. Each card is a nested container with its own title and
+    // line; the outer container sequences the heading and the three cards.
+    const gap = 2;
+    const startCol = 3;
+    const contentSpan = GRID_COLS - 4;
+    const cardSpan = Math.max(6, Math.floor((contentSpan - gap * 2) / 3));
+    const box = makeBlock('container', 'Features', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 16 });
+    box.stagger = true;
+    box.locked = true;
+    const heading = presetChild('heading', 'Title', 'What I do', box.id, { col: startCol, colSpan: contentSpan, row: row + 2 });
+    heading.size = 'lg';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const blocks: Block[] = [box, heading];
+    const cardRow = row + 6;
+    const cards = [
+      { title: 'Design', body: 'Modern, considered interfaces.' },
+      { title: 'Build', body: 'Fast, accessible front-ends.' },
+      { title: 'Ship', body: 'From idea to live in days.' },
+    ];
+    cards.forEach((c, i) => {
+      const col = startCol + i * (cardSpan + gap);
+      const card = makeBlock('card', c.title, cardRow);
+      card.parentId = box.id;
+      card.placement = clampPlacement({ col, colSpan: cardSpan, row: cardRow, rowSpan: 8 });
+      card.animation = { effect: 'rise', trigger: 'load' };
+      const title = presetChild('heading', 'Title', c.title, card.id, { col: col + 1, colSpan: cardSpan - 2, row: cardRow + 1 });
+      const line = presetChild('text', 'Text', c.body, card.id, { col: col + 1, colSpan: cardSpan - 2, row: cardRow + 4, rowSpan: 3 });
+      blocks.push(card, title, line);
+    });
+    return blocks;
   }
 
   if (preset === 'contactForm') {
