@@ -128,6 +128,15 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(block && 'stagger' in block).toBe(false);
   });
 
+  it('round-trips a frosted-glass flag, and ignores a non-true value', () => {
+    const glassy: Block[] = [
+      { id: 'box', kind: 'container', label: 'Box', glass: true, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(glassy))).toEqual(glassy);
+    const [block] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'container', glass: 1 } }]));
+    expect(block && 'glass' in block).toBe(false);
+  });
+
   it('round-trips a text alignment, and drops a bad one', () => {
     const aligned: Block[] = [
       { id: 't', kind: 'text', label: 'Text', align: 'center', placement: { col: 1, colSpan: 8, row: 1 } },

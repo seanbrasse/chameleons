@@ -1541,15 +1541,15 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         data-block-id={block.id}
         aria-label={`${block.label} block`}
         data-anim-trigger={anim?.trigger === 'scroll' ? 'scroll' : undefined}
-        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${cont ? ` ed-radius-${block.radius ?? 'md'}` : ''}${cont && block.gradient ? ` ed-bg-${block.gradient}` : ''}${cont && block.glow ? ` ed-glow-${block.glow}` : ''}${cont && block.stagger ? ' pv-stagger' : ''}${block.parentId !== undefined ? ' is-nested' : ''}${isLocked ? ' is-locked' : ''}${inLocked ? ' in-locked' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId ? ' is-trigger' : ''}${isSelected(block.id) ? ' is-selected' : ''}${dropTargetId === block.id ? ' is-drop-target' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
+        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${cont ? ` ed-radius-${block.radius ?? 'md'}` : ''}${cont && block.gradient ? ` ed-bg-${block.gradient}` : ''}${cont && block.glow ? ` ed-glow-${block.glow}` : ''}${cont && block.glass ? ' ed-glass' : ''}${cont && block.stagger ? ' pv-stagger' : ''}${block.parentId !== undefined ? ' is-nested' : ''}${isLocked ? ' is-locked' : ''}${inLocked ? ' in-locked' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId ? ' is-trigger' : ''}${isSelected(block.id) ? ' is-selected' : ''}${dropTargetId === block.id ? ' is-drop-target' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
         style={{
           left: (free ? free.left : box.left) - origin.left,
           top: (free ? free.top : box.top) - origin.top,
           width: box.width,
           height: box.height,
-          // A gradient (a CSS class) wins over a solid colour, so drop the inline
-          // fill when one is set and let the class paint the surface.
-          background: cont && !block.gradient ? block.bg : undefined,
+          // A gradient or glass surface (a CSS class) wins over a solid colour, so
+          // drop the inline fill when one is set and let the class paint it.
+          background: cont && !block.gradient && !block.glass ? block.bg : undefined,
         }}
         {...editProps}
         {...triggerProps}
@@ -2217,6 +2217,14 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                     ))}
                   </div>
                 </div>
+                <label className="ed-check">
+                  <input
+                    type="checkbox"
+                    checked={!!selected.glass}
+                    onChange={(e) => update(selected.id, { glass: e.target.checked ? true : undefined })}
+                  />
+                  <span>Frosted glass (blur what&apos;s behind)</span>
+                </label>
                 <label className="ed-check">
                   <input
                     type="checkbox"
