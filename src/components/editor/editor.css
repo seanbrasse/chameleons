@@ -1425,6 +1425,83 @@
   cursor: default;
 }
 
+/* ── right-click context menu ──────────────────────────────────────── */
+/* A transparent full-screen layer that catches the click-away and the native
+   menu on a second right-click, so neither reaches the canvas underneath. */
+.ed-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+}
+
+.ed-menu {
+  position: fixed;
+  min-width: 208px;
+  padding: 5px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 16px 42px -14px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-size: 13px;
+  user-select: none;
+}
+
+/* Clusters of related actions; a hairline divides one from the next. */
+.ed-menu-group + .ed-menu-group {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid var(--line);
+}
+
+.ed-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.ed-menu-item:hover:not(:disabled),
+.ed-menu-item:focus-visible {
+  background: var(--sel);
+  color: #fff;
+  outline: none;
+}
+
+.ed-menu-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ed-menu-item.is-danger {
+  color: #c2410c;
+}
+
+.ed-menu-item.is-danger:hover:not(:disabled),
+.ed-menu-item.is-danger:focus-visible {
+  background: #c2410c;
+  color: #fff;
+}
+
+.ed-menu-keys {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+
+.ed-menu-item:hover:not(:disabled) .ed-menu-keys,
+.ed-menu-item:focus-visible .ed-menu-keys {
+  color: rgba(255, 255, 255, 0.75);
+}
+
 .ed-toolbar-history {
   display: flex;
   gap: 4px;
