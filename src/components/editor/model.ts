@@ -192,6 +192,10 @@ export type Block = {
   radius?: RadiusLevel;
   /** A gradient surface for a container / card. Overrides `bg` when set. */
   gradient?: GradientKind;
+  /** A custom two-stop gradient for a container / card. When both stops are set
+   *  they override the preset `gradient`, painting the chosen colours directly. */
+  gradFrom?: string;
+  gradTo?: string;
   /** A soft outer glow behind a container / card. Absent means no glow. */
   glow?: GlowLevel;
   /** A crisp inset outline on a container / card — the "outlined card" look.

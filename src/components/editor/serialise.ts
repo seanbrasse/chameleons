@@ -91,6 +91,8 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           ...(block.bg !== undefined ? { bg: block.bg } : {}),
           ...(block.radius !== undefined ? { radius: block.radius } : {}),
           ...(block.gradient !== undefined ? { gradient: block.gradient } : {}),
+          ...(block.gradFrom !== undefined ? { gradFrom: block.gradFrom } : {}),
+          ...(block.gradTo !== undefined ? { gradTo: block.gradTo } : {}),
           ...(block.glow !== undefined ? { glow: block.glow } : {}),
           ...(block.ring !== undefined ? { ring: block.ring } : {}),
           ...(block.elevation !== undefined ? { elevation: block.elevation } : {}),
@@ -189,6 +191,8 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     if (typeof props.bg === 'string') block.bg = props.bg;
     if (isRadiusLevel(props.radius)) block.radius = props.radius;
     if (isGradientKind(props.gradient)) block.gradient = props.gradient;
+    if (typeof props.gradFrom === 'string') block.gradFrom = props.gradFrom;
+    if (typeof props.gradTo === 'string') block.gradTo = props.gradTo;
     if (isGlowLevel(props.glow)) block.glow = props.glow;
     if (isRingLevel(props.ring)) block.ring = props.ring;
     if (isElevation(props.elevation)) block.elevation = props.elevation;

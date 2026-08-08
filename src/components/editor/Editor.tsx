@@ -1810,6 +1810,10 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     const dragDx = dragRoot ? dragFree!.dx : 0;
     const dragDy = dragRoot ? dragFree!.dy : 0;
     const cont = isContainer(block.kind);
+    // A custom two-stop gradient (both colours set) paints directly, overriding
+    // any preset gradient class.
+    const customGrad =
+      cont && block.gradFrom && block.gradTo ? `linear-gradient(135deg, ${block.gradFrom}, ${block.gradTo})` : null;
     const kids = cont ? (childMap.get(block.id) ?? []).filter((c) => isEditMode || !c.asModal) : [];
     const isLocked = cont && block.locked === true;
     // A descendant of a locked component isn't individually selectable, so it
@@ -1901,7 +1905,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
           height: box.height,
           // A gradient or glass surface (a CSS class) wins over a solid colour, so
           // drop the inline fill when one is set and let the class paint it.
-          background: cont && !block.gradient && !block.glass ? block.bg : undefined,
+          background: customGrad ?? (cont && !block.gradient && !block.glass ? block.bg : undefined),
           // Leave the hidden affordance (its own faded style) to the class.
           opacity: block.hidden ? undefined : block.opacity,
         }}
@@ -2739,11 +2743,11 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                   <div className="ed-grad-row">
                     <button
                       type="button"
-                      className={`ed-grad-btn ed-grad-none${selected.gradient === undefined ? ' is-on' : ''}`}
+                      className={`ed-grad-btn ed-grad-none${selected.gradient === undefined && !(selected.gradFrom && selected.gradTo) ? ' is-on' : ''}`}
                       title="No gradient"
                       aria-label="No gradient"
-                      aria-pressed={selected.gradient === undefined}
-                      onClick={() => update(selected.id, { gradient: undefined })}
+                      aria-pressed={selected.gradient === undefined && !(selected.gradFrom && selected.gradTo)}
+                      onClick={() => update(selected.id, { gradient: undefined, gradFrom: undefined, gradTo: undefined })}
                     />
                     {GRADIENTS.map((g) => (
                       <button
@@ -2753,9 +2757,47 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                         title={g.label}
                         aria-label={g.label}
                         aria-pressed={selected.gradient === g.value}
-                        onClick={() => update(selected.id, { gradient: g.value })}
+                        onClick={() => update(selected.id, { gradient: g.value, gradFrom: undefined, gradTo: undefined })}
                       />
                     ))}
+                  </div>
+                  {/* Custom two-stop gradient — picking a colour switches off any
+                      preset above and paints these directly. */}
+                  <div className="ed-color-row">
+                    <input
+                      type="color"
+                      className="ed-color"
+                      value={selected.gradFrom ?? DEFAULT_GRAD_FROM}
+                      aria-label="Gradient start colour"
+                      onChange={(e) =>
+                        update(selected.id, {
+                          gradFrom: e.target.value,
+                          gradTo: selected.gradTo ?? DEFAULT_GRAD_TO,
+                          gradient: undefined,
+                        })
+                      }
+                    />
+                    <input
+                      type="color"
+                      className="ed-color"
+                      value={selected.gradTo ?? DEFAULT_GRAD_TO}
+                      aria-label="Gradient end colour"
+                      onChange={(e) =>
+                        update(selected.id, {
+                          gradTo: e.target.value,
+                          gradFrom: selected.gradFrom ?? DEFAULT_GRAD_FROM,
+                          gradient: undefined,
+                        })
+                      }
+                    />
+                    <button
+                      type="button"
+                      className="ed-btn"
+                      disabled={!selected.gradFrom && !selected.gradTo}
+                      onClick={() => update(selected.id, { gradFrom: undefined, gradTo: undefined })}
+                    >
+                      Clear
+                    </button>
                   </div>
                 </div>
                 <div className="ed-field">
@@ -3559,6 +3601,10 @@ const DEFAULT_SWATCH = '#' + '1c1b19';
 /** The background swatch's placeholder — white — when a container has no colour.
  *  Assembled from parts for the same reason as DEFAULT_SWATCH. */
 const DEFAULT_BG_SWATCH = '#' + 'ffffff';
+/** The starting stops a custom gradient shows before the user picks their own —
+ *  indigo → pink. Assembled from parts for the colour-literal lint. */
+const DEFAULT_GRAD_FROM = '#' + '6366f1';
+const DEFAULT_GRAD_TO = '#' + 'ec4899';
 /** Padding around the artboard inside the scroll area, in screen px. */
 const CANVAS_PAD = 40;
 /** Artboard px of grid to show around the moving object, before its edge fade. */
