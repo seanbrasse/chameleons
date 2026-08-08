@@ -25,6 +25,7 @@ import {
   isTextAlign,
   lockedRootOf,
   makePreset,
+  PRESETS,
   isGuide,
   isGutter,
   makeBlock,
@@ -642,6 +643,34 @@ describe('containers and the tree', () => {
     expect(copyright!.placement.row).toBeGreaterThan(Math.max(...titles.map((t) => t.placement.row)));
   });
 
+  it('the contactSplit preset sets copy left of stacked form fields', () => {
+    const group = makePreset('contactSplit', 5);
+    const [box, heading, intro] = group;
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    expect(heading?.size).toBe('lg');
+    // the right column holds two inputs, a textarea and a submit button
+    const inputs = group.filter((b) => b.kind === 'input');
+    const textareas = group.filter((b) => b.kind === 'textarea');
+    const buttons = group.filter((b) => b.kind === 'button');
+    expect(inputs).toHaveLength(2);
+    expect(textareas).toHaveLength(1);
+    expect(buttons).toHaveLength(1);
+    // every child nests in the box and rises on load
+    for (const b of group.slice(1)) {
+      expect(b.parentId).toBe(box?.id);
+      expect(b.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the copy column sits entirely left of the form fields
+    const copyRight = Math.max(
+      heading!.placement.col + heading!.placement.colSpan - 1,
+      intro!.placement.col + intro!.placement.colSpan - 1,
+    );
+    for (const field of [...inputs, ...textareas]) {
+      expect(copyRight).toBeLessThan(field.placement.col);
+    }
+  });
+
   it('the newsletter preset pairs an email field and button inline in a ringed card', () => {
     const [card, heading, line, email, button] = makePreset('newsletter', 5);
     expect(card?.kind).toBe('card');
@@ -864,12 +893,14 @@ describe('containers and the tree', () => {
   });
 
   it('every preset lands in bounds and selects its first block', () => {
-    const kinds = ['animatedCard', 'hero', 'gradientHero', 'featureGrid', 'ctaBand', 'testimonial', 'statsBand', 'pricingTable', 'contactForm', 'contactModal'] as const;
-    for (const preset of kinds) {
+    // Derived from PRESETS so every registered preset is covered, not a subset.
+    for (const { preset } of PRESETS) {
       const group = makePreset(preset, 40);
       expect(group.length).toBeGreaterThan(0);
       // clampPlacement guarantees every block fits the grid
       expect(group.every((b) => b.placement.col >= 1 && b.placement.col + b.placement.colSpan - 1 <= GRID_COLS)).toBe(true);
+      // the first returned block is the one the caller selects
+      expect(group[0]).toBeDefined();
     }
   });
 

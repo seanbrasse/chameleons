@@ -723,6 +723,7 @@ export type PresetKind =
   | 'pricingTable'
   | 'newsletter'
   | 'footer'
+  | 'contactSplit'
   | 'contactForm'
   | 'contactModal';
 
@@ -753,6 +754,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'pricingTable', label: 'Pricing table', hint: 'Three tier cards with prices and buttons; the middle one is highlighted' },
   { preset: 'newsletter', label: 'Newsletter signup', hint: 'A ringed card with a heading, a line and an inline email field and subscribe button' },
   { preset: 'footer', label: 'Footer', hint: 'A full-width footer: three columns of links over a centred copyright line' },
+  { preset: 'contactSplit', label: 'Contact split', hint: "A heading and intro beside stacked name, email and message fields" },
   { preset: 'contactForm', label: 'Contact form', hint: 'A card with name, email and message fields' },
   { preset: 'contactModal', label: 'Contact modal', hint: 'A button that opens the contact form in a modal' },
 ];
@@ -1673,6 +1675,42 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     copyright.animation = { effect: 'rise', trigger: 'load' };
     blocks.push(copyright);
     return blocks;
+  }
+
+  if (preset === 'contactSplit') {
+    // A two-column "get in touch": a heading and intro on the left beside the
+    // form fields on the right. Distinct from the single-card contact form —
+    // here copy invites the message while the fields sit alongside it. Columns
+    // are kept apart by a gutter, and everything rises on load.
+    const box = makeBlock('container', 'Contact', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 22 });
+    box.stagger = true;
+    box.locked = true;
+    const gutter = 3;
+    const leftCol = 3;
+    const leftSpan = Math.max(10, Math.round(GRID_COLS * 0.4));
+    const rightCol = leftCol + leftSpan + gutter;
+    const rightSpan = Math.max(12, GRID_COLS - rightCol - 1);
+    const heading = presetChild('heading', 'Title', "Let's talk", box.id, { col: leftCol, colSpan: leftSpan, row: row + 2 });
+    heading.size = 'lg';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const intro = presetChild(
+      'text',
+      'Intro',
+      'Have a project in mind or just want to say hello? Drop a line and I’ll get back to you.',
+      box.id,
+      { col: leftCol, colSpan: leftSpan, row: row + 5, rowSpan: 4 },
+    );
+    intro.animation = { effect: 'rise', trigger: 'load' };
+    const name = presetChild('input', 'Name', 'Your name', box.id, { col: rightCol, colSpan: rightSpan, row: row + 2, rowSpan: 3 });
+    name.animation = { effect: 'rise', trigger: 'load' };
+    const email = presetChild('input', 'Email', 'Your email', box.id, { col: rightCol, colSpan: rightSpan, row: row + 6, rowSpan: 3 });
+    email.animation = { effect: 'rise', trigger: 'load' };
+    const message = presetChild('textarea', 'Message', 'Your message', box.id, { col: rightCol, colSpan: rightSpan, row: row + 10, rowSpan: 5 });
+    message.animation = { effect: 'rise', trigger: 'load' };
+    const submit = presetChild('button', 'Submit', 'Send', box.id, { col: rightCol, colSpan: 8, row: row + 16 });
+    submit.animation = { effect: 'rise', trigger: 'load' };
+    return [box, heading, intro, name, email, message, submit];
   }
 
   if (preset === 'contactForm') {
