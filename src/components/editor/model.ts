@@ -650,6 +650,7 @@ export type PresetKind =
   | 'hero'
   | 'gradientHero'
   | 'featureGrid'
+  | 'ctaBand'
   | 'contactForm'
   | 'contactModal';
 
@@ -658,6 +659,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'hero', label: 'Hero', hint: 'A full-width intro: big heading, tagline and a button' },
   { preset: 'gradientHero', label: 'Gradient hero', hint: 'A gradient panel with big gradient type that staggers in on load' },
   { preset: 'featureGrid', label: 'Feature grid', hint: 'A heading over a row of three cards that stagger in on load' },
+  { preset: 'ctaBand', label: 'CTA band', hint: 'A full-width gradient call-to-action: centered heading, line and button' },
   { preset: 'contactForm', label: 'Contact form', hint: 'A card with name, email and message fields' },
   { preset: 'contactModal', label: 'Contact modal', hint: 'A button that opens the contact form in a modal' },
 ];
@@ -768,6 +770,44 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       blocks.push(card, title, line);
     });
     return blocks;
+  }
+
+  if (preset === 'ctaBand') {
+    // A full-width call-to-action: a gradient band whose centered heading, line
+    // and button rise in together on load. Everything is centre-aligned and the
+    // button sits dead-centre by column math, so it reads as one focal block.
+    const box = makeBlock('container', 'Call to action', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 12 });
+    box.gradient = 'night';
+    box.stagger = true;
+    box.locked = true;
+    // The band is dark, so the type reads via a light gradient clipped to the
+    // glyphs (textGradient) rather than a colour literal — the same mechanism
+    // the other gradient presets use.
+    const heading = presetChild('heading', 'Title', 'Ready to start?', box.id, { col: 3, colSpan: GRID_COLS - 4, row: row + 2 });
+    heading.size = 'lg';
+    heading.align = 'center';
+    heading.textGradient = 'mint';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const lineSpan = Math.round(GRID_COLS * 0.5);
+    const line = presetChild(
+      'text',
+      'Text',
+      "Let's build something worth showing off.",
+      box.id,
+      { col: Math.round((GRID_COLS - lineSpan) / 2) + 1, colSpan: lineSpan, row: row + 5, rowSpan: 2 },
+    );
+    line.align = 'center';
+    line.textGradient = 'mint';
+    line.animation = { effect: 'rise', trigger: 'load' };
+    const btnSpan = 8;
+    const button = presetChild('button', 'Button', 'Get in touch', box.id, {
+      col: Math.round((GRID_COLS - btnSpan) / 2) + 1,
+      colSpan: btnSpan,
+      row: row + 8,
+    });
+    button.animation = { effect: 'rise', trigger: 'load' };
+    return [box, heading, line, button];
   }
 
   if (preset === 'contactForm') {
