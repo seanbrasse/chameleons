@@ -146,6 +146,17 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(block && 'grain' in block).toBe(false);
   });
 
+  it('round-trips opacity, and drops one out of the 0–1 range', () => {
+    const faint: Block[] = [
+      { id: 'h', kind: 'heading', label: 'Heading', opacity: 0.4, placement: { col: 1, colSpan: 8, row: 1 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(faint))).toEqual(faint);
+    const [tooHigh] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'text', opacity: 1.5 } }]));
+    expect(tooHigh && 'opacity' in tooHigh).toBe(false);
+    const [negative] = fromLayoutDocument(doc([{ id: 'b', props: { kind: 'text', opacity: -0.2 } }]));
+    expect(negative && 'opacity' in negative).toBe(false);
+  });
+
   it('round-trips a text alignment, and drops a bad one', () => {
     const aligned: Block[] = [
       { id: 't', kind: 'text', label: 'Text', align: 'center', placement: { col: 1, colSpan: 8, row: 1 } },
