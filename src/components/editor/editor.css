@@ -589,6 +589,71 @@
   border-radius: 20px;
 }
 
+/* Gradient surfaces — a curated, modern set. The same backgrounds paint a
+   container's fill (qualified with .is-container to beat the card's own colour)
+   and the inspector's picker swatches. */
+.ed-bg-sunrise {
+  background: linear-gradient(135deg, #ff9a56 0%, #ff5e7e 100%);
+}
+.ed-bg-glow {
+  background: radial-gradient(120% 90% at 50% 115%, #ff5252 0%, #7a1020 45%, #140a12 100%);
+}
+.ed-bg-ocean {
+  background: linear-gradient(135deg, #2af598 0%, #009efd 100%);
+}
+.ed-bg-violet {
+  background: linear-gradient(135deg, #7028e4 0%, #e5b2ca 100%);
+}
+.ed-bg-night {
+  background: linear-gradient(160deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+}
+.ed-bg-mint {
+  background: linear-gradient(135deg, #d9f8e8 0%, #bfe9ff 100%);
+}
+.ed-block.is-container.ed-bg-sunrise {
+  background: linear-gradient(135deg, #ff9a56 0%, #ff5e7e 100%);
+}
+.ed-block.is-container.ed-bg-glow {
+  background: radial-gradient(120% 90% at 50% 115%, #ff5252 0%, #7a1020 45%, #140a12 100%);
+}
+.ed-block.is-container.ed-bg-ocean {
+  background: linear-gradient(135deg, #2af598 0%, #009efd 100%);
+}
+.ed-block.is-container.ed-bg-violet {
+  background: linear-gradient(135deg, #7028e4 0%, #e5b2ca 100%);
+}
+.ed-block.is-container.ed-bg-night {
+  background: linear-gradient(160deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+}
+.ed-block.is-container.ed-bg-mint {
+  background: linear-gradient(135deg, #d9f8e8 0%, #bfe9ff 100%);
+}
+
+/* The gradient picker: a row of round swatches, each previewing its gradient. */
+.ed-grad-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ed-grad-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  padding: 0;
+}
+.ed-grad-btn.is-on {
+  outline: 2px solid var(--sel);
+  outline-offset: 1px;
+  border-color: var(--sel);
+}
+.ed-grad-none {
+  background:
+    linear-gradient(45deg, transparent 46%, var(--danger) 46%, var(--danger) 54%, transparent 54%),
+    #fff;
+}
+
 /* A card is a container with finished chrome: a solid, rounded, lifted box
    rather than the container's bare layout ring. It still nests and clips. */
 .ed-block.is-card {

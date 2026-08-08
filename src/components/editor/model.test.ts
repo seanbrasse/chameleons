@@ -10,6 +10,7 @@ import {
   isBlockKind,
   isContainer,
   isFontChoice,
+  isGradientKind,
   isInput,
   isPresetKind,
   isContentSource,
@@ -120,6 +121,14 @@ describe('validation guards', () => {
     expect(isRadiusLevel('lg')).toBe(true);
     expect(isRadiusLevel('xl')).toBe(false);
     expect(isRadiusLevel(3)).toBe(false);
+  });
+
+  it('isGradientKind', () => {
+    expect(isGradientKind('glow')).toBe(true);
+    expect(isGradientKind('ocean')).toBe(true);
+    expect(isGradientKind('night')).toBe(true);
+    expect(isGradientKind('rainbow')).toBe(false);
+    expect(isGradientKind(undefined)).toBe(false);
   });
 
   it('canAlign covers text primitives only', () => {

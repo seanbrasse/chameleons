@@ -26,6 +26,7 @@ import {
   isBlockKind,
   isContentSource,
   isFontChoice,
+  isGradientKind,
   isRadiusLevel,
   isTextAlign,
   sanitizeParents,
@@ -58,6 +59,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           ...(block.color !== undefined ? { color: block.color } : {}),
           ...(block.bg !== undefined ? { bg: block.bg } : {}),
           ...(block.radius !== undefined ? { radius: block.radius } : {}),
+          ...(block.gradient !== undefined ? { gradient: block.gradient } : {}),
           ...(block.imageUrl !== undefined ? { imageUrl: block.imageUrl } : {}),
           ...(block.text !== undefined ? { text: block.text } : {}),
         },
@@ -109,6 +111,7 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     if (typeof props.color === 'string') block.color = props.color;
     if (typeof props.bg === 'string') block.bg = props.bg;
     if (isRadiusLevel(props.radius)) block.radius = props.radius;
+    if (isGradientKind(props.gradient)) block.gradient = props.gradient;
     if (typeof props.imageUrl === 'string') block.imageUrl = props.imageUrl;
     if (typeof props.text === 'string') block.text = props.text;
     blocks.push(block);

@@ -39,6 +39,7 @@ import {
   maxCol,
   newBlockId,
   FONT_CHOICES,
+  GRADIENTS,
   RADIUS_LEVELS,
   TEXT_ALIGNS,
   withoutParent,
@@ -1529,13 +1530,15 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         data-block-id={block.id}
         aria-label={`${block.label} block`}
         data-anim-trigger={anim?.trigger === 'scroll' ? 'scroll' : undefined}
-        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${cont ? ` ed-radius-${block.radius ?? 'md'}` : ''}${block.parentId !== undefined ? ' is-nested' : ''}${isLocked ? ' is-locked' : ''}${inLocked ? ' in-locked' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId ? ' is-trigger' : ''}${isSelected(block.id) ? ' is-selected' : ''}${dropTargetId === block.id ? ' is-drop-target' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
+        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${cont ? ` ed-radius-${block.radius ?? 'md'}` : ''}${cont && block.gradient ? ` ed-bg-${block.gradient}` : ''}${block.parentId !== undefined ? ' is-nested' : ''}${isLocked ? ' is-locked' : ''}${inLocked ? ' in-locked' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId ? ' is-trigger' : ''}${isSelected(block.id) ? ' is-selected' : ''}${dropTargetId === block.id ? ' is-drop-target' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
         style={{
           left: (free ? free.left : box.left) - origin.left,
           top: (free ? free.top : box.top) - origin.top,
           width: box.width,
           height: box.height,
-          background: cont ? block.bg : undefined,
+          // A gradient (a CSS class) wins over a solid colour, so drop the inline
+          // fill when one is set and let the class paint the surface.
+          background: cont && !block.gradient ? block.bg : undefined,
         }}
         {...editProps}
         {...triggerProps}
@@ -2072,6 +2075,30 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                     >
                       Default
                     </button>
+                  </div>
+                </div>
+                <div className="ed-field">
+                  <span className="ed-field-label">Gradient</span>
+                  <div className="ed-grad-row">
+                    <button
+                      type="button"
+                      className={`ed-grad-btn ed-grad-none${selected.gradient === undefined ? ' is-on' : ''}`}
+                      title="No gradient"
+                      aria-label="No gradient"
+                      aria-pressed={selected.gradient === undefined}
+                      onClick={() => update(selected.id, { gradient: undefined })}
+                    />
+                    {GRADIENTS.map((g) => (
+                      <button
+                        key={g.value}
+                        type="button"
+                        className={`ed-grad-btn ed-bg-${g.value}${selected.gradient === g.value ? ' is-on' : ''}`}
+                        title={g.label}
+                        aria-label={g.label}
+                        aria-pressed={selected.gradient === g.value}
+                        onClick={() => update(selected.id, { gradient: g.value })}
+                      />
+                    ))}
                   </div>
                 </div>
                 <div className="ed-field">
