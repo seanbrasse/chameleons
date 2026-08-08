@@ -12,6 +12,7 @@ import {
   isFontChoice,
   isGradientKind,
   isInput,
+  isPageTheme,
   isPresetKind,
   isContentSource,
   isRadiusLevel,
@@ -96,6 +97,13 @@ describe('validation guards', () => {
     expect(isGuide('dots')).toBe(true);
     expect(isGuide('off')).toBe(true);
     expect(isGuide('grid')).toBe(false);
+  });
+
+  it('isPageTheme', () => {
+    expect(isPageTheme('light')).toBe(true);
+    expect(isPageTheme('dark')).toBe(true);
+    expect(isPageTheme('auto')).toBe(false);
+    expect(isPageTheme(1)).toBe(false);
   });
 
   it('isTextAlign', () => {

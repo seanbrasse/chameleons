@@ -420,6 +420,14 @@ export function isGuide(value: unknown): value is Guide {
   return typeof value === 'string' && (GUIDES as readonly string[]).includes(value);
 }
 
+/** The page theme — a light or dark artboard, so a portfolio can go dark like a
+ *  modern landing page. A document-level setting, not per-block. */
+export type PageTheme = 'light' | 'dark';
+export const PAGE_THEMES: readonly PageTheme[] = ['light', 'dark'];
+export function isPageTheme(value: unknown): value is PageTheme {
+  return typeof value === 'string' && (PAGE_THEMES as readonly string[]).includes(value);
+}
+
 /** Whether a block draws its own content from the Issue rather than free text. */
 export function isContentBlock(kind: BlockKind): boolean {
   return (
