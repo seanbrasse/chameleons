@@ -379,6 +379,26 @@ describe('containers and the tree', () => {
     }
   });
 
+  it('the newsletter preset pairs an email field and button inline in a ringed card', () => {
+    const [card, heading, line, email, button] = makePreset('newsletter', 5);
+    expect(card?.kind).toBe('card');
+    expect(card?.ring).toBe('hairline');
+    expect(card?.stagger).toBe(true);
+    expect(card?.locked).toBe(true);
+    expect(heading?.align).toBe('center');
+    expect(line?.align).toBe('center');
+    expect(email?.kind).toBe('input');
+    expect(button?.kind).toBe('button');
+    // every child nests in the card and rises on load
+    for (const child of [heading, line, email, button]) {
+      expect(child?.parentId).toBe(card?.id);
+      expect(child?.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the field and button share a row and never overlap in columns
+    expect(email?.placement.row).toBe(button?.placement.row);
+    expect(email!.placement.col + email!.placement.colSpan - 1).toBeLessThan(button!.placement.col);
+  });
+
   it('the ctaBand preset centres a heading, line and button on a gradient band', () => {
     const [box, heading, line, button] = makePreset('ctaBand', 5);
     expect(box?.kind).toBe('container');

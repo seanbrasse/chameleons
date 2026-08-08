@@ -703,6 +703,7 @@ export type PresetKind =
   | 'statsBand'
   | 'logoCloud'
   | 'pricingTable'
+  | 'newsletter'
   | 'contactForm'
   | 'contactModal';
 
@@ -716,6 +717,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'statsBand', label: 'Stats band', hint: 'A full-width row of big metric numbers with labels that stagger in' },
   { preset: 'logoCloud', label: 'Logo cloud', hint: 'A "trusted by" heading over a row of ringed wordmark tiles that stagger in' },
   { preset: 'pricingTable', label: 'Pricing table', hint: 'Three tier cards with prices and buttons; the middle one is highlighted' },
+  { preset: 'newsletter', label: 'Newsletter signup', hint: 'A ringed card with a heading, a line and an inline email field and subscribe button' },
   { preset: 'contactForm', label: 'Contact form', hint: 'A card with name, email and message fields' },
   { preset: 'contactModal', label: 'Contact modal', hint: 'A button that opens the contact form in a modal' },
 ];
@@ -1006,6 +1008,53 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       blocks.push(card, name, price, line, button);
     });
     return blocks;
+  }
+
+  if (preset === 'newsletter') {
+    // A compact signup card: a centred heading and line over an inline row of
+    // an email field and a subscribe button. The email input and the button
+    // share a row, spans computed so they never overlap, and the whole card
+    // rises in on load — the classic "stay in the loop" capture block.
+    const card = makeBlock('card', 'Newsletter', row);
+    card.placement = clampPlacement({ col: 1, colSpan: half, row, rowSpan: 14 });
+    card.ring = 'hairline';
+    card.stagger = true;
+    card.locked = true;
+    const innerCol = 3;
+    const innerSpan = half - 4;
+    const heading = presetChild('heading', 'Title', 'Stay in the loop', card.id, {
+      col: innerCol,
+      colSpan: innerSpan,
+      row: row + 2,
+    });
+    heading.align = 'center';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const line = presetChild('text', 'Text', 'Occasional updates, straight to your inbox. No spam.', card.id, {
+      col: innerCol,
+      colSpan: innerSpan,
+      row: row + 5,
+      rowSpan: 2,
+    });
+    line.align = 'center';
+    line.animation = { effect: 'rise', trigger: 'load' };
+    const btnSpan = 9;
+    const fieldGap = 1;
+    const inputSpan = Math.max(6, innerSpan - btnSpan - fieldGap);
+    const email = presetChild('input', 'Email', 'Your email', card.id, {
+      col: innerCol,
+      colSpan: inputSpan,
+      row: row + 9,
+      rowSpan: 3,
+    });
+    email.animation = { effect: 'rise', trigger: 'load' };
+    const button = presetChild('button', 'Subscribe', 'Subscribe', card.id, {
+      col: innerCol + inputSpan + fieldGap,
+      colSpan: btnSpan,
+      row: row + 9,
+      rowSpan: 3,
+    });
+    button.animation = { effect: 'rise', trigger: 'load' };
+    return [card, heading, line, email, button];
   }
 
   if (preset === 'contactForm') {
