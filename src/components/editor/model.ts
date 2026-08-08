@@ -2140,6 +2140,7 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       c.links.forEach((link, j) => {
         const line = presetChild('text', 'Link', link, box.id, { col, colSpan, row: row + 4 + j * 2, rowSpan: 1 });
         line.size = 'sm';
+        line.underline = true;
         line.animation = { effect: 'rise', trigger: 'load' };
         blocks.push(line);
       });

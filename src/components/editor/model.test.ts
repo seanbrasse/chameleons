@@ -828,6 +828,11 @@ describe('containers and the tree', () => {
     const copyright = texts.find((t) => t.align === 'center');
     expect(copyright).toBeDefined();
     expect(copyright!.placement.row).toBeGreaterThan(Math.max(...titles.map((t) => t.placement.row)));
+    // the nine link lines read as links (underlined); the copyright does not
+    const linkLines = texts.filter((t) => t !== copyright);
+    expect(linkLines).toHaveLength(9);
+    expect(linkLines.every((l) => l.underline === true)).toBe(true);
+    expect(copyright!.underline).toBeUndefined();
   });
 
   it('the contactSplit preset sets copy left of stacked form fields', () => {
