@@ -724,6 +724,7 @@ export type PresetKind =
   | 'hero'
   | 'splitHero'
   | 'eyebrowHero'
+  | 'heroActions'
   | 'about'
   | 'gradientHero'
   | 'featureGrid'
@@ -761,6 +762,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'hero', label: 'Hero', hint: 'A full-width intro: big heading, tagline and a button' },
   { preset: 'splitHero', label: 'Split hero', hint: 'A two-column intro: heading, tagline and button beside an image' },
   { preset: 'eyebrowHero', label: 'Eyebrow hero', hint: 'A hero led by a badge eyebrow over a big heading, tagline and button' },
+  { preset: 'heroActions', label: 'Hero + actions', hint: 'A hero with a big heading, tagline and a solid + ghost button pair' },
   { preset: 'about', label: 'About / bio', hint: 'A portrait beside an About heading, a bio paragraph and a detail line' },
   { preset: 'gradientHero', label: 'Gradient hero', hint: 'A gradient panel with big gradient type that staggers in on load' },
   { preset: 'featureGrid', label: 'Feature grid', hint: 'A heading over a row of three cards that stagger in on load' },
@@ -897,6 +899,35 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     const button = presetChild('button', 'Button', 'Get in touch', box.id, { col: 3, colSpan: 8, row: row + 11 });
     button.animation = { effect: 'rise', trigger: 'load' };
     return [box, eyebrow, heading, tagline, button];
+  }
+
+  if (preset === 'heroActions') {
+    // A hero that ends in two actions: a big heading and tagline over a solid
+    // primary button beside a ghost secondary. Left-aligned, the way a landing
+    // page offers a main path and an alternative ("Get started" / "See work").
+    // Distinct from the centred gradient CTAs; everything rises in on load.
+    const box = makeBlock('container', 'Hero', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 13 });
+    box.stagger = true;
+    box.locked = true;
+    const heading = presetChild('heading', 'Title', 'Your name, in large type', box.id, { col: 3, colSpan: GRID_COLS - 4, row: row + 2 });
+    heading.size = 'xl';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const tagline = presetChild('text', 'Tagline', 'A one-line summary of what you do and who for.', box.id, {
+      col: 3,
+      colSpan: Math.round(GRID_COLS * 0.6),
+      row: row + 6,
+      rowSpan: 3,
+    });
+    tagline.animation = { effect: 'rise', trigger: 'load' };
+    const btnSpan = 8;
+    const btnGap = 2;
+    const primary = presetChild('button', 'Primary', 'Get started', box.id, { col: 3, colSpan: btnSpan, row: row + 9 });
+    primary.animation = { effect: 'rise', trigger: 'load' };
+    const secondary = presetChild('button', 'Secondary', 'See work', box.id, { col: 3 + btnSpan + btnGap, colSpan: btnSpan, row: row + 9 });
+    secondary.buttonVariant = 'ghost';
+    secondary.animation = { effect: 'rise', trigger: 'load' };
+    return [box, heading, tagline, primary, secondary];
   }
 
   if (preset === 'about') {
