@@ -698,6 +698,24 @@ describe('containers and the tree', () => {
     expect(Math.abs(leftGap - rightGap)).toBeLessThanOrEqual(2);
   });
 
+  it('the callout preset stacks a badge, heading and line in a ringed card', () => {
+    const [card, badge, heading, body] = makePreset('callout', 5);
+    expect(card?.kind).toBe('card');
+    expect(card?.ring).toBe('hairline');
+    expect(card?.stagger).toBe(true);
+    expect(badge?.kind).toBe('badge');
+    expect(heading?.kind).toBe('heading');
+    expect(body?.kind).toBe('text');
+    // every child nests in the card and rises on load
+    for (const child of [badge, heading, body]) {
+      expect(child?.parentId).toBe(card?.id);
+      expect(child?.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the badge sits above the heading, which sits above the body
+    expect(badge!.placement.row).toBeLessThan(heading!.placement.row);
+    expect(heading!.placement.row).toBeLessThan(body!.placement.row);
+  });
+
   it('the quoteBand preset centres a gradient pull-quote and attribution on a band', () => {
     const [box, quote, attribution] = makePreset('quoteBand', 5);
     expect(box?.kind).toBe('container');
