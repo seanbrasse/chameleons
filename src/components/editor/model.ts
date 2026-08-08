@@ -770,6 +770,14 @@ export function newBlockId(kind: BlockKind): string {
   return `${kind}-${counter}`;
 }
 
+let pageCounter = 0;
+/** A stable id for a new page. The time suffix keeps ids from colliding across
+ *  sessions, so a page added after a reload never clashes with a stored one. */
+export function newPageId(): string {
+  pageCounter += 1;
+  return `page-${pageCounter}-${Date.now().toString(36)}`;
+}
+
 /** A fresh block for a palette drop, sized for its kind and placed at `row`. */
 export function makeBlock(kind: BlockKind, label: string, row = 1): Block {
   const placement: Placement = { col: 1, colSpan: defaultColSpan(kind), row };

@@ -316,6 +316,112 @@
   gap: 8px;
 }
 
+/* ── page tabs ─────────────────────────────────────────────────────── */
+/* A slim strip of named canvases under the toolbar. Each page is its own
+   design; the active tab is filled, the rest read as quiet chips. */
+.ed-pagebar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--panel-line);
+  overflow-x: auto;
+}
+
+.ed-pagetab {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  border-radius: var(--r-sm);
+  border: 1px solid transparent;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.ed-pagetab:hover {
+  background: #fff;
+  border-color: var(--panel-line);
+}
+
+.ed-pagetab.is-active {
+  background: #fff;
+  border-color: var(--line);
+  box-shadow: var(--shadow-sm);
+}
+
+.ed-pagetab-btn {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  background: transparent;
+  border: 0;
+  padding: 5px 10px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ed-pagetab.is-active .ed-pagetab-btn {
+  color: var(--ink);
+}
+
+.ed-pagetab-del {
+  border: 0;
+  background: transparent;
+  color: var(--ink-faint);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 7px 0 2px;
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s;
+}
+
+.ed-pagetab:hover .ed-pagetab-del,
+.ed-pagetab.is-active .ed-pagetab-del {
+  opacity: 1;
+}
+
+.ed-pagetab-del:hover {
+  color: var(--danger);
+}
+
+.ed-pagetab-input {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  width: 120px;
+  padding: 4px 9px;
+  border: 1px solid var(--sel);
+  border-radius: var(--r-sm);
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+.ed-pagetab-add {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  background: transparent;
+  border: 1px dashed var(--line);
+  padding: 5px 11px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  flex: none;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+}
+
+.ed-pagetab-add:hover {
+  color: var(--sel);
+  border-color: var(--sel);
+  background: var(--sel-soft);
+}
+
 .ed-toolbar-label {
   font-size: 11px;
   font-weight: 600;

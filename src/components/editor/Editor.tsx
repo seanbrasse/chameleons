@@ -48,6 +48,7 @@ import {
   makeBlock,
   maxCol,
   newBlockId,
+  newPageId,
   FONT_CHOICES,
   GLOW_LEVELS,
   RING_LEVELS,
@@ -104,9 +105,21 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   /** The page's own fill — the empty canvas treated as a container surface.
    *  Undefined leaves the plain themed background. */
   const [pageBg, setPageBg] = useState<GradientKind | undefined>(initial.pageBg);
-  const [blocks, setBlocks] = useState<Block[]>(initial.blocks);
+  // The document is a list of named pages, each its own canvas. The active
+  // page's blocks live in `blocks`; every other page's blocks rest in
+  // `otherPagesRef` until it is opened. `pages` holds just the id + name in
+  // paint order, which is all the switcher and persistence need.
+  const initialActive = initial.pages.find((p) => p.id === initial.activePageId) ?? initial.pages[0]!;
+  const [pages, setPages] = useState<{ id: string; name: string }[]>(
+    initial.pages.map((p) => ({ id: p.id, name: p.name })),
+  );
+  const [activePageId, setActivePageId] = useState(initialActive.id);
+  const otherPagesRef = useRef<Map<string, Block[]>>(
+    new Map(initial.pages.filter((p) => p.id !== initialActive.id).map((p) => [p.id, p.blocks])),
+  );
+  const [blocks, setBlocks] = useState<Block[]>(initialActive.blocks);
   /** The current selection — one, several (multi-select), or none. */
-  const [selection, setSelection] = useState<string[]>(initial.blocks[0] ? [initial.blocks[0].id] : []);
+  const [selection, setSelection] = useState<string[]>(initialActive.blocks[0] ? [initialActive.blocks[0].id] : []);
   /** The lone selected id when exactly one is selected — drives the inspector and
    *  resize handles. Null when zero or many are selected. */
   const selectedId = selection.length === 1 ? selection[0]! : null;
@@ -123,6 +136,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; id: string } | null>(null);
   /** Whether the clipboard holds a copied subtree — gates the menu's Paste. */
   const [clipReady, setClipReady] = useState(false);
+  /** The page tab being renamed inline, if any. */
+  const [renamingPageId, setRenamingPageId] = useState<string | null>(null);
   /** True while a block is being dragged — the grid guides show only then. */
   const [arranging, setArranging] = useState(false);
   /** The id of the block currently being dragged, for its lifted styling. */
@@ -255,16 +270,22 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const openModalBlock =
     openModalId !== null ? blocks.find((b) => b.id === openModalId && b.asModal) ?? null : null;
 
-  // Persist layout + grid style. Writes to localStorage only, no setState.
+  // Persist every page + grid style. Writes to localStorage only, no setState.
+  // The active page reads from live `blocks`; the rest from the resting store.
   useEffect(() => {
     if (!storageKey) return;
     try {
-      const payload = { layout: toLayoutDocument(blocks), gutter, guide, theme, ...(pageBg ? { pageBg } : {}) };
+      const payloadPages = pages.map((p) => ({
+        id: p.id,
+        name: p.name,
+        layout: toLayoutDocument(p.id === activePageId ? blocks : otherPagesRef.current.get(p.id) ?? []),
+      }));
+      const payload = { pages: payloadPages, activePageId, gutter, guide, theme, ...(pageBg ? { pageBg } : {}) };
       window.localStorage.setItem(storageKey, JSON.stringify(payload));
     } catch {
       // Storage full or blocked — the layout simply isn't remembered.
     }
-  }, [blocks, gutter, guide, theme, pageBg, storageKey]);
+  }, [blocks, pages, activePageId, gutter, guide, theme, pageBg, storageKey]);
 
   // Esc closes an open block modal.
   useEffect(() => {
@@ -1587,12 +1608,76 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       }
     }
     const fresh = starterBlocks();
+    const page = { id: newPageId(), name: 'Page 1' };
+    otherPagesRef.current = new Map();
+    historyRef.current = { past: [], future: [], lastAt: 0 };
+    setPages([page]);
+    setActivePageId(page.id);
     setBlocks(fresh);
     setSelectedId(fresh[0]?.id ?? null);
     setGutter('cozy');
     setGuide('lines');
     setTheme('light');
     setPageBg(undefined);
+  };
+
+  // ── pages ───────────────────────────────────────────────────────────
+  // Switching parks the live page's blocks in the resting store and loads the
+  // target's; history is per-page, so it starts clean. Add/delete keep at least
+  // one page alive. None of these snapshot — a page change isn't an undo step.
+  const switchPage = (id: string) => {
+    if (id === activePageId) return;
+    otherPagesRef.current.set(activePageId, blocksRef.current);
+    const next = otherPagesRef.current.get(id) ?? [];
+    otherPagesRef.current.delete(id);
+    historyRef.current = { past: [], future: [], lastAt: 0 };
+    setActivePageId(id);
+    setBlocks(next);
+    setSelection(next[0] ? [next[0].id] : []);
+    setEditingId(null);
+    setCtxMenu(null);
+  };
+
+  const addPage = () => {
+    const id = newPageId();
+    otherPagesRef.current.set(activePageId, blocksRef.current);
+    historyRef.current = { past: [], future: [], lastAt: 0 };
+    setPages((ps) => [...ps, { id, name: `Page ${ps.length + 1}` }]);
+    setActivePageId(id);
+    setBlocks([]);
+    setSelection([]);
+    setEditingId(null);
+    setCtxMenu(null);
+  };
+
+  const renamePage = (id: string, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setPages((ps) => ps.map((p) => (p.id === id ? { ...p, name: trimmed } : p)));
+  };
+
+  const deletePage = (id: string) => {
+    if (pages.length <= 1) return; // always keep one page
+    // Deleting a page drops its blocks and can't be undone, so confirm when it
+    // holds any work.
+    const count = id === activePageId ? blocksRef.current.length : otherPagesRef.current.get(id)?.length ?? 0;
+    if (count > 0 && typeof window !== 'undefined' && !window.confirm(`Delete this page and its ${count} block${count > 1 ? 's' : ''}?`)) {
+      return;
+    }
+    const idx = pages.findIndex((p) => p.id === id);
+    const remaining = pages.filter((p) => p.id !== id);
+    otherPagesRef.current.delete(id);
+    if (id === activePageId) {
+      const nextPage = remaining[Math.max(0, idx - 1)] ?? remaining[0]!;
+      const next = otherPagesRef.current.get(nextPage.id) ?? [];
+      otherPagesRef.current.delete(nextPage.id);
+      historyRef.current = { past: [], future: [], lastAt: 0 };
+      setActivePageId(nextPage.id);
+      setBlocks(next);
+      setSelection(next[0] ? [next[0].id] : []);
+      setEditingId(null);
+    }
+    setPages(remaining);
   };
 
   const sel = selected ? clampPlacement(selected.placement) : null;
@@ -2105,6 +2190,58 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               </div>
             ) : null}
           </div>
+        </div>
+
+        <div className="ed-pagebar" role="tablist" aria-label="Pages">
+          {pages.map((p) => (
+            <div key={p.id} className={`ed-pagetab${p.id === activePageId ? ' is-active' : ''}`}>
+              {renamingPageId === p.id ? (
+                <input
+                  className="ed-pagetab-input"
+                  autoFocus
+                  defaultValue={p.name}
+                  onBlur={(e) => {
+                    renamePage(p.id, e.target.value);
+                    setRenamingPageId(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      renamePage(p.id, (e.target as HTMLInputElement).value);
+                      setRenamingPageId(null);
+                    } else if (e.key === 'Escape') {
+                      setRenamingPageId(null);
+                    }
+                  }}
+                />
+              ) : (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={p.id === activePageId}
+                  className="ed-pagetab-btn"
+                  onClick={() => switchPage(p.id)}
+                  onDoubleClick={() => setRenamingPageId(p.id)}
+                  title="Click to open · double-click to rename"
+                >
+                  {p.name}
+                </button>
+              )}
+              {pages.length > 1 ? (
+                <button
+                  type="button"
+                  className="ed-pagetab-del"
+                  onClick={() => deletePage(p.id)}
+                  aria-label={`Delete ${p.name}`}
+                  title="Delete page"
+                >
+                  ×
+                </button>
+              ) : null}
+            </div>
+          ))}
+          <button type="button" className="ed-pagetab-add" onClick={addPage} title="Add a page">
+            + Page
+          </button>
         </div>
 
         <div
@@ -3404,27 +3541,42 @@ function resolveSource(issue: Issue, source: ContentSource): string {
   }
 }
 
-type EditorInit = { blocks: Block[]; gutter: Gutter; guide: Guide; theme: PageTheme; pageBg?: GradientKind };
+/** One page: a named canvas with its own block list. */
+type PageInit = { id: string; name: string; blocks: Block[] };
+type EditorInit = {
+  pages: PageInit[];
+  activePageId: string;
+  gutter: Gutter;
+  guide: Guide;
+  theme: PageTheme;
+  pageBg?: GradientKind;
+};
 
 /**
- * The blocks and grid style to open with: a remembered session if one is stored
+ * The pages and grid style to open with: a remembered session if one is stored
  * under `storageKey`, else the defaults. Reads synchronously and only makes
  * sense on the client — the editor is mounted client-only, so this never runs
- * on the server or disagrees with a hydrated render. Forgiving of shape: an
- * older bare-`LayoutDocument` payload is still read as the layout.
+ * on the server or disagrees with a hydrated render. Forgiving of shape: a
+ * pre-multipage payload (a single `layout`, or an even older bare
+ * `LayoutDocument`) is read as one page so nothing stored is lost.
  */
 function loadInitial(storageKey: string | undefined): EditorInit {
+  const starter = (): PageInit[] => [{ id: newPageId(), name: 'Page 1', blocks: starterBlocks() }];
   const fallback: EditorInit = {
-    blocks: starterBlocks(),
+    pages: starter(),
+    activePageId: '',
     gutter: 'cozy',
     guide: 'lines',
     theme: 'light',
   };
+  fallback.activePageId = fallback.pages[0]!.id;
   if (storageKey && typeof window !== 'undefined') {
     try {
       const raw = window.localStorage.getItem(storageKey);
       if (raw) {
         const parsed = JSON.parse(raw) as {
+          pages?: unknown;
+          activePageId?: unknown;
           layout?: LayoutDocument;
           nodes?: unknown;
           gutter?: unknown;
@@ -3432,15 +3584,34 @@ function loadInitial(storageKey: string | undefined): EditorInit {
           theme?: unknown;
           pageBg?: unknown;
         };
-        const layout = Array.isArray(parsed.nodes) ? (parsed as LayoutDocument) : (parsed.layout ?? null);
-        const blocks = fromLayoutDocument(layout);
-        return {
-          blocks: blocks.length > 0 ? blocks : fallback.blocks,
+        const grid = {
           gutter: isGutter(parsed.gutter) ? parsed.gutter : fallback.gutter,
           guide: isGuide(parsed.guide) ? parsed.guide : fallback.guide,
           theme: isPageTheme(parsed.theme) ? parsed.theme : fallback.theme,
           ...(isGradientKind(parsed.pageBg) ? { pageBg: parsed.pageBg } : {}),
         };
+        // Multipage payload.
+        if (Array.isArray(parsed.pages)) {
+          const pages: PageInit[] = [];
+          for (const raw of parsed.pages as unknown[]) {
+            if (!raw || typeof raw !== 'object') continue;
+            const p = raw as { id?: unknown; name?: unknown; layout?: unknown };
+            const id = typeof p.id === 'string' && p.id ? p.id : newPageId();
+            const name = typeof p.name === 'string' && p.name ? p.name : `Page ${pages.length + 1}`;
+            pages.push({ id, name, blocks: fromLayoutDocument((p.layout as LayoutDocument) ?? null) });
+          }
+          if (pages.length > 0) {
+            const active = typeof parsed.activePageId === 'string' && pages.some((p) => p.id === parsed.activePageId)
+              ? parsed.activePageId
+              : pages[0]!.id;
+            return { pages, activePageId: active, ...grid };
+          }
+        }
+        // Pre-multipage: a single layout becomes the one page.
+        const layout = Array.isArray(parsed.nodes) ? (parsed as LayoutDocument) : (parsed.layout ?? null);
+        const blocks = fromLayoutDocument(layout);
+        const pages: PageInit[] = [{ id: newPageId(), name: 'Page 1', blocks: blocks.length > 0 ? blocks : starterBlocks() }];
+        return { pages, activePageId: pages[0]!.id, ...grid };
       }
     } catch {
       // Malformed or unavailable storage: fall through to the defaults.
