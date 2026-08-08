@@ -190,6 +190,9 @@ export type Block = {
    *  deletes together. Unlock it to edit the pieces inside. Only meaningful on a
    *  container. */
   locked?: boolean;
+  /** When true, a container / card becomes a frosted-glass panel: a translucent
+   *  fill that blurs whatever sits behind it. Only meaningful on a container. */
+  glass?: boolean;
   /** When true, a container's animated children enter in sequence rather than
    *  all at once — each one delayed a step further than the last. Only
    *  meaningful on a container. */
