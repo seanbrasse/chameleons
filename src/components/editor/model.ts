@@ -276,7 +276,9 @@ export function sanitizeParents(blocks: Block[]): Block[] {
  */
 export type AnimEffect = 'fade' | 'rise' | 'zoom' | 'slide' | 'blur';
 export type AnimTrigger = 'load' | 'scroll' | 'hover';
-export type Animation = { effect: AnimEffect; trigger: AnimTrigger };
+export type AnimSpeed = 'slow' | 'normal' | 'fast';
+/** `speed` tunes the entrance timing; absent means the default (normal). */
+export type Animation = { effect: AnimEffect; trigger: AnimTrigger; speed?: AnimSpeed };
 
 export const ANIM_EFFECTS: { value: AnimEffect; label: string }[] = [
   { value: 'fade', label: 'Fade' },
@@ -292,12 +294,22 @@ export const ANIM_TRIGGERS: { value: AnimTrigger; label: string }[] = [
   { value: 'hover', label: 'On hover' },
 ];
 
+export const ANIM_SPEEDS: { value: AnimSpeed; label: string }[] = [
+  { value: 'slow', label: 'Slow' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'fast', label: 'Fast' },
+];
+
 export function isAnimEffect(value: unknown): value is AnimEffect {
   return typeof value === 'string' && ANIM_EFFECTS.some((e) => e.value === value);
 }
 
 export function isAnimTrigger(value: unknown): value is AnimTrigger {
   return typeof value === 'string' && ANIM_TRIGGERS.some((t) => t.value === value);
+}
+
+export function isAnimSpeed(value: unknown): value is AnimSpeed {
+  return typeof value === 'string' && ANIM_SPEEDS.some((s) => s.value === value);
 }
 
 /**

@@ -9,6 +9,7 @@ import './editor.css';
 import { fromLayoutDocument, toLayoutDocument } from './serialise';
 import {
   ANIM_EFFECTS,
+  ANIM_SPEEDS,
   ANIM_TRIGGERS,
   ARTBOARD,
   CELL,
@@ -1530,7 +1531,9 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     // Animation is a Preview-only presentation layer; the scroll trigger is
     // marked so the observer above can reveal it in view.
     const anim = !isEditMode && block.animation ? block.animation : null;
-    const animClass = anim ? ` pv-anim pv-anim-${anim.effect} pv-anim-${anim.trigger}` : '';
+    const animClass = anim
+      ? ` pv-anim pv-anim-${anim.effect} pv-anim-${anim.trigger} pv-speed-${anim.speed ?? 'normal'}`
+      : '';
     return (
       <div
         key={block.id}
@@ -2259,6 +2262,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                         : {
                             effect: e.target.value as Animation['effect'],
                             trigger: selected.animation?.trigger ?? 'load',
+                            ...(selected.animation?.speed ? { speed: selected.animation.speed } : {}),
                           },
                   })
                 }
@@ -2282,6 +2286,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                       animation: {
                         effect: selected.animation!.effect,
                         trigger: e.target.value as Animation['trigger'],
+                        ...(selected.animation!.speed ? { speed: selected.animation!.speed } : {}),
                       },
                     })
                   }
@@ -2289,6 +2294,31 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                   {ANIM_TRIGGERS.map((t) => (
                     <option key={t.value} value={t.value}>
                       {t.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
+            {selected.animation ? (
+              <label className="ed-field">
+                <span className="ed-field-label">Speed</span>
+                <select
+                  value={selected.animation.speed ?? 'normal'}
+                  onChange={(e) => {
+                    const speed = e.target.value as Animation['speed'];
+                    update(selected.id, {
+                      animation: {
+                        effect: selected.animation!.effect,
+                        trigger: selected.animation!.trigger,
+                        ...(speed && speed !== 'normal' ? { speed } : {}),
+                      },
+                    });
+                  }}
+                >
+                  {ANIM_SPEEDS.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
                     </option>
                   ))}
                 </select>
