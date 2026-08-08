@@ -691,6 +691,26 @@ describe('containers and the tree', () => {
     }
   });
 
+  it('the priceCard preset composes a featured plan with badge, price and checklist', () => {
+    const group = makePreset('priceCard', 5);
+    const [card] = group;
+    expect(card?.kind).toBe('card');
+    expect(card?.ring).toBe('bold');
+    expect(card?.stagger).toBe(true);
+    // a big price heading and a full-width button
+    const price = group.find((b) => b.kind === 'heading' && b.size === 'xl');
+    expect(price).toBeDefined();
+    expect(group.some((b) => b.kind === 'button')).toBe(true);
+    // a "Popular" badge plus three checklist ticks — four badges in all
+    const badges = group.filter((b) => b.kind === 'badge');
+    expect(badges).toHaveLength(4);
+    // every child nests in the card and rises on load
+    for (const b of group.slice(1)) {
+      expect(b.parentId).toBe(card?.id);
+      expect(b.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+  });
+
   it('the newsletter preset pairs an email field and button inline in a ringed card', () => {
     const [card, heading, line, email, button] = makePreset('newsletter', 5);
     expect(card?.kind).toBe('card');

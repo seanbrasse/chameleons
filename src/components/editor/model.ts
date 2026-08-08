@@ -723,6 +723,7 @@ export type PresetKind =
   | 'faq'
   | 'checklist'
   | 'pricingTable'
+  | 'priceCard'
   | 'newsletter'
   | 'footer'
   | 'contactSplit'
@@ -756,6 +757,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'faq', label: 'FAQ', hint: 'A heading over a stack of question-and-answer pairs that stagger in' },
   { preset: 'checklist', label: 'Checklist', hint: 'A heading over a column of rows, each a badge tick beside a line of text' },
   { preset: 'pricingTable', label: 'Pricing table', hint: 'Three tier cards with prices and buttons; the middle one is highlighted' },
+  { preset: 'priceCard', label: 'Price card', hint: 'One featured plan: a badge, price, benefits checklist and a button' },
   { preset: 'newsletter', label: 'Newsletter signup', hint: 'A ringed card with a heading, a line and an inline email field and subscribe button' },
   { preset: 'footer', label: 'Footer', hint: 'A full-width footer: three columns of links over a centred copyright line' },
   { preset: 'contactSplit', label: 'Contact split', hint: "A heading and intro beside stacked name, email and message fields" },
@@ -1653,6 +1655,48 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       const button = presetChild('button', 'Button', t.cta, card.id, { col: inCol, colSpan: inSpan, row: cardRow + 10 });
       blocks.push(card, name, price, line, button);
     });
+    return blocks;
+  }
+
+  if (preset === 'priceCard') {
+    // One featured plan as a standalone card: a "Popular" badge, a plan name, a
+    // big price, a short benefits checklist and a full-width button. It composes
+    // the badge and checklist patterns into a single offer — the one-plan
+    // counterpart to the three-tier pricing table. Everything rises on load.
+    const card = makeBlock('card', 'Plan', row);
+    card.placement = clampPlacement({ col: 1, colSpan: half, row, rowSpan: 20 });
+    card.ring = 'bold';
+    card.stagger = true;
+    card.locked = true;
+    const innerCol = 3;
+    const innerSpan = half - 4;
+    const badge = presetChild('badge', 'Tag', 'Popular', card.id, { col: innerCol, colSpan: 6, row: row + 1, rowSpan: 2 });
+    badge.animation = { effect: 'rise', trigger: 'load' };
+    const name = presetChild('heading', 'Plan', 'Pro', card.id, { col: innerCol, colSpan: innerSpan, row: row + 3 });
+    name.size = 'sm';
+    name.animation = { effect: 'rise', trigger: 'load' };
+    const price = presetChild('heading', 'Price', '$19/mo', card.id, { col: innerCol, colSpan: innerSpan, row: row + 5 });
+    price.size = 'xl';
+    price.animation = { effect: 'rise', trigger: 'load' };
+    const markerSpan = 3;
+    const rowGap = 1;
+    const textCol = innerCol + markerSpan + rowGap;
+    const textSpan = Math.max(6, innerSpan - markerSpan - rowGap);
+    const items = ['Unlimited projects', 'Custom domain', 'Priority support'];
+    const blocks: Block[] = [card, badge, name, price];
+    items.forEach((item, i) => {
+      const r = row + 9 + i * 2;
+      const tick = presetChild('badge', 'Tick', '✓', card.id, { col: innerCol, colSpan: markerSpan, row: r, rowSpan: 2 });
+      tick.align = 'center';
+      tick.animation = { effect: 'rise', trigger: 'load' };
+      const text = presetChild('text', 'Item', item, card.id, { col: textCol, colSpan: textSpan, row: r, rowSpan: 2 });
+      text.size = 'sm';
+      text.animation = { effect: 'rise', trigger: 'load' };
+      blocks.push(tick, text);
+    });
+    const button = presetChild('button', 'Button', 'Start free trial', card.id, { col: innerCol, colSpan: innerSpan, row: row + 16 });
+    button.animation = { effect: 'rise', trigger: 'load' };
+    blocks.push(button);
     return blocks;
   }
 
