@@ -780,6 +780,7 @@ export type PresetKind =
   | 'priceCard'
   | 'newsletter'
   | 'navBar'
+  | 'navCta'
   | 'footer'
   | 'contactSplit'
   | 'contactForm'
@@ -821,6 +822,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'priceCard', label: 'Price card', hint: 'One featured plan: a badge, price, benefits checklist and a button' },
   { preset: 'newsletter', label: 'Newsletter signup', hint: 'A ringed card with a heading, a line and an inline email field and subscribe button' },
   { preset: 'navBar', label: 'Nav bar', hint: 'A thin top nav: a brand wordmark left, underlined text links right' },
+  { preset: 'navCta', label: 'Nav bar + CTA', hint: 'A top nav: brand left, links and a solid call-to-action button right' },
   { preset: 'footer', label: 'Footer', hint: 'A full-width footer: three columns of links over a centred copyright line' },
   { preset: 'contactSplit', label: 'Contact split', hint: "A heading and intro beside stacked name, email and message fields" },
   { preset: 'contactForm', label: 'Contact form', hint: 'A card with name, email and message fields' },
@@ -2063,6 +2065,50 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       link.animation = { effect: 'rise', trigger: 'load' };
       blocks.push(link);
     });
+    return blocks;
+  }
+
+  if (preset === 'navCta') {
+    // A marketing top nav: a brand on the left with two underlined links and a
+    // solid call-to-action button on the right. It pairs the underline links
+    // with a solid button — the nav that pushes a sign-up, distinct from the
+    // portfolio nav bar (links only). Right-aligned cluster kept clear of the brand.
+    const box = makeBlock('container', 'Nav', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 5 });
+    box.stagger = true;
+    box.locked = true;
+    const brandSpan = Math.max(8, Math.round(GRID_COLS * 0.25));
+    const brand = presetChild('heading', 'Brand', 'Studio', box.id, { col: 3, colSpan: brandSpan, row: row + 1, rowSpan: 2 });
+    brand.size = 'sm';
+    brand.animation = { effect: 'rise', trigger: 'load' };
+    const links = ['Features', 'Pricing'];
+    const linkSpan = 7;
+    const btnSpan = 8;
+    const gap = 2;
+    const clusterWidth = links.length * (linkSpan + gap) + btnSpan;
+    const startCol = Math.max(3 + brandSpan + 1, GRID_COLS - 1 - clusterWidth);
+    const blocks: Block[] = [box, brand];
+    links.forEach((label, i) => {
+      const link = presetChild('text', label, label, box.id, {
+        col: startCol + i * (linkSpan + gap),
+        colSpan: linkSpan,
+        row: row + 1,
+        rowSpan: 2,
+      });
+      link.size = 'sm';
+      link.align = 'center';
+      link.underline = true;
+      link.animation = { effect: 'rise', trigger: 'load' };
+      blocks.push(link);
+    });
+    const button = presetChild('button', 'Button', 'Get started', box.id, {
+      col: startCol + links.length * (linkSpan + gap),
+      colSpan: btnSpan,
+      row: row + 1,
+      rowSpan: 2,
+    });
+    button.animation = { effect: 'rise', trigger: 'load' };
+    blocks.push(button);
     return blocks;
   }
 
