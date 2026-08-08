@@ -374,6 +374,26 @@ describe('containers and the tree', () => {
     expect(tagline!.placement.row).toBeLessThan(button!.placement.row);
   });
 
+  it('the heroActions preset pairs a solid primary with a ghost secondary button', () => {
+    const [box, heading, tagline, primary, secondary] = makePreset('heroActions', 5);
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    expect(heading?.size).toBe('xl');
+    expect(primary?.kind).toBe('button');
+    expect(secondary?.kind).toBe('button');
+    // the primary stays the solid default, the secondary reads as a ghost button
+    expect(primary?.buttonVariant).toBeUndefined();
+    expect(secondary?.buttonVariant).toBe('ghost');
+    // every child nests in the hero and rises on load
+    for (const child of [heading, tagline, primary, secondary]) {
+      expect(child?.parentId).toBe(box?.id);
+      expect(child?.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the two buttons share a row and never overlap in columns
+    expect(primary?.placement.row).toBe(secondary?.placement.row);
+    expect(primary!.placement.col + primary!.placement.colSpan - 1).toBeLessThan(secondary!.placement.col);
+  });
+
   it('the about preset sets a portrait left of an About heading, bio and detail', () => {
     const [box, portrait, heading, bio, detail] = makePreset('about', 5);
     expect(box?.kind).toBe('container');
