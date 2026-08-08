@@ -707,6 +707,7 @@ export type PresetKind =
   | 'gallery'
   | 'banner'
   | 'ctaBand'
+  | 'ctaButtons'
   | 'testimonial'
   | 'quoteBand'
   | 'socialRow'
@@ -733,6 +734,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'gallery', label: 'Gallery', hint: 'A heading over a 2×3 grid of image tiles that stagger in' },
   { preset: 'banner', label: 'Announcement bar', hint: 'A thin ringed bar: a short message beside an inline button' },
   { preset: 'ctaBand', label: 'CTA band', hint: 'A full-width gradient call-to-action: centered heading, line and button' },
+  { preset: 'ctaButtons', label: 'CTA — two buttons', hint: 'A gradient call-to-action with a primary and secondary button side by side' },
   { preset: 'testimonial', label: 'Testimonial', hint: 'A ringed card holding a large quote and an attribution line' },
   { preset: 'quoteBand', label: 'Quote band', hint: 'A full-width gradient band with a large centred pull-quote and attribution' },
   { preset: 'socialRow', label: 'Social links', hint: 'A heading over a centred cluster of small profile buttons' },
@@ -1103,6 +1105,46 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     });
     button.animation = { effect: 'rise', trigger: 'load' };
     return [box, heading, line, button];
+  }
+
+  if (preset === 'ctaButtons') {
+    // A call-to-action with two actions: a gradient band whose centred heading
+    // and line sit above a primary and secondary button, side by side. The
+    // buttons are centred as a pair by column math so neither overlaps, and
+    // everything rises in on load. Distinct from the single-button CTA band.
+    const box = makeBlock('container', 'Call to action', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 12 });
+    box.gradient = 'night';
+    box.stagger = true;
+    box.locked = true;
+    const heading = presetChild('heading', 'Title', 'Ready to start?', box.id, { col: 3, colSpan: GRID_COLS - 4, row: row + 2 });
+    heading.size = 'lg';
+    heading.align = 'center';
+    heading.textGradient = 'mint';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const lineSpan = Math.round(GRID_COLS * 0.5);
+    const line = presetChild('text', 'Text', 'Two ways to take the next step.', box.id, {
+      col: Math.round((GRID_COLS - lineSpan) / 2) + 1,
+      colSpan: lineSpan,
+      row: row + 5,
+      rowSpan: 2,
+    });
+    line.align = 'center';
+    line.textGradient = 'mint';
+    line.animation = { effect: 'rise', trigger: 'load' };
+    const btnSpan = 8;
+    const btnGap = 2;
+    const pairWidth = btnSpan * 2 + btnGap;
+    const pairStart = Math.round((GRID_COLS - pairWidth) / 2) + 1;
+    const primary = presetChild('button', 'Primary', 'Get started', box.id, { col: pairStart, colSpan: btnSpan, row: row + 8 });
+    primary.animation = { effect: 'rise', trigger: 'load' };
+    const secondary = presetChild('button', 'Secondary', 'Learn more', box.id, {
+      col: pairStart + btnSpan + btnGap,
+      colSpan: btnSpan,
+      row: row + 8,
+    });
+    secondary.animation = { effect: 'rise', trigger: 'load' };
+    return [box, heading, line, primary, secondary];
   }
 
   if (preset === 'testimonial') {
