@@ -450,6 +450,33 @@ describe('containers and the tree', () => {
     }
   });
 
+  it('the footer preset lays three link columns over a centred copyright', () => {
+    const group = makePreset('footer', 5);
+    const [box] = group;
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    // three column titles (headings) and nine link lines plus one copyright
+    const titles = group.filter((b) => b.kind === 'heading');
+    const texts = group.filter((b) => b.kind === 'text');
+    expect(titles).toHaveLength(3);
+    expect(texts).toHaveLength(9 + 1);
+    // every child nests in the footer and rises on load
+    for (const b of group.slice(1)) {
+      expect(b.parentId).toBe(box?.id);
+      expect(b.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the three column titles never overlap in columns
+    const spans = titles
+      .map((t) => ({ start: t.placement.col, end: t.placement.col + t.placement.colSpan - 1 }))
+      .sort((a, b) => a.start - b.start);
+    expect(spans[0]!.end).toBeLessThan(spans[1]!.start);
+    expect(spans[1]!.end).toBeLessThan(spans[2]!.start);
+    // the copyright is centre-aligned and the last row in the footer
+    const copyright = texts.find((t) => t.align === 'center');
+    expect(copyright).toBeDefined();
+    expect(copyright!.placement.row).toBeGreaterThan(Math.max(...titles.map((t) => t.placement.row)));
+  });
+
   it('the newsletter preset pairs an email field and button inline in a ringed card', () => {
     const [card, heading, line, email, button] = makePreset('newsletter', 5);
     expect(card?.kind).toBe('card');
