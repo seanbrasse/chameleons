@@ -554,6 +554,39 @@ describe('containers and the tree', () => {
     }
   });
 
+  it('the steps preset lays three numbered steps, each a badge over a title and line', () => {
+    const group = makePreset('steps', 5);
+    const [box, heading] = group;
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    expect(heading?.align).toBe('center');
+    // three badge step-numbers, each centred and rising on load
+    const badges = group.filter((b) => b.kind === 'badge');
+    expect(badges).toHaveLength(3);
+    for (const b of badges) {
+      expect(b.align).toBe('center');
+      expect(b.parentId).toBe(box?.id);
+      expect(b.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // each step has a title heading below its badge and a line below the title
+    const titles = group.filter((b) => b.kind === 'heading' && b !== heading);
+    const lines = group.filter((b) => b.kind === 'text');
+    expect(titles).toHaveLength(3);
+    expect(lines).toHaveLength(3);
+    // the three step columns never overlap horizontally (compare title spans)
+    const spans = titles
+      .map((t) => ({ start: t.placement.col, end: t.placement.col + t.placement.colSpan - 1 }))
+      .sort((a, b) => a.start - b.start);
+    for (let i = 1; i < spans.length; i++) {
+      expect(spans[i - 1]!.end).toBeLessThan(spans[i]!.start);
+    }
+    // each badge stacks above its step's title
+    for (const b of badges) {
+      const title = titles.find((t) => t.placement.row > b.placement.row);
+      expect(title).toBeDefined();
+    }
+  });
+
   it('the pricingTable preset lays three tier cards with the middle one highlighted', () => {
     const group = makePreset('pricingTable', 5);
     const [box] = group;
