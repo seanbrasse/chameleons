@@ -358,8 +358,21 @@ describe('containers and the tree', () => {
     expect(Math.abs(leftGap - rightGap)).toBeLessThanOrEqual(1);
   });
 
+  it('the testimonial preset frames a large quote and attribution in a ringed card', () => {
+    const [card, quote, attribution] = makePreset('testimonial', 5);
+    expect(card?.kind).toBe('card');
+    expect(card?.ring).toBe('hairline');
+    // the quote is the larger of the two lines, and both rise in on load
+    expect(quote?.size).toBe('lg');
+    expect(attribution?.size).toBe('sm');
+    for (const child of [quote, attribution]) {
+      expect(child?.parentId).toBe(card?.id);
+      expect(child?.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+  });
+
   it('every preset lands in bounds and selects its first block', () => {
-    const kinds = ['animatedCard', 'hero', 'gradientHero', 'featureGrid', 'ctaBand', 'contactForm', 'contactModal'] as const;
+    const kinds = ['animatedCard', 'hero', 'gradientHero', 'featureGrid', 'ctaBand', 'testimonial', 'contactForm', 'contactModal'] as const;
     for (const preset of kinds) {
       const group = makePreset(preset, 40);
       expect(group.length).toBeGreaterThan(0);
