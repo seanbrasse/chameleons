@@ -354,6 +354,25 @@ describe('containers and the tree', () => {
     expect(image!.placement.col + image!.placement.colSpan - 1).toBeLessThanOrEqual(GRID_COLS);
   });
 
+  it('the about preset sets a portrait left of an About heading, bio and detail', () => {
+    const [box, portrait, heading, bio, detail] = makePreset('about', 5);
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    expect(portrait?.kind).toBe('image');
+    expect(heading?.size).toBe('lg');
+    // every child nests in the box and rises on load
+    for (const child of [portrait, heading, bio, detail]) {
+      expect(child?.parentId).toBe(box?.id);
+      expect(child?.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the portrait sits entirely to the left of the text column
+    const textLeft = Math.min(heading!.placement.col, bio!.placement.col, detail!.placement.col);
+    expect(portrait!.placement.col + portrait!.placement.colSpan - 1).toBeLessThan(textLeft);
+    // heading, bio and detail stack in that order down the text column
+    expect(heading!.placement.row).toBeLessThan(bio!.placement.row);
+    expect(bio!.placement.row).toBeLessThan(detail!.placement.row);
+  });
+
   it('the featureGrid preset lays three staggered cards under a heading', () => {
     const group = makePreset('featureGrid', 5);
     const [box] = group;

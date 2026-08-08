@@ -699,6 +699,7 @@ export type PresetKind =
   | 'animatedCard'
   | 'hero'
   | 'splitHero'
+  | 'about'
   | 'gradientHero'
   | 'featureGrid'
   | 'teamGrid'
@@ -722,6 +723,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'animatedCard', label: 'Animated card', hint: 'A card that lifts on hover, holding a title, text and button' },
   { preset: 'hero', label: 'Hero', hint: 'A full-width intro: big heading, tagline and a button' },
   { preset: 'splitHero', label: 'Split hero', hint: 'A two-column intro: heading, tagline and button beside an image' },
+  { preset: 'about', label: 'About / bio', hint: 'A portrait beside an About heading, a bio paragraph and a detail line' },
   { preset: 'gradientHero', label: 'Gradient hero', hint: 'A gradient panel with big gradient type that staggers in on load' },
   { preset: 'featureGrid', label: 'Feature grid', hint: 'A heading over a row of three cards that stagger in on load' },
   { preset: 'teamGrid', label: 'Team grid', hint: 'A heading over a row of member cards, each an avatar, name and role' },
@@ -820,6 +822,44 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     const image = presetChild('image', 'Image', '', box.id, { col: rightCol, colSpan: rightSpan, row: row + 2, rowSpan: 12 });
     image.animation = { effect: 'rise', trigger: 'load' };
     return [box, heading, tagline, button, image];
+  }
+
+  if (preset === 'about') {
+    // A bio section: a portrait on the left beside an About heading, a bio
+    // paragraph and a detail line. The mirror of the split hero (image left,
+    // content right) but content-first — no button, a real paragraph. Columns
+    // are kept apart by a gutter so they never overlap; everything rises on load.
+    const box = makeBlock('container', 'About', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 14 });
+    box.stagger = true;
+    box.locked = true;
+    const gutter = 3;
+    const imgCol = 3;
+    const imgSpan = Math.max(8, Math.round(GRID_COLS * 0.32));
+    const textCol = imgCol + imgSpan + gutter;
+    const textSpan = Math.max(10, GRID_COLS - textCol - 1);
+    const portrait = presetChild('image', 'Portrait', '', box.id, { col: imgCol, colSpan: imgSpan, row: row + 2, rowSpan: 10 });
+    portrait.animation = { effect: 'rise', trigger: 'load' };
+    const heading = presetChild('heading', 'Title', 'About me', box.id, { col: textCol, colSpan: textSpan, row: row + 2 });
+    heading.size = 'lg';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const bio = presetChild(
+      'text',
+      'Bio',
+      'A short paragraph about who you are, what you make and the kind of work you like to take on.',
+      box.id,
+      { col: textCol, colSpan: textSpan, row: row + 5, rowSpan: 4 },
+    );
+    bio.animation = { effect: 'rise', trigger: 'load' };
+    const detail = presetChild('text', 'Detail', 'Based in your city · Available for work', box.id, {
+      col: textCol,
+      colSpan: textSpan,
+      row: row + 11,
+      rowSpan: 2,
+    });
+    detail.size = 'sm';
+    detail.animation = { effect: 'rise', trigger: 'load' };
+    return [box, portrait, heading, bio, detail];
   }
 
   if (preset === 'gradientHero') {
