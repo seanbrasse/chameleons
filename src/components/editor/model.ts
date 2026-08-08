@@ -704,6 +704,7 @@ export type PresetKind =
   | 'teamGrid'
   | 'comparison'
   | 'gallery'
+  | 'banner'
   | 'ctaBand'
   | 'testimonial'
   | 'statsBand'
@@ -726,6 +727,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'teamGrid', label: 'Team grid', hint: 'A heading over a row of member cards, each an avatar, name and role' },
   { preset: 'comparison', label: 'Before / after', hint: 'A heading over two panels, each a label and an image, side by side' },
   { preset: 'gallery', label: 'Gallery', hint: 'A heading over a 2×3 grid of image tiles that stagger in' },
+  { preset: 'banner', label: 'Announcement bar', hint: 'A thin ringed bar: a short message beside an inline button' },
   { preset: 'ctaBand', label: 'CTA band', hint: 'A full-width gradient call-to-action: centered heading, line and button' },
   { preset: 'testimonial', label: 'Testimonial', hint: 'A ringed card holding a large quote and an attribution line' },
   { preset: 'statsBand', label: 'Stats band', hint: 'A full-width row of big metric numbers with labels that stagger in' },
@@ -987,6 +989,38 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       }
     }
     return blocks;
+  }
+
+  if (preset === 'banner') {
+    // A thin announcement bar: a short message beside an inline button, framed
+    // by a hairline ring. The message and button share one row, spans set so
+    // they never overlap, and both rise in on load — the strip that sits at the
+    // very top of a page.
+    const box = makeBlock('container', 'Banner', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 5 });
+    box.ring = 'hairline';
+    box.stagger = true;
+    box.locked = true;
+    const innerCol = 3;
+    const contentSpan = GRID_COLS - 4;
+    const btnSpan = 8;
+    const barGap = 2;
+    const msgSpan = Math.max(10, contentSpan - btnSpan - barGap);
+    const message = presetChild('text', 'Message', 'New — read about our latest release.', box.id, {
+      col: innerCol,
+      colSpan: msgSpan,
+      row: row + 1,
+      rowSpan: 2,
+    });
+    message.animation = { effect: 'rise', trigger: 'load' };
+    const button = presetChild('button', 'Button', 'Read more', box.id, {
+      col: innerCol + msgSpan + barGap,
+      colSpan: btnSpan,
+      row: row + 1,
+      rowSpan: 2,
+    });
+    button.animation = { effect: 'rise', trigger: 'load' };
+    return [box, message, button];
   }
 
   if (preset === 'ctaBand') {
