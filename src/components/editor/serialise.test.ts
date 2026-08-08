@@ -313,6 +313,17 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(junk && 'badgeTone' in junk).toBe(false);
   });
 
+  it('round-trips a button variant, and drops solid (the default) and junk', () => {
+    const styled: Block[] = [
+      { id: 'b', kind: 'button', label: 'Button', buttonVariant: 'ghost', placement: { col: 1, colSpan: 8, row: 1 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(styled))).toEqual(styled);
+    const [asSolid] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'button', buttonVariant: 'solid' } }]));
+    expect(asSolid && 'buttonVariant' in asSolid).toBe(false);
+    const [junk] = fromLayoutDocument(doc([{ id: 'c', props: { kind: 'button', buttonVariant: 'blocky' } }]));
+    expect(junk && 'buttonVariant' in junk).toBe(false);
+  });
+
   it('round-trips a ring, and drops a bad one', () => {
     const ringed: Block[] = [
       { id: 'c', kind: 'card', label: 'Card', ring: 'bold', placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },

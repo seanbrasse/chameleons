@@ -46,6 +46,7 @@ import {
   RING_LEVELS,
   DIVIDER_STYLES,
   BADGE_TONES,
+  BUTTON_VARIANTS,
   GRADIENTS,
   PAGE_THEMES,
   RADIUS_LEVELS,
@@ -2472,6 +2473,26 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               </label>
             ) : null}
 
+            {selected.kind === 'button' ? (
+              <label className="ed-field">
+                <span className="ed-field-label">Style</span>
+                <select
+                  value={selected.buttonVariant ?? 'solid'}
+                  onChange={(e) =>
+                    update(selected.id, {
+                      buttonVariant: e.target.value === 'solid' ? undefined : (e.target.value as (typeof BUTTON_VARIANTS)[number]),
+                    })
+                  }
+                >
+                  {BUTTON_VARIANTS.map((v) => (
+                    <option key={v} value={v}>
+                      {v[0]!.toUpperCase() + v.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
             <label className="ed-field">
               <span className="ed-field-label">Animation</span>
               <select
@@ -3370,7 +3391,11 @@ function BlockPreview({
     case 'text':
       return <p className="pv-text pv-text-bound">{boundText ?? block.text}</p>;
     case 'button':
-      return <span className="pv-button">{boundText ?? block.text}</span>;
+      return (
+        <span className={`pv-button${block.buttonVariant && block.buttonVariant !== 'solid' ? ` pv-button-${block.buttonVariant}` : ''}`}>
+          {boundText ?? block.text}
+        </span>
+      );
     case 'badge':
       return (
         <span className={`pv-badge${block.badgeTone && block.badgeTone !== 'accent' ? ` pv-badge-${block.badgeTone}` : ''}`}>

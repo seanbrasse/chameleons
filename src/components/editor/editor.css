@@ -1935,6 +1935,17 @@
   background: var(--ink);
   color: #fff;
 }
+/* Button variants — a ghost outline and a soft tinted fill, the usual
+   secondary-action looks. The default (no class) is the solid fill above. */
+.pv-button-ghost {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line, rgba(128, 128, 140, 0.4));
+}
+.pv-button-soft {
+  background: var(--sel-soft);
+  color: var(--sel);
+}
 
 /* A badge: a small pill/tag for a short label ("New", "Beta"). A tinted, ringed
    capsule that sits inline — lighter weight than a button so it reads as a
