@@ -720,6 +720,7 @@ export type PresetKind =
   | 'statsBand'
   | 'steps'
   | 'statHero'
+  | 'scrollReveal'
   | 'logoCloud'
   | 'faq'
   | 'checklist'
@@ -755,6 +756,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'statsBand', label: 'Stats band', hint: 'A full-width row of big metric numbers with labels that stagger in' },
   { preset: 'steps', label: 'Process steps', hint: 'A heading over a row of numbered steps, each a badge number, title and line' },
   { preset: 'statHero', label: 'Stat hero', hint: 'One big focal metric centred over a label and a supporting line' },
+  { preset: 'scrollReveal', label: 'Scroll reveal', hint: 'A centred section whose heading and lines rise in as they scroll into view' },
   { preset: 'logoCloud', label: 'Logo cloud', hint: 'A "trusted by" heading over a row of ringed wordmark tiles that stagger in' },
   { preset: 'faq', label: 'FAQ', hint: 'A heading over a stack of question-and-answer pairs that stagger in' },
   { preset: 'checklist', label: 'Checklist', hint: 'A heading over a column of rows, each a badge tick beside a line of text' },
@@ -1497,6 +1499,42 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     support.align = 'center';
     support.animation = { effect: 'rise', trigger: 'load' };
     return [box, number, label, support];
+  }
+
+  if (preset === 'scrollReveal') {
+    // A centred section that reveals on scroll: its heading, subhead and line
+    // rise in the first time they scroll into view (trigger 'scroll'), not on
+    // page load. The only preset to lead with the scroll-into-view trigger — a
+    // deeper-down-the-page section that animates when the reader reaches it.
+    const box = makeBlock('container', 'Section', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 12 });
+    box.stagger = true;
+    box.locked = true;
+    const contentSpan = GRID_COLS - 4;
+    const heading = presetChild('heading', 'Title', 'This reveals as you scroll', box.id, { col: 3, colSpan: contentSpan, row: row + 2 });
+    heading.size = 'lg';
+    heading.align = 'center';
+    heading.animation = { effect: 'rise', trigger: 'scroll' };
+    const subSpan = Math.round(GRID_COLS * 0.6);
+    const subCol = Math.round((GRID_COLS - subSpan) / 2) + 1;
+    const subhead = presetChild('text', 'Subhead', 'Each line rises in the moment it enters the viewport.', box.id, {
+      col: subCol,
+      colSpan: subSpan,
+      row: row + 5,
+      rowSpan: 2,
+    });
+    subhead.align = 'center';
+    subhead.animation = { effect: 'rise', trigger: 'scroll' };
+    const line = presetChild('text', 'Text', 'Use it for sections further down the page, so the motion greets the reader.', box.id, {
+      col: subCol,
+      colSpan: subSpan,
+      row: row + 8,
+      rowSpan: 2,
+    });
+    line.size = 'sm';
+    line.align = 'center';
+    line.animation = { effect: 'rise', trigger: 'scroll' };
+    return [box, heading, subhead, line];
   }
 
   if (preset === 'logoCloud') {
