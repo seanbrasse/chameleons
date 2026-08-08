@@ -658,6 +658,11 @@
   text-decoration-thickness: from-font;
 }
 
+/* Italicise a text block for emphasis or a caption. */
+.ed-italic {
+  font-style: italic;
+}
+
 /* A soft outer glow behind a container / card — a signature modern touch. Painted
    with drop-shadow so it layers under the surface without touching the inset ring
    or selection box-shadow. Reads strongest on an opaque surface (a card or a

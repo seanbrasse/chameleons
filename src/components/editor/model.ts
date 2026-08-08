@@ -178,6 +178,8 @@ export type Block = {
   weight?: TextWeight;
   /** Underlines a text block — reads as an inline link. Absent means no underline. */
   underline?: boolean;
+  /** Italicises a text block — for emphasis or a caption. Absent means upright. */
+  italic?: boolean;
   /** A CSS colour for a text primitive's words. Absent means the default ink. */
   color?: string;
   /** A gradient that paints a text primitive's words (clipped to the glyphs).

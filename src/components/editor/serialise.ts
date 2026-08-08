@@ -74,6 +74,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           ...(block.auroraBorder ? { auroraBorder: true } : {}),
           ...(block.stagger ? { stagger: true } : {}),
           ...(block.underline ? { underline: true } : {}),
+          ...(block.italic ? { italic: true } : {}),
           ...(block.scale !== undefined && block.scale !== 1 ? { scale: block.scale } : {}),
           ...(block.opacity !== undefined && block.opacity !== 1 ? { opacity: block.opacity } : {}),
           ...(block.rotate !== undefined && block.rotate !== 0 ? { rotate: block.rotate } : {}),
@@ -153,6 +154,7 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     if (props.auroraBorder === true) block.auroraBorder = true;
     if (props.stagger === true) block.stagger = true;
     if (props.underline === true) block.underline = true;
+    if (props.italic === true) block.italic = true;
     if (typeof props.scale === 'number' && Number.isFinite(props.scale) && props.scale > 0) {
       block.scale = props.scale;
     }
