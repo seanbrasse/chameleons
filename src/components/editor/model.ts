@@ -330,8 +330,21 @@ export function sanitizeParents(blocks: Block[]): Block[] {
  * on the block wrapper, putting it on a container or card animates the whole
  * subtree, so a "complex element" moves as one.
  */
-export type AnimEffect = 'fade' | 'rise' | 'zoom' | 'slide' | 'blur' | 'flip';
-export type AnimTrigger = 'load' | 'scroll' | 'hover';
+export type AnimEffect =
+  // entrance effects — play once when the block arrives
+  | 'fade'
+  | 'rise'
+  | 'zoom'
+  | 'slide'
+  | 'blur'
+  | 'flip'
+  // loop effects — play forever, for continuous motion (spinning galleries,
+  // floating badges, a gentle pulse)
+  | 'spin'
+  | 'float'
+  | 'pulse'
+  | 'sway';
+export type AnimTrigger = 'load' | 'scroll' | 'hover' | 'loop';
 export type AnimSpeed = 'slow' | 'normal' | 'fast';
 export type AnimEase = 'smooth' | 'spring' | 'linear';
 /** `speed` tunes the entrance timing and `ease` its acceleration curve; both
@@ -343,7 +356,8 @@ export type Animation = {
   ease?: AnimEase;
 };
 
-export const ANIM_EFFECTS: { value: AnimEffect; label: string }[] = [
+/** Effects that play once when the block appears. */
+export const ENTRANCE_EFFECTS: { value: AnimEffect; label: string }[] = [
   { value: 'fade', label: 'Fade' },
   { value: 'rise', label: 'Rise' },
   { value: 'zoom', label: 'Zoom' },
@@ -352,10 +366,26 @@ export const ANIM_EFFECTS: { value: AnimEffect; label: string }[] = [
   { value: 'flip', label: 'Flip' },
 ];
 
+/** Effects that repeat forever — continuous, keyframed motion. */
+export const LOOP_EFFECTS: { value: AnimEffect; label: string }[] = [
+  { value: 'spin', label: 'Spin' },
+  { value: 'float', label: 'Float' },
+  { value: 'pulse', label: 'Pulse' },
+  { value: 'sway', label: 'Sway' },
+];
+
+export const ANIM_EFFECTS: { value: AnimEffect; label: string }[] = [...ENTRANCE_EFFECTS, ...LOOP_EFFECTS];
+
+/** A loop effect drives the `loop` trigger; entrance effects use the rest. */
+export function isLoopEffect(value: AnimEffect): boolean {
+  return LOOP_EFFECTS.some((e) => e.value === value);
+}
+
 export const ANIM_TRIGGERS: { value: AnimTrigger; label: string }[] = [
   { value: 'load', label: 'On load' },
   { value: 'scroll', label: 'On scroll into view' },
   { value: 'hover', label: 'On hover' },
+  { value: 'loop', label: 'Loop (forever)' },
 ];
 
 export const ANIM_SPEEDS: { value: AnimSpeed; label: string }[] = [
