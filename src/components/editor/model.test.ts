@@ -613,6 +613,28 @@ describe('containers and the tree', () => {
     expect(email!.placement.col + email!.placement.colSpan - 1).toBeLessThan(button!.placement.col);
   });
 
+  it('the ctaButtons preset centres a primary and secondary button on a gradient band', () => {
+    const [box, heading, line, primary, secondary] = makePreset('ctaButtons', 5);
+    expect(box?.kind).toBe('container');
+    expect(box?.gradient).toBe('night');
+    expect(box?.stagger).toBe(true);
+    expect(heading?.align).toBe('center');
+    expect(line?.align).toBe('center');
+    expect(primary?.kind).toBe('button');
+    expect(secondary?.kind).toBe('button');
+    // every child nests in the band and rises on load
+    for (const child of [heading, line, primary, secondary]) {
+      expect(child?.parentId).toBe(box?.id);
+      expect(child?.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the two buttons share a row, never overlap, and the pair is centred
+    expect(primary?.placement.row).toBe(secondary?.placement.row);
+    expect(primary!.placement.col + primary!.placement.colSpan - 1).toBeLessThan(secondary!.placement.col);
+    const leftGap = primary!.placement.col - 1;
+    const rightGap = GRID_COLS - (secondary!.placement.col + secondary!.placement.colSpan - 1);
+    expect(Math.abs(leftGap - rightGap)).toBeLessThanOrEqual(1);
+  });
+
   it('the ctaBand preset centres a heading, line and button on a gradient band', () => {
     const [box, heading, line, button] = makePreset('ctaBand', 5);
     expect(box?.kind).toBe('container');
