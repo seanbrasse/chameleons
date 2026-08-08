@@ -707,6 +707,7 @@ export type PresetKind =
   | 'checklist'
   | 'pricingTable'
   | 'newsletter'
+  | 'footer'
   | 'contactForm'
   | 'contactModal';
 
@@ -724,6 +725,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'checklist', label: 'Checklist', hint: 'A heading over a column of rows, each a badge tick beside a line of text' },
   { preset: 'pricingTable', label: 'Pricing table', hint: 'Three tier cards with prices and buttons; the middle one is highlighted' },
   { preset: 'newsletter', label: 'Newsletter signup', hint: 'A ringed card with a heading, a line and an inline email field and subscribe button' },
+  { preset: 'footer', label: 'Footer', hint: 'A full-width footer: three columns of links over a centred copyright line' },
   { preset: 'contactForm', label: 'Contact form', hint: 'A card with name, email and message fields' },
   { preset: 'contactModal', label: 'Contact modal', hint: 'A button that opens the contact form in a modal' },
 ];
@@ -1163,6 +1165,51 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     });
     button.animation = { effect: 'rise', trigger: 'load' };
     return [card, heading, line, email, button];
+  }
+
+  if (preset === 'footer') {
+    // A full-width footer: three evenly spaced columns, each a small title over
+    // a stack of link lines, above a centred copyright line. The columns are
+    // spaced by the same column math as the stats band and stagger in on load —
+    // the natural page-bookend surface.
+    const gap = 2;
+    const startCol = 3;
+    const contentSpan = GRID_COLS - 4;
+    const colSpan = Math.max(6, Math.floor((contentSpan - gap * 2) / 3));
+    const box = makeBlock('container', 'Footer', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 14 });
+    box.stagger = true;
+    box.locked = true;
+    const columns = [
+      { title: 'Product', links: ['Features', 'Pricing', 'Changelog'] },
+      { title: 'Company', links: ['About', 'Blog', 'Careers'] },
+      { title: 'Connect', links: ['Twitter', 'GitHub', 'Email'] },
+    ];
+    const blocks: Block[] = [box];
+    columns.forEach((c, i) => {
+      const col = startCol + i * (colSpan + gap);
+      const title = presetChild('heading', 'Title', c.title, box.id, { col, colSpan, row: row + 2 });
+      title.size = 'sm';
+      title.animation = { effect: 'rise', trigger: 'load' };
+      blocks.push(title);
+      c.links.forEach((link, j) => {
+        const line = presetChild('text', 'Link', link, box.id, { col, colSpan, row: row + 4 + j * 2, rowSpan: 1 });
+        line.size = 'sm';
+        line.animation = { effect: 'rise', trigger: 'load' };
+        blocks.push(line);
+      });
+    });
+    const copyright = presetChild('text', 'Copyright', '© 2026 Your Name. All rights reserved.', box.id, {
+      col: startCol,
+      colSpan: contentSpan,
+      row: row + 11,
+      rowSpan: 2,
+    });
+    copyright.size = 'sm';
+    copyright.align = 'center';
+    copyright.animation = { effect: 'rise', trigger: 'load' };
+    blocks.push(copyright);
+    return blocks;
   }
 
   if (preset === 'contactForm') {
