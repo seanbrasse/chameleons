@@ -35,11 +35,13 @@ import {
   lockedRootOf,
   isGuide,
   isGutter,
+  isPageTheme,
   makeBlock,
   maxCol,
   newBlockId,
   FONT_CHOICES,
   GRADIENTS,
+  PAGE_THEMES,
   RADIUS_LEVELS,
   TEXT_ALIGNS,
   withoutParent,
@@ -50,6 +52,7 @@ import {
   type PresetKind,
   type Guide,
   type Gutter,
+  type PageTheme,
   type Placement,
 } from './model';
 
@@ -74,6 +77,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const [initial] = useState(() => loadInitial(storageKey));
   const [gutter, setGutter] = useState<Gutter>(initial.gutter);
   const [guide, setGuide] = useState<Guide>(initial.guide);
+  const [theme, setTheme] = useState<PageTheme>(initial.theme);
   const [blocks, setBlocks] = useState<Block[]>(initial.blocks);
   /** The current selection — one, several (multi-select), or none. */
   const [selection, setSelection] = useState<string[]>(initial.blocks[0] ? [initial.blocks[0].id] : []);
@@ -209,12 +213,12 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   useEffect(() => {
     if (!storageKey) return;
     try {
-      const payload = { layout: toLayoutDocument(blocks), gutter, guide };
+      const payload = { layout: toLayoutDocument(blocks), gutter, guide, theme };
       window.localStorage.setItem(storageKey, JSON.stringify(payload));
     } catch {
       // Storage full or blocked — the layout simply isn't remembered.
     }
-  }, [blocks, gutter, guide, storageKey]);
+  }, [blocks, gutter, guide, theme, storageKey]);
 
   // Esc closes an open block modal.
   useEffect(() => {
@@ -1394,6 +1398,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     setSelectedId(fresh[0]?.id ?? null);
     setGutter('cozy');
     setGuide('lines');
+    setTheme('light');
   };
 
   const sel = selected ? clampPlacement(selected.placement) : null;
@@ -1685,6 +1690,22 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               ))}
             </div>
           </div>
+          <div className="ed-toolbar-field">
+            <span className="ed-toolbar-label">Theme</span>
+            <div className="ed-grid-switch" role="group" aria-label="Page theme">
+              {PAGE_THEMES.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  className="ed-chip"
+                  aria-pressed={theme === t}
+                  onClick={() => setTheme(t)}
+                >
+                  {t === 'light' ? 'Light' : 'Dark'}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="ed-toolbar-field ed-toolbar-zoom">
             <span className="ed-toolbar-label">Zoom</span>
             <div className="ed-grid-switch" role="group" aria-label="Zoom">
@@ -1795,7 +1816,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
           >
             <div
               ref={artboardRef}
-              className={`ed-artboard${isEditMode ? '' : ' is-preview'}${
+              className={`ed-artboard${isEditMode ? '' : ' is-preview'}${theme === 'dark' ? ' is-dark' : ''}${
                 arranging ? ` is-arranging ed-guide-${guide}` : ''
               }`}
               style={{
@@ -2449,7 +2470,7 @@ function resolveSource(issue: Issue, source: ContentSource): string {
   }
 }
 
-type EditorInit = { blocks: Block[]; gutter: Gutter; guide: Guide };
+type EditorInit = { blocks: Block[]; gutter: Gutter; guide: Guide; theme: PageTheme };
 
 /**
  * The blocks and grid style to open with: a remembered session if one is stored
@@ -2463,6 +2484,7 @@ function loadInitial(storageKey: string | undefined): EditorInit {
     blocks: starterBlocks(),
     gutter: 'cozy',
     guide: 'lines',
+    theme: 'light',
   };
   if (storageKey && typeof window !== 'undefined') {
     try {
@@ -2473,6 +2495,7 @@ function loadInitial(storageKey: string | undefined): EditorInit {
           nodes?: unknown;
           gutter?: unknown;
           guide?: unknown;
+          theme?: unknown;
         };
         const layout = Array.isArray(parsed.nodes) ? (parsed as LayoutDocument) : (parsed.layout ?? null);
         const blocks = fromLayoutDocument(layout);
@@ -2480,6 +2503,7 @@ function loadInitial(storageKey: string | undefined): EditorInit {
           blocks: blocks.length > 0 ? blocks : fallback.blocks,
           gutter: isGutter(parsed.gutter) ? parsed.gutter : fallback.gutter,
           guide: isGuide(parsed.guide) ? parsed.guide : fallback.guide,
+          theme: isPageTheme(parsed.theme) ? parsed.theme : fallback.theme,
         };
       }
     } catch {
