@@ -1523,12 +1523,16 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
           },
         }
       : {};
+    // Scale and tilt share the body's transform layer, so the outer block stays
+    // an upright rectangle (clean selection and hit-testing). Only scale changes
+    // the layout box, so only it needs the width/height compensation.
+    const scaled = block.scale && block.scale !== 1;
+    const tilted = typeof block.rotate === 'number' && block.rotate !== 0;
     const bodyScale =
-      block.scale && block.scale !== 1
+      scaled || tilted
         ? {
-            transform: `scale(${block.scale})`,
-            width: `${100 / block.scale}%`,
-            height: `${100 / block.scale}%`,
+            transform: `${scaled ? `scale(${block.scale})` : ''}${scaled && tilted ? ' ' : ''}${tilted ? `rotate(${block.rotate}deg)` : ''}`,
+            ...(scaled ? { width: `${100 / block.scale!}%`, height: `${100 / block.scale!}%` } : {}),
           }
         : undefined;
     // Animation is a Preview-only presentation layer; the scroll trigger is
@@ -2362,6 +2366,20 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                 onChange={(e) => {
                   const pct = Number(e.target.value);
                   update(selected.id, { opacity: pct >= 100 ? undefined : pct / 100 });
+                }}
+              />
+            </label>
+
+            <label className="ed-field">
+              <span className="ed-field-label">Tilt — {selected.rotate ?? 0}°</span>
+              <input
+                type="range"
+                min={-30}
+                max={30}
+                value={selected.rotate ?? 0}
+                onChange={(e) => {
+                  const deg = Number(e.target.value);
+                  update(selected.id, { rotate: deg === 0 ? undefined : deg });
                 }}
               />
             </label>
