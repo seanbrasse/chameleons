@@ -1149,6 +1149,26 @@
 .ed-artboard.is-preview .ed-block.pv-anim-hover.pv-anim-blur:hover { filter: blur(2px); }
 .ed-artboard.is-preview .ed-block.pv-anim-hover.pv-anim-flip:hover { transform: perspective(700px) rotateX(9deg); }
 
+/* Loop: continuous, forever-running keyframe motion (a spinning gallery, a
+   floating badge, a soft pulse). Speed scales the cycle length via --loop-mult;
+   each effect keeps its own natural timing function. Honours reduced-motion. */
+@keyframes pv-loop-spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+@keyframes pv-loop-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes pv-loop-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes pv-loop-sway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+
+.ed-artboard.is-preview .ed-block.pv-anim-loop { --loop-mult: 1; }
+.ed-artboard.is-preview .ed-block.pv-anim-loop.pv-speed-slow { --loop-mult: 1.8; }
+.ed-artboard.is-preview .ed-block.pv-anim-loop.pv-speed-fast { --loop-mult: 0.5; }
+.ed-artboard.is-preview .ed-block.pv-anim-loop.pv-anim-spin { animation: pv-loop-spin calc(7s * var(--loop-mult, 1)) linear infinite; }
+.ed-artboard.is-preview .ed-block.pv-anim-loop.pv-anim-float { animation: pv-loop-float calc(3s * var(--loop-mult, 1)) ease-in-out infinite; }
+.ed-artboard.is-preview .ed-block.pv-anim-loop.pv-anim-pulse { animation: pv-loop-pulse calc(2.4s * var(--loop-mult, 1)) ease-in-out infinite; }
+.ed-artboard.is-preview .ed-block.pv-anim-loop.pv-anim-sway { animation: pv-loop-sway calc(3.6s * var(--loop-mult, 1)) ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ed-artboard.is-preview .ed-block.pv-anim-loop { animation: none; }
+}
+
 /* Form inputs — leaf primitives that render a real field. */
 .pv-input,
 .pv-textarea {

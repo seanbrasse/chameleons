@@ -407,9 +407,19 @@ describe('fromLayoutDocument is forgiving', () => {
 
   it('drops a malformed animation', () => {
     const [block] = fromLayoutDocument(
-      doc([{ id: 'a', props: { kind: 'text', animation: { effect: 'spin', trigger: 'load' } } }]),
+      doc([{ id: 'a', props: { kind: 'text', animation: { effect: 'wobble', trigger: 'load' } } }]),
     );
     expect(block && 'animation' in block).toBe(false);
+  });
+
+  it('round-trips the loop effects on the loop trigger', () => {
+    const looping: Block[] = [
+      { id: 'sp', kind: 'card', label: 'Spin', animation: { effect: 'spin', trigger: 'loop' }, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 4 } },
+      { id: 'fl', kind: 'card', label: 'Float', animation: { effect: 'float', trigger: 'loop', speed: 'slow' }, placement: { col: 1, colSpan: 8, row: 5, rowSpan: 4 } },
+      { id: 'pu', kind: 'card', label: 'Pulse', animation: { effect: 'pulse', trigger: 'loop' }, placement: { col: 1, colSpan: 8, row: 9, rowSpan: 4 } },
+      { id: 'sw', kind: 'card', label: 'Sway', animation: { effect: 'sway', trigger: 'loop' }, placement: { col: 1, colSpan: 8, row: 13, rowSpan: 4 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(looping))).toEqual(looping);
   });
 
   it('round-trips the slide, blur, and flip entrance effects', () => {

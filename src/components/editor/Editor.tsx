@@ -9,9 +9,11 @@ import './editor.css';
 import { fromLayoutDocument, toLayoutDocument } from './serialise';
 import {
   ANIM_EASES,
-  ANIM_EFFECTS,
   ANIM_SPEEDS,
   ANIM_TRIGGERS,
+  ENTRANCE_EFFECTS,
+  LOOP_EFFECTS,
+  isLoopEffect,
   ARTBOARD,
   CELL,
   GRID_COLS,
@@ -2892,30 +2894,51 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               <span className="ed-field-label">Animation</span>
               <select
                 value={selected.animation?.effect ?? 'none'}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === 'none') {
+                    update(selected.id, { animation: undefined });
+                    return;
+                  }
+                  const effect = val as Animation['effect'];
+                  const loop = isLoopEffect(effect);
+                  const prev = selected.animation;
+                  // A loop effect forces the loop trigger; picking an entrance
+                  // effect while looping resets the trigger to a sensible default.
+                  const trigger: Animation['trigger'] = loop
+                    ? 'loop'
+                    : prev && prev.trigger !== 'loop'
+                      ? prev.trigger
+                      : 'load';
                   update(selected.id, {
-                    animation:
-                      e.target.value === 'none'
-                        ? undefined
-                        : {
-                            effect: e.target.value as Animation['effect'],
-                            trigger: selected.animation?.trigger ?? 'load',
-                            ...(selected.animation?.speed ? { speed: selected.animation.speed } : {}),
-                            ...(selected.animation?.ease ? { ease: selected.animation.ease } : {}),
-                          },
-                  })
-                }
+                    animation: {
+                      effect,
+                      trigger,
+                      ...(prev?.speed ? { speed: prev.speed } : {}),
+                      ...(!loop && prev?.ease ? { ease: prev.ease } : {}),
+                    },
+                  });
+                }}
               >
                 <option value="none">None</option>
-                {ANIM_EFFECTS.map((a) => (
-                  <option key={a.value} value={a.value}>
-                    {a.label}
-                  </option>
-                ))}
+                <optgroup label="Entrance">
+                  {ENTRANCE_EFFECTS.map((a) => (
+                    <option key={a.value} value={a.value}>
+                      {a.label}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Loop (continuous)">
+                  {LOOP_EFFECTS.map((a) => (
+                    <option key={a.value} value={a.value}>
+                      {a.label}
+                    </option>
+                  ))}
+                </optgroup>
               </select>
             </label>
 
-            {selected.animation ? (
+            {selected.animation && selected.animation.trigger !== 'loop' ? (
               <label className="ed-field">
                 <span className="ed-field-label">Plays</span>
                 <select
@@ -2931,7 +2954,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                     })
                   }
                 >
-                  {ANIM_TRIGGERS.map((t) => (
+                  {ANIM_TRIGGERS.filter((t) => t.value !== 'loop').map((t) => (
                     <option key={t.value} value={t.value}>
                       {t.label}
                     </option>
@@ -2966,7 +2989,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               </label>
             ) : null}
 
-            {selected.animation ? (
+            {selected.animation && selected.animation.trigger !== 'loop' ? (
               <label className="ed-field">
                 <span className="ed-field-label">Curve</span>
                 <select
