@@ -155,6 +155,15 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(block && 'bg' in block).toBe(false);
   });
 
+  it('round-trips a corner radius, and drops a bad one', () => {
+    const rounded: Block[] = [
+      { id: 'c', kind: 'card', label: 'Card', radius: 'lg', placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(rounded))).toEqual(rounded);
+    const [block] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'card', radius: 'huge' } }]));
+    expect(block && 'radius' in block).toBe(false);
+  });
+
   it('round-trips a well-formed animation', () => {
     const animated: Block[] = [
       { id: 'c', kind: 'card', label: 'Card', animation: { effect: 'rise', trigger: 'scroll' }, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },

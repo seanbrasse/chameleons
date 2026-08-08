@@ -13,6 +13,7 @@ import {
   isInput,
   isPresetKind,
   isContentSource,
+  isRadiusLevel,
   isTextAlign,
   lockedRootOf,
   makePreset,
@@ -110,6 +111,15 @@ describe('validation guards', () => {
     expect(isFontChoice('mono')).toBe(true);
     expect(isFontChoice('comic')).toBe(false);
     expect(isFontChoice(null)).toBe(false);
+  });
+
+  it('isRadiusLevel', () => {
+    expect(isRadiusLevel('none')).toBe(true);
+    expect(isRadiusLevel('sm')).toBe(true);
+    expect(isRadiusLevel('md')).toBe(true);
+    expect(isRadiusLevel('lg')).toBe(true);
+    expect(isRadiusLevel('xl')).toBe(false);
+    expect(isRadiusLevel(3)).toBe(false);
   });
 
   it('canAlign covers text primitives only', () => {

@@ -26,6 +26,7 @@ import {
   isBlockKind,
   isContentSource,
   isFontChoice,
+  isRadiusLevel,
   isTextAlign,
   sanitizeParents,
   type Block,
@@ -56,6 +57,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           ...(block.font !== undefined ? { font: block.font } : {}),
           ...(block.color !== undefined ? { color: block.color } : {}),
           ...(block.bg !== undefined ? { bg: block.bg } : {}),
+          ...(block.radius !== undefined ? { radius: block.radius } : {}),
           ...(block.text !== undefined ? { text: block.text } : {}),
         },
       };
@@ -105,6 +107,7 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     if (isFontChoice(props.font)) block.font = props.font;
     if (typeof props.color === 'string') block.color = props.color;
     if (typeof props.bg === 'string') block.bg = props.bg;
+    if (isRadiusLevel(props.radius)) block.radius = props.radius;
     if (typeof props.text === 'string') block.text = props.text;
     blocks.push(block);
   }

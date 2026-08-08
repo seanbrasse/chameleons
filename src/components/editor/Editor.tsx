@@ -39,6 +39,7 @@ import {
   maxCol,
   newBlockId,
   FONT_CHOICES,
+  RADIUS_LEVELS,
   TEXT_ALIGNS,
   withoutParent,
   type Animation,
@@ -1528,7 +1529,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         data-block-id={block.id}
         aria-label={`${block.label} block`}
         data-anim-trigger={anim?.trigger === 'scroll' ? 'scroll' : undefined}
-        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${block.parentId !== undefined ? ' is-nested' : ''}${isLocked ? ' is-locked' : ''}${inLocked ? ' in-locked' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId ? ' is-trigger' : ''}${isSelected(block.id) ? ' is-selected' : ''}${dropTargetId === block.id ? ' is-drop-target' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
+        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${cont ? ` ed-radius-${block.radius ?? 'md'}` : ''}${block.parentId !== undefined ? ' is-nested' : ''}${isLocked ? ' is-locked' : ''}${inLocked ? ' in-locked' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId ? ' is-trigger' : ''}${isSelected(block.id) ? ' is-selected' : ''}${dropTargetId === block.id ? ' is-drop-target' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
         style={{
           left: (free ? free.left : box.left) - origin.left,
           top: (free ? free.top : box.top) - origin.top,
@@ -2058,6 +2059,24 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                     >
                       Default
                     </button>
+                  </div>
+                </div>
+                <div className="ed-field">
+                  <span className="ed-field-label">Corners</span>
+                  <div className="ed-arrange">
+                    {RADIUS_LEVELS.map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        className={`ed-arrange-btn${(selected.radius ?? 'md') === r ? ' is-on' : ''}`}
+                        title={`${r === 'none' ? 'Square' : r === 'sm' ? 'Small' : r === 'md' ? 'Medium' : 'Large'} corners`}
+                        aria-label={`${r} corners`}
+                        aria-pressed={(selected.radius ?? 'md') === r}
+                        onClick={() => update(selected.id, { radius: r === 'md' ? undefined : r })}
+                      >
+                        {r === 'none' ? '⬛' : r === 'sm' ? '◻' : r === 'md' ? '▢' : '⬭'}
+                      </button>
+                    ))}
                   </div>
                 </div>
                 <label className="ed-check">
