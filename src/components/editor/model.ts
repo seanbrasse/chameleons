@@ -777,6 +777,7 @@ export type PresetKind =
   | 'ctaButtons'
   | 'testimonial'
   | 'testimonialRow'
+  | 'testimonialAvatar'
   | 'quoteBand'
   | 'socialRow'
   | 'statusPills'
@@ -819,6 +820,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'ctaButtons', label: 'CTA — two buttons', hint: 'A gradient call-to-action with a primary and secondary button side by side' },
   { preset: 'testimonial', label: 'Testimonial', hint: 'A ringed card holding a large quote and an attribution line' },
   { preset: 'testimonialRow', label: 'Testimonials', hint: 'Two ringed quote cards side by side, each a quote and attribution' },
+  { preset: 'testimonialAvatar', label: 'Testimonial + avatar', hint: 'A quote card with a circular avatar, name and role beneath it' },
   { preset: 'quoteBand', label: 'Quote band', hint: 'A full-width gradient band with a large centred pull-quote and attribution' },
   { preset: 'socialRow', label: 'Social links', hint: 'A heading over a centred cluster of small profile buttons' },
   { preset: 'statusPills', label: 'Status pills', hint: 'A centred row of badges in each tone — a status / tag legend' },
@@ -1524,6 +1526,42 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       blocks.push(card, quote, who);
     });
     return blocks;
+  }
+
+  if (preset === 'testimonialAvatar') {
+    // A quote card with a face: a large quote over a footer row of a circular
+    // avatar beside a name and role. It puts the circular image rounding to work
+    // in a testimonial, so the social proof comes with a person. Everything
+    // rises in on load.
+    const card = makeBlock('card', 'Testimonial', row);
+    card.placement = clampPlacement({ col: 1, colSpan: half, row, rowSpan: 13 });
+    card.ring = 'hairline';
+    card.stagger = true;
+    card.locked = true;
+    const innerCol = 3;
+    const innerSpan = half - 4;
+    const quote = presetChild(
+      'text',
+      'Quote',
+      '“This is the fastest I’ve ever gone from idea to a site I’m proud of.”',
+      card.id,
+      { col: innerCol, colSpan: innerSpan, row: row + 2, rowSpan: 4 },
+    );
+    quote.size = 'lg';
+    quote.animation = { effect: 'rise', trigger: 'load' };
+    const avatarSpan = 5;
+    const avatar = presetChild('image', 'Avatar', '', card.id, { col: innerCol, colSpan: avatarSpan, row: row + 8, rowSpan: 3 });
+    avatar.imageRadius = 'full';
+    avatar.animation = { effect: 'rise', trigger: 'load' };
+    const metaCol = innerCol + avatarSpan + 1;
+    const metaSpan = Math.max(6, innerSpan - avatarSpan - 1);
+    const name = presetChild('heading', 'Name', 'Alex Rivera', card.id, { col: metaCol, colSpan: metaSpan, row: row + 8 });
+    name.size = 'sm';
+    name.animation = { effect: 'rise', trigger: 'load' };
+    const role = presetChild('text', 'Role', 'Design Lead, Northwind', card.id, { col: metaCol, colSpan: metaSpan, row: row + 10, rowSpan: 2 });
+    role.size = 'sm';
+    role.animation = { effect: 'rise', trigger: 'load' };
+    return [card, quote, avatar, name, role];
   }
 
   if (preset === 'quoteBand') {

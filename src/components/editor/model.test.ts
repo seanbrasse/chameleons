@@ -1066,6 +1066,28 @@ describe('containers and the tree', () => {
     expect(spans[0]!.end).toBeLessThan(spans[1]!.start);
   });
 
+  it('the testimonialAvatar preset pairs a quote with a circular avatar, name and role', () => {
+    const [card, quote, avatar, name, role] = makePreset('testimonialAvatar', 5);
+    expect(card?.kind).toBe('card');
+    expect(card?.ring).toBe('hairline');
+    expect(card?.stagger).toBe(true);
+    expect(quote?.kind).toBe('text');
+    expect(quote?.size).toBe('lg');
+    // the avatar is a circular image
+    expect(avatar?.kind).toBe('image');
+    expect(avatar?.imageRadius).toBe('full');
+    expect(name?.kind).toBe('heading');
+    expect(role?.kind).toBe('text');
+    // every child nests in the card and rises on load
+    for (const child of [quote, avatar, name, role]) {
+      expect(child?.parentId).toBe(card?.id);
+      expect(child?.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the quote sits above the avatar footer; the avatar sits left of the name
+    expect(quote!.placement.row).toBeLessThan(avatar!.placement.row);
+    expect(avatar!.placement.col + avatar!.placement.colSpan - 1).toBeLessThan(name!.placement.col);
+  });
+
   it('the quoteBand preset centres a gradient pull-quote and attribution on a band', () => {
     const [box, quote, attribution] = makePreset('quoteBand', 5);
     expect(box?.kind).toBe('container');
