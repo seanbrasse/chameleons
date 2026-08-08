@@ -538,6 +538,26 @@ describe('containers and the tree', () => {
     expect(button!.placement.col + button!.placement.colSpan - 1).toBeLessThanOrEqual(GRID_COLS);
   });
 
+  it('the statHero preset centres one big number over a label and support line', () => {
+    const [box, number, label, support] = makePreset('statHero', 5);
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    expect(number?.size).toBe('xl');
+    // every element is centre-aligned and rises on load
+    for (const child of [number, label, support]) {
+      expect(child?.parentId).toBe(box?.id);
+      expect(child?.align).toBe('center');
+      expect(child?.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the number sits above the label, which sits above the support line
+    expect(number!.placement.row).toBeLessThan(label!.placement.row);
+    expect(label!.placement.row).toBeLessThan(support!.placement.row);
+    // the label is centred: comparable margin on each side
+    const leftGap = label!.placement.col - 1;
+    const rightGap = GRID_COLS - (label!.placement.col + label!.placement.colSpan - 1);
+    expect(Math.abs(leftGap - rightGap)).toBeLessThanOrEqual(1);
+  });
+
   it('the logoCloud preset lays five ringed wordmark tiles under a heading', () => {
     const group = makePreset('logoCloud', 5);
     const [box, heading] = group;
