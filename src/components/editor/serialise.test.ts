@@ -460,4 +460,13 @@ describe('fromLayoutDocument is forgiving', () => {
     ];
     expect(fromLayoutDocument(toLayoutDocument(wired))).toEqual(wired);
   });
+
+  it('round-trips a cross-page navigation link', () => {
+    const linked: Block[] = [
+      { id: 'next', kind: 'button', label: 'Next', text: 'Next', opensPage: 'page-2-abc', placement: { col: 1, colSpan: 3, row: 1 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(linked))).toEqual(linked);
+    const [block] = fromLayoutDocument(doc([{ id: 'b', props: { kind: 'button', opensPage: 42 } }]));
+    expect(block && 'opensPage' in block).toBe(false); // non-string dropped
+  });
 });

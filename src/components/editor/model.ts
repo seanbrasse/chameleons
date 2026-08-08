@@ -225,6 +225,9 @@ export type Block = {
   /** In Preview, clicking this block opens the modal block with this id — the
    *  "turn on a modal, and control which one" wiring. */
   opensModal?: string;
+  /** In Preview, clicking this block navigates to the page with this id — the
+   *  link that connects one canvas to another in a multi-step flow. */
+  opensPage?: string;
   /** A locked container is a *component*: it and its whole subtree behave as one
    *  unit — clicking any part selects the component, and it moves, copies and
    *  deletes together. Unlock it to edit the pieces inside. Only meaningful on a
