@@ -296,7 +296,7 @@ export function sanitizeParents(blocks: Block[]): Block[] {
  * on the block wrapper, putting it on a container or card animates the whole
  * subtree, so a "complex element" moves as one.
  */
-export type AnimEffect = 'fade' | 'rise' | 'zoom' | 'slide' | 'blur';
+export type AnimEffect = 'fade' | 'rise' | 'zoom' | 'slide' | 'blur' | 'flip';
 export type AnimTrigger = 'load' | 'scroll' | 'hover';
 export type AnimSpeed = 'slow' | 'normal' | 'fast';
 export type AnimEase = 'smooth' | 'spring' | 'linear';
@@ -315,6 +315,7 @@ export const ANIM_EFFECTS: { value: AnimEffect; label: string }[] = [
   { value: 'zoom', label: 'Zoom' },
   { value: 'slide', label: 'Slide' },
   { value: 'blur', label: 'Blur' },
+  { value: 'flip', label: 'Flip' },
 ];
 
 export const ANIM_TRIGGERS: { value: AnimTrigger; label: string }[] = [

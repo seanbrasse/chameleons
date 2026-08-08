@@ -852,6 +852,15 @@
   to { opacity: 1; filter: blur(0); }
 }
 
+@keyframes pv-anim-flip {
+  from { opacity: 0; transform: perspective(700px) rotateX(-88deg); }
+  to { opacity: 1; transform: perspective(700px) rotateX(0deg); }
+}
+
+/* Flip pivots from the top edge, so it reads as the block hinging down into
+   place rather than spinning around its middle. */
+.ed-artboard.is-preview .ed-block.pv-anim-flip { transform-origin: top center; }
+
 /* Entrance timing. `speed` sets --anim-dur and `ease` sets --anim-ease, both of
    which the load and scroll rules read; absent they fall back to 0.5s / ease.
    The spring curve overshoots slightly for a lively, modern settle. */
@@ -882,6 +891,7 @@
 .ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-zoom { animation: pv-anim-zoom var(--anim-dur, 0.5s) var(--anim-ease, ease) var(--anim-delay, 0ms) both; }
 .ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-slide { animation: pv-anim-slide var(--anim-dur, 0.5s) var(--anim-ease, ease) var(--anim-delay, 0ms) both; }
 .ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-blur { animation: pv-anim-blur var(--anim-dur, 0.5s) var(--anim-ease, ease) var(--anim-delay, 0ms) both; }
+.ed-artboard.is-preview .ed-block.pv-anim-load.pv-anim-flip { animation: pv-anim-flip var(--anim-dur, 0.5s) var(--anim-ease, ease) var(--anim-delay, 0ms) both; }
 
 /* On scroll: start hidden, then transition in when the observer adds .is-in. */
 .ed-artboard.is-preview .ed-block.pv-anim-scroll {
@@ -895,6 +905,7 @@
 .ed-artboard.is-preview .ed-block.pv-anim-scroll.pv-anim-zoom { transform: scale(0.94); }
 .ed-artboard.is-preview .ed-block.pv-anim-scroll.pv-anim-slide { transform: translateX(-28px); }
 .ed-artboard.is-preview .ed-block.pv-anim-scroll.pv-anim-blur { filter: blur(12px); }
+.ed-artboard.is-preview .ed-block.pv-anim-scroll.pv-anim-flip { transform: perspective(700px) rotateX(-88deg); }
 .ed-artboard.is-preview .ed-block.pv-anim-scroll.is-in {
   opacity: 1;
   transform: none;
@@ -910,6 +921,7 @@
 .ed-artboard.is-preview .ed-block.pv-anim-hover.pv-anim-fade:hover { opacity: 0.75; }
 .ed-artboard.is-preview .ed-block.pv-anim-hover.pv-anim-slide:hover { transform: translateX(6px); }
 .ed-artboard.is-preview .ed-block.pv-anim-hover.pv-anim-blur:hover { filter: blur(2px); }
+.ed-artboard.is-preview .ed-block.pv-anim-hover.pv-anim-flip:hover { transform: perspective(700px) rotateX(9deg); }
 
 /* Form inputs — leaf primitives that render a real field. */
 .pv-input,
