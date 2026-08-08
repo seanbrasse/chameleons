@@ -767,6 +767,39 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     });
   };
 
+  /** Restack a block one step among its siblings (blocks sharing its parent).
+   *  Paint order within a parent is the array order of that parent's children,
+   *  so nudging is just swapping the block with its neighbour — the two subtrees
+   *  stay intact because children are resolved by parent, not array position. A
+   *  block already at the front (`toFront`) or back edge doesn't move. */
+  const restackStep = (id: string, toFront: boolean) => {
+    const siblingIndices = (bs: Block[], pid: string | null) =>
+      bs.reduce<number[]>((acc, b, i) => {
+        if ((b.parentId ?? null) === pid) acc.push(i);
+        return acc;
+      }, []);
+    const bs = blocksRef.current;
+    const target = bs.find((b) => b.id === id);
+    if (!target) return;
+    const pid = target.parentId ?? null;
+    const sibIdx = siblingIndices(bs, pid);
+    const pos = sibIdx.findIndex((i) => bs[i]!.id === id);
+    if (pos < 0) return;
+    if ((toFront ? pos + 1 : pos - 1) < 0 || (toFront ? pos + 1 : pos - 1) >= sibIdx.length) return; // at the edge
+    snapshot(true);
+    setBlocks((cur) => {
+      const idx = siblingIndices(cur, pid);
+      const p = idx.findIndex((i) => cur[i]!.id === id);
+      const sp = toFront ? p + 1 : p - 1;
+      if (p < 0 || sp < 0 || sp >= idx.length) return cur;
+      const next = cur.slice();
+      const a = idx[p]!;
+      const b = idx[sp]!;
+      [next[a], next[b]] = [next[b]!, next[a]!];
+      return next;
+    });
+  };
+
   // ── geometry ────────────────────────────────────────────────────────
   /** A placement's on-artboard box in artboard px. `height` is set only when the
    *  block has an explicit `rowSpan`; otherwise it sizes to its content. */
@@ -1522,6 +1555,26 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Bracket keys restack the lone selected block: `]`/`[` jump it to the front
+  // or back, ⌘/Ctrl with them nudge it one step. Matches the context menu hints.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== ']' && e.key !== '[') return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      const sel = selectionRef.current;
+      if (sel.length !== 1) return;
+      e.preventDefault();
+      const toFront = e.key === ']';
+      if (e.metaKey || e.ctrlKey) restackStep(sel[0]!, toFront);
+      else restack(sel[0]!, toFront);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // restack/restackStep read refs, so this binds once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const reset = () => {
     snapshot(true); // a reset can be undone
     if (storageKey) {
@@ -1547,9 +1600,17 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
    *  makes hard to click — and each row can toggle visibility or delete from
    *  here, so the tree doubles as a manager. */
   const renderOutline = (block: Block, depth: number): React.ReactNode => {
-    const kids = childrenOf(blocks, block.id);
+    // Front-most last in the array; the panel shows a stack, so list children
+    // top-down front-to-back — reverse the paint order for display.
+    const kids = [...childrenOf(blocks, block.id)].reverse();
     const lockRoot = lockedRootOf(blocks, block.id);
     const isComponent = isContainer(block.kind) && block.locked;
+    // Where the block sits among its siblings (paint order), for the reorder arrows.
+    const sibs = childrenOf(blocks, block.parentId ?? null);
+    const sPos = sibs.findIndex((s) => s.id === block.id);
+    const canReorder = sibs.length > 1;
+    const atFront = sPos === sibs.length - 1;
+    const atBack = sPos === 0;
     return (
       <div key={block.id}>
         <div className={`ed-outline-row${isSelected(block.id) ? ' is-active' : ''}${block.hidden ? ' is-off' : ''}${lockRoot ? ' is-in-component' : ''}`}>
@@ -1567,6 +1628,30 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
             {isComponent ? <span className="ed-outline-tag">locked</span> : null}
             {block.asModal ? <span className="ed-outline-tag">modal</span> : null}
           </button>
+          {canReorder ? (
+            <>
+              <button
+                type="button"
+                className="ed-outline-act"
+                onClick={() => restackStep(block.id, true)}
+                disabled={atFront}
+                aria-label={`Bring ${block.label} forward`}
+                title="Bring forward"
+              >
+                ▲
+              </button>
+              <button
+                type="button"
+                className="ed-outline-act"
+                onClick={() => restackStep(block.id, false)}
+                disabled={atBack}
+                aria-label={`Send ${block.label} backward`}
+                title="Send backward"
+              >
+                ▼
+              </button>
+            </>
+          ) : null}
           {isContainer(block.kind) ? (
             <button
               type="button"
@@ -1831,9 +1916,12 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
           })()}
         </div>
         <div className="ed-outline">
-          <div className="ed-panel-subhead">Outline</div>
+          <div className="ed-panel-subhead">
+            Layers
+            <span className="ed-panel-subnote">front → back</span>
+          </div>
           <div className="ed-outline-tree">
-            {childrenOf(blocks, null).map((b) => renderOutline(b, 0))}
+            {[...childrenOf(blocks, null)].reverse().map((b) => renderOutline(b, 0))}
           </div>
         </div>
       </aside>
@@ -3040,6 +3128,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
             copy: () => copySelection(),
             paste: () => pasteClipboard(),
             toFront: () => restack(ctxBlock.id, true),
+            bringForward: () => restackStep(ctxBlock.id, true),
+            sendBackward: () => restackStep(ctxBlock.id, false),
             toBack: () => restack(ctxBlock.id, false),
             group: () => groupSelection(),
             ungroup: () => ungroup(ctxBlock.id),
@@ -3071,6 +3161,8 @@ type CtxActions = {
   copy: () => void;
   paste: () => void;
   toFront: () => void;
+  bringForward: () => void;
+  sendBackward: () => void;
   toBack: () => void;
   group: () => void;
   ungroup: () => void;
@@ -3124,6 +3216,8 @@ function ContextMenu({
     ],
     [
       { label: 'Bring to front', keys: ']', run: actions.toFront },
+      { label: 'Bring forward', keys: '⌘]', run: actions.bringForward },
+      { label: 'Send backward', keys: '⌘[', run: actions.sendBackward },
       { label: 'Send to back', keys: '[', run: actions.toBack },
     ],
     [
