@@ -773,6 +773,33 @@ describe('containers and the tree', () => {
     expect(box!.placement.row + (box!.placement.rowSpan ?? 1) - 1).toBeGreaterThanOrEqual(lastRow);
   });
 
+  it('the faqTwoColumn preset lays four Q/A pairs across two columns', () => {
+    const group = makePreset('faqTwoColumn', 5);
+    const [box, heading] = group;
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    expect(heading?.size).toBe('lg');
+    const questions = group.filter((b) => b.kind === 'heading' && b !== heading);
+    const answers = group.filter((b) => b.kind === 'text');
+    expect(questions).toHaveLength(4);
+    expect(questions).toHaveLength(answers.length);
+    // every child nests in the box and rises on load
+    for (const b of group.slice(1)) {
+      expect(b.parentId).toBe(box?.id);
+      expect(b.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the questions occupy exactly two distinct columns that never overlap
+    const cols = [...new Set(questions.map((q) => q.placement.col))].sort((a, b) => a - b);
+    expect(cols).toHaveLength(2);
+    const colSpan = questions[0]!.placement.colSpan;
+    expect(cols[0]! + colSpan - 1).toBeLessThan(cols[1]!);
+    // each answer sits directly below a question
+    for (const q of questions) {
+      const a = answers.find((t) => t.placement.col === q.placement.col && t.placement.row > q.placement.row && t.placement.row <= q.placement.row + 3);
+      expect(a).toBeDefined();
+    }
+  });
+
   it('the checklist preset pairs a badge tick with a line of text per row', () => {
     const group = makePreset('checklist', 5);
     const [box, heading] = group;

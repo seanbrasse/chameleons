@@ -791,6 +791,7 @@ export type PresetKind =
   | 'scrollReveal'
   | 'logoCloud'
   | 'faq'
+  | 'faqTwoColumn'
   | 'checklist'
   | 'pricingTable'
   | 'priceCard'
@@ -838,6 +839,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'scrollReveal', label: 'Scroll reveal', hint: 'A centred section whose heading and lines rise in as they scroll into view' },
   { preset: 'logoCloud', label: 'Logo cloud', hint: 'A "trusted by" heading over a row of ringed wordmark tiles that stagger in' },
   { preset: 'faq', label: 'FAQ', hint: 'A heading over a stack of question-and-answer pairs that stagger in' },
+  { preset: 'faqTwoColumn', label: 'FAQ — two columns', hint: 'A heading over question-and-answer pairs laid out in two columns' },
   { preset: 'checklist', label: 'Checklist', hint: 'A heading over a column of rows, each a badge tick beside a line of text' },
   { preset: 'pricingTable', label: 'Pricing table', hint: 'Three tier cards with prices and buttons; the middle one is highlighted' },
   { preset: 'priceCard', label: 'Price card', hint: 'One featured plan: a badge, price, benefits checklist and a button' },
@@ -1961,6 +1963,46 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     });
     const rowSpan = 6 + pairs.length * pairStep;
     box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan });
+    return blocks;
+  }
+
+  if (preset === 'faqTwoColumn') {
+    // A fuller FAQ: a heading over four question/answer pairs laid out in two
+    // columns, two pairs to a column. The two-column variant for when a single
+    // stacked list would run too long. Each question is a bold line over its
+    // answer; the columns are kept apart by a gutter and stagger in on load.
+    const gap = 3;
+    const startCol = 3;
+    const contentSpan = GRID_COLS - 4;
+    const colSpan = Math.max(10, Math.floor((contentSpan - gap) / 2));
+    const box = makeBlock('container', 'FAQ', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 18 });
+    box.stagger = true;
+    box.locked = true;
+    const heading = presetChild('heading', 'Title', 'Frequently asked', box.id, { col: startCol, colSpan: contentSpan, row: row + 2 });
+    heading.size = 'lg';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const leftCol = startCol;
+    const rightCol = startCol + colSpan + gap;
+    const pairs = [
+      { q: 'How long does it take?', a: 'Most projects go from brief to live within a week.' },
+      { q: 'Do you offer revisions?', a: 'Yes — every plan includes unlimited revisions.' },
+      { q: 'Can I use my own domain?', a: 'Absolutely. Custom domains are supported on every tier.' },
+      { q: 'How do I get started?', a: 'Just reach out and say hello — we’ll take it from there.' },
+    ];
+    const blocks: Block[] = [box, heading];
+    const base = row + 6;
+    const pairStep = 5;
+    pairs.forEach((p, i) => {
+      const col = i < 2 ? leftCol : rightCol;
+      const r = base + (i % 2) * pairStep;
+      const question = presetChild('heading', 'Question', p.q, box.id, { col, colSpan, row: r });
+      question.size = 'sm';
+      question.animation = { effect: 'rise', trigger: 'load' };
+      const answer = presetChild('text', 'Answer', p.a, box.id, { col, colSpan, row: r + 2, rowSpan: 2 });
+      answer.animation = { effect: 'rise', trigger: 'load' };
+      blocks.push(question, answer);
+    });
     return blocks;
   }
 
