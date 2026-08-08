@@ -355,6 +355,24 @@ describe('containers and the tree', () => {
     expect(image!.placement.col + image!.placement.colSpan - 1).toBeLessThanOrEqual(GRID_COLS);
   });
 
+  it('the eyebrowHero preset leads with a badge eyebrow above the heading', () => {
+    const [box, eyebrow, heading, tagline, button] = makePreset('eyebrowHero', 5);
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    expect(eyebrow?.kind).toBe('badge');
+    expect(heading?.size).toBe('xl');
+    expect(button?.kind).toBe('button');
+    // every child nests in the hero and rises on load
+    for (const child of [eyebrow, heading, tagline, button]) {
+      expect(child?.parentId).toBe(box?.id);
+      expect(child?.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the eyebrow sits above the heading, which sits above the tagline and button
+    expect(eyebrow!.placement.row).toBeLessThan(heading!.placement.row);
+    expect(heading!.placement.row).toBeLessThan(tagline!.placement.row);
+    expect(tagline!.placement.row).toBeLessThan(button!.placement.row);
+  });
+
   it('the about preset sets a portrait left of an About heading, bio and detail', () => {
     const [box, portrait, heading, bio, detail] = makePreset('about', 5);
     expect(box?.kind).toBe('container');
