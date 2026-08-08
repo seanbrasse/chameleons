@@ -700,6 +700,7 @@ export type PresetKind =
   | 'animatedCard'
   | 'hero'
   | 'splitHero'
+  | 'eyebrowHero'
   | 'about'
   | 'gradientHero'
   | 'featureGrid'
@@ -729,6 +730,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'animatedCard', label: 'Animated card', hint: 'A card that lifts on hover, holding a title, text and button' },
   { preset: 'hero', label: 'Hero', hint: 'A full-width intro: big heading, tagline and a button' },
   { preset: 'splitHero', label: 'Split hero', hint: 'A two-column intro: heading, tagline and button beside an image' },
+  { preset: 'eyebrowHero', label: 'Eyebrow hero', hint: 'A hero led by a badge eyebrow over a big heading, tagline and button' },
   { preset: 'about', label: 'About / bio', hint: 'A portrait beside an About heading, a bio paragraph and a detail line' },
   { preset: 'gradientHero', label: 'Gradient hero', hint: 'A gradient panel with big gradient type that staggers in on load' },
   { preset: 'featureGrid', label: 'Feature grid', hint: 'A heading over a row of three cards that stagger in on load' },
@@ -833,6 +835,31 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     const image = presetChild('image', 'Image', '', box.id, { col: rightCol, colSpan: rightSpan, row: row + 2, rowSpan: 12 });
     image.animation = { effect: 'rise', trigger: 'load' };
     return [box, heading, tagline, button, image];
+  }
+
+  if (preset === 'eyebrowHero') {
+    // A hero led by a badge eyebrow: a small tag above a big heading, a tagline
+    // and a button. The eyebrow is the modern touch that sets the section's
+    // context before the headline lands. Everything staggers in on load.
+    const box = makeBlock('container', 'Hero', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 14 });
+    box.stagger = true;
+    box.locked = true;
+    const eyebrow = presetChild('badge', 'Eyebrow', 'New', box.id, { col: 3, colSpan: 5, row: row + 2, rowSpan: 2 });
+    eyebrow.animation = { effect: 'rise', trigger: 'load' };
+    const heading = presetChild('heading', 'Title', 'Your name, in large type', box.id, { col: 3, colSpan: GRID_COLS - 4, row: row + 4 });
+    heading.size = 'xl';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const tagline = presetChild('text', 'Tagline', 'A one-line summary of what you do and who for.', box.id, {
+      col: 3,
+      colSpan: Math.round(GRID_COLS * 0.6),
+      row: row + 8,
+      rowSpan: 3,
+    });
+    tagline.animation = { effect: 'rise', trigger: 'load' };
+    const button = presetChild('button', 'Button', 'Get in touch', box.id, { col: 3, colSpan: 8, row: row + 11 });
+    button.animation = { effect: 'rise', trigger: 'load' };
+    return [box, eyebrow, heading, tagline, button];
   }
 
   if (preset === 'about') {
