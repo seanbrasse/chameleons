@@ -772,6 +772,7 @@ export type PresetKind =
   | 'teamGrid'
   | 'comparison'
   | 'gallery'
+  | 'figure'
   | 'banner'
   | 'ctaBand'
   | 'ctaButtons'
@@ -815,6 +816,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'teamGrid', label: 'Team grid', hint: 'A heading over a row of member cards, each an avatar, name and role' },
   { preset: 'comparison', label: 'Before / after', hint: 'A heading over two panels, each a label and an image, side by side' },
   { preset: 'gallery', label: 'Gallery', hint: 'A heading over a 2×3 grid of image tiles that stagger in' },
+  { preset: 'figure', label: 'Figure', hint: 'A rounded image over a small centred caption' },
   { preset: 'banner', label: 'Announcement bar', hint: 'A thin ringed bar: a short message beside an inline button' },
   { preset: 'ctaBand', label: 'CTA band', hint: 'A full-width gradient call-to-action: centered heading, line and button' },
   { preset: 'ctaButtons', label: 'CTA — two buttons', hint: 'A gradient call-to-action with a primary and secondary button side by side' },
@@ -1350,6 +1352,31 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       }
     }
     return blocks;
+  }
+
+  if (preset === 'figure') {
+    // An editorial figure: a rounded image over a small centred caption. The
+    // photo-with-caption element that sits inside an article or a case study.
+    // Both rise in on load.
+    const box = makeBlock('container', 'Figure', row);
+    box.placement = clampPlacement({ col: 1, colSpan: half, row, rowSpan: 12 });
+    box.stagger = true;
+    box.locked = true;
+    const innerCol = 3;
+    const innerSpan = half - 4;
+    const image = presetChild('image', 'Image', '', box.id, { col: innerCol, colSpan: innerSpan, row: row + 1, rowSpan: 8 });
+    image.imageRadius = 'md';
+    image.animation = { effect: 'rise', trigger: 'load' };
+    const caption = presetChild('text', 'Caption', 'A short caption describing the image.', box.id, {
+      col: innerCol,
+      colSpan: innerSpan,
+      row: row + 10,
+      rowSpan: 2,
+    });
+    caption.size = 'sm';
+    caption.align = 'center';
+    caption.animation = { effect: 'rise', trigger: 'load' };
+    return [box, image, caption];
   }
 
   if (preset === 'banner') {
