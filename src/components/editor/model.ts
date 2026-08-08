@@ -696,6 +696,7 @@ function defaultText(kind: BlockKind): string {
 export type PresetKind =
   | 'animatedCard'
   | 'hero'
+  | 'splitHero'
   | 'gradientHero'
   | 'featureGrid'
   | 'ctaBand'
@@ -711,6 +712,7 @@ export type PresetKind =
 export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'animatedCard', label: 'Animated card', hint: 'A card that lifts on hover, holding a title, text and button' },
   { preset: 'hero', label: 'Hero', hint: 'A full-width intro: big heading, tagline and a button' },
+  { preset: 'splitHero', label: 'Split hero', hint: 'A two-column intro: heading, tagline and button beside an image' },
   { preset: 'gradientHero', label: 'Gradient hero', hint: 'A gradient panel with big gradient type that staggers in on load' },
   { preset: 'featureGrid', label: 'Feature grid', hint: 'A heading over a row of three cards that stagger in on load' },
   { preset: 'ctaBand', label: 'CTA band', hint: 'A full-width gradient call-to-action: centered heading, line and button' },
@@ -776,6 +778,32 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     const tagline = presetChild('text', 'Tagline', 'A one-line summary of what you do and who for.', box.id, { col: 3, colSpan: Math.round(GRID_COLS * 0.6), row: row + 5, rowSpan: 3 });
     const button = presetChild('button', 'Button', 'Get in touch', box.id, { col: 3, colSpan: 8, row: row + 8 });
     return [box, heading, tagline, button];
+  }
+
+  if (preset === 'splitHero') {
+    // A two-column intro: a text column (heading, tagline, button) beside an
+    // image panel — the classic modern landing layout. Columns are sized by
+    // fractions of the grid and kept apart by a gutter so they never overlap;
+    // everything staggers in on load.
+    const box = makeBlock('container', 'Hero', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 16 });
+    box.stagger = true;
+    box.locked = true;
+    const gutter = 2;
+    const leftCol = 3;
+    const leftSpan = Math.max(10, Math.round(GRID_COLS * 0.42));
+    const rightCol = leftCol + leftSpan + gutter;
+    const rightSpan = Math.max(8, GRID_COLS - rightCol - 1);
+    const heading = presetChild('heading', 'Title', 'Your name, in large type', box.id, { col: leftCol, colSpan: leftSpan, row: row + 3 });
+    heading.size = 'xl';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const tagline = presetChild('text', 'Tagline', 'A one-line summary of what you do and who for.', box.id, { col: leftCol, colSpan: leftSpan, row: row + 7, rowSpan: 3 });
+    tagline.animation = { effect: 'rise', trigger: 'load' };
+    const button = presetChild('button', 'Button', 'Get in touch', box.id, { col: leftCol, colSpan: 8, row: row + 11 });
+    button.animation = { effect: 'rise', trigger: 'load' };
+    const image = presetChild('image', 'Image', '', box.id, { col: rightCol, colSpan: rightSpan, row: row + 2, rowSpan: 12 });
+    image.animation = { effect: 'rise', trigger: 'load' };
+    return [box, heading, tagline, button, image];
   }
 
   if (preset === 'gradientHero') {
