@@ -1801,20 +1801,39 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     // shouldn't offer its own hover chrome.
     const inLocked = isEditMode && lockedRootOf(blocks, block.id) !== null;
     // In Preview, a block that opens an existing modal becomes a click target.
-    const opensId = !isEditMode && block.opensModal && modalIds.has(block.opensModal) ? block.opensModal : null;
-    const triggerProps = opensId
+    // In Preview a block can act as a link: navigate to another page, or open a
+    // modal. A page link wins if both are set.
+    const pageTarget =
+      !isEditMode && block.opensPage && block.opensPage !== activePageId && pages.some((p) => p.id === block.opensPage)
+        ? block.opensPage
+        : null;
+    const opensId =
+      !isEditMode && !pageTarget && block.opensModal && modalIds.has(block.opensModal) ? block.opensModal : null;
+    const triggerProps = pageTarget
       ? {
           role: 'button' as const,
           tabIndex: 0,
-          onClick: () => setOpenModalId(opensId),
+          onClick: () => switchPage(pageTarget),
           onKeyDown: (e: React.KeyboardEvent) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
-              setOpenModalId(opensId);
+              switchPage(pageTarget);
             }
           },
         }
-      : {};
+      : opensId
+        ? {
+            role: 'button' as const,
+            tabIndex: 0,
+            onClick: () => setOpenModalId(opensId),
+            onKeyDown: (e: React.KeyboardEvent) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setOpenModalId(opensId);
+              }
+            },
+          }
+        : {};
     const editProps = isEditMode
       ? {
           role: 'button',
@@ -1859,7 +1878,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         data-block-id={block.id}
         aria-label={`${block.label} block`}
         data-anim-trigger={anim?.trigger === 'scroll' ? 'scroll' : undefined}
-        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${cont ? ` ed-radius-${block.radius ?? 'md'}` : ''}${cont && block.gradient ? ` ed-bg-${block.gradient}` : ''}${cont && block.glow ? ` ed-glow-${block.glow}` : ''}${cont && block.elevation ? ` ed-elev-${block.elevation}` : ''}${cont && block.glass ? ' ed-glass' : ''}${cont && block.grain ? ' ed-grain' : ''}${cont && block.auroraBorder ? ' ed-aurora-border' : ''}${cont && block.stagger ? ' pv-stagger' : ''}${block.parentId !== undefined ? ' is-nested' : ''}${isLocked ? ' is-locked' : ''}${inLocked ? ' in-locked' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId ? ' is-trigger' : ''}${isSelected(block.id) ? ' is-selected' : ''}${dropTargetId === block.id ? ' is-drop-target' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
+        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${cont ? ` ed-radius-${block.radius ?? 'md'}` : ''}${cont && block.gradient ? ` ed-bg-${block.gradient}` : ''}${cont && block.glow ? ` ed-glow-${block.glow}` : ''}${cont && block.elevation ? ` ed-elev-${block.elevation}` : ''}${cont && block.glass ? ' ed-glass' : ''}${cont && block.grain ? ' ed-grain' : ''}${cont && block.auroraBorder ? ' ed-aurora-border' : ''}${cont && block.stagger ? ' pv-stagger' : ''}${block.parentId !== undefined ? ' is-nested' : ''}${isLocked ? ' is-locked' : ''}${inLocked ? ' in-locked' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId || pageTarget ? ' is-trigger' : ''}${isSelected(block.id) ? ' is-selected' : ''}${dropTargetId === block.id ? ' is-drop-target' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
         style={{
           left: box.left + dragDx - origin.left,
           top: box.top + dragDy - origin.top,
@@ -3194,6 +3213,29 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                   ))}
               </select>
             </label>
+
+            {pages.length > 1 ? (
+              <label className="ed-field">
+                <span className="ed-field-label">On click, go to page</span>
+                <select
+                  value={selected.opensPage ?? 'none'}
+                  onChange={(e) =>
+                    update(selected.id, {
+                      opensPage: e.target.value === 'none' ? undefined : e.target.value,
+                    })
+                  }
+                >
+                  <option value="none">Stay here</option>
+                  {pages
+                    .filter((p) => p.id !== activePageId)
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            ) : null}
 
             <label className="ed-check">
               <input

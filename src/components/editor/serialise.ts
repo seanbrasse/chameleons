@@ -68,6 +68,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           ...(block.animation ? { animation: block.animation } : {}),
           ...(block.asModal ? { asModal: true } : {}),
           ...(block.opensModal !== undefined ? { opensModal: block.opensModal } : {}),
+          ...(block.opensPage !== undefined ? { opensPage: block.opensPage } : {}),
           ...(block.locked ? { locked: true } : {}),
           ...(block.glass ? { glass: true } : {}),
           ...(block.grain ? { grain: true } : {}),
@@ -148,6 +149,7 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     }
     if (props.asModal === true) block.asModal = true;
     if (typeof props.opensModal === 'string') block.opensModal = props.opensModal;
+    if (typeof props.opensPage === 'string') block.opensPage = props.opensPage;
     if (props.locked === true) block.locked = true;
     if (props.glass === true) block.glass = true;
     if (props.grain === true) block.grain = true;
