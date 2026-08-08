@@ -340,6 +340,8 @@ describe('containers and the tree', () => {
     expect(box?.stagger).toBe(true);
     expect(heading?.size).toBe('xl');
     expect(image?.kind).toBe('image');
+    // the image panel has rounded corners
+    expect(image?.imageRadius).toBe('md');
     // every child nests in the hero and rises on load
     for (const child of [heading, tagline, button, image]) {
       expect(child?.parentId).toBe(box?.id);
@@ -599,9 +601,10 @@ describe('containers and the tree', () => {
     expect(heading?.align).toBe('center');
     const tiles = group.filter((b) => b.kind === 'image');
     expect(tiles).toHaveLength(6);
-    // every tile nests in the box and rises on load
+    // every tile nests in the box, has rounded corners, and rises on load
     for (const t of tiles) {
       expect(t.parentId).toBe(box?.id);
+      expect(t.imageRadius).toBe('md');
       expect(t.animation).toEqual({ effect: 'rise', trigger: 'load' });
     }
     // the tiles occupy exactly two distinct rows and three distinct columns
