@@ -693,6 +693,7 @@ export type PresetKind =
   | 'ctaBand'
   | 'testimonial'
   | 'statsBand'
+  | 'pricingTable'
   | 'contactForm'
   | 'contactModal';
 
@@ -704,6 +705,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'ctaBand', label: 'CTA band', hint: 'A full-width gradient call-to-action: centered heading, line and button' },
   { preset: 'testimonial', label: 'Testimonial', hint: 'A ringed card holding a large quote and an attribution line' },
   { preset: 'statsBand', label: 'Stats band', hint: 'A full-width row of big metric numbers with labels that stagger in' },
+  { preset: 'pricingTable', label: 'Pricing table', hint: 'Three tier cards with prices and buttons; the middle one is highlighted' },
   { preset: 'contactForm', label: 'Contact form', hint: 'A card with name, email and message fields' },
   { preset: 'contactModal', label: 'Contact modal', hint: 'A button that opens the contact form in a modal' },
 ];
@@ -912,6 +914,44 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       label.align = 'center';
       label.animation = { effect: 'rise', trigger: 'load' };
       blocks.push(num, label);
+    });
+    return blocks;
+  }
+
+  if (preset === 'pricingTable') {
+    // Three pricing tiers side by side — each a card with a plan name, a big
+    // price, a line of detail and a button. The middle "popular" tier is lifted
+    // with a bold ring. The columns stagger in on load.
+    const gap = 2;
+    const startCol = 3;
+    const contentSpan = GRID_COLS - 4;
+    const cardSpan = Math.max(6, Math.floor((contentSpan - gap * 2) / 3));
+    const box = makeBlock('container', 'Pricing', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 16 });
+    box.stagger = true;
+    box.locked = true;
+    const tiers = [
+      { name: 'Starter', price: '$0', line: 'For trying things out.', cta: 'Get started', popular: false },
+      { name: 'Pro', price: '$19', line: 'For growing work.', cta: 'Start free trial', popular: true },
+      { name: 'Team', price: '$49', line: 'For whole teams.', cta: 'Contact sales', popular: false },
+    ];
+    const cardRow = row + 1;
+    const blocks: Block[] = [box];
+    tiers.forEach((t, i) => {
+      const col = startCol + i * (cardSpan + gap);
+      const card = makeBlock('card', t.name, cardRow);
+      card.parentId = box.id;
+      card.placement = clampPlacement({ col, colSpan: cardSpan, row: cardRow, rowSpan: 14 });
+      card.animation = { effect: 'rise', trigger: 'load' };
+      if (t.popular) card.ring = 'bold';
+      const inCol = col + 1;
+      const inSpan = cardSpan - 2;
+      const name = presetChild('heading', 'Plan', t.name, card.id, { col: inCol, colSpan: inSpan, row: cardRow + 1 });
+      const price = presetChild('heading', 'Price', t.price, card.id, { col: inCol, colSpan: inSpan, row: cardRow + 3 });
+      price.size = 'xl';
+      const line = presetChild('text', 'Detail', t.line, card.id, { col: inCol, colSpan: inSpan, row: cardRow + 7, rowSpan: 2 });
+      const button = presetChild('button', 'Button', t.cta, card.id, { col: inCol, colSpan: inSpan, row: cardRow + 10 });
+      blocks.push(card, name, price, line, button);
     });
     return blocks;
   }

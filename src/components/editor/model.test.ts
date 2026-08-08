@@ -394,8 +394,30 @@ describe('containers and the tree', () => {
     }
   });
 
+  it('the pricingTable preset lays three tier cards with the middle one highlighted', () => {
+    const group = makePreset('pricingTable', 5);
+    const [box] = group;
+    expect(box?.stagger).toBe(true);
+    const cards = group.filter((b) => b.kind === 'card');
+    expect(cards).toHaveLength(3);
+    // exactly the middle tier carries the bold ring
+    const ringed = cards.filter((c) => c.ring === 'bold');
+    expect(ringed).toHaveLength(1);
+    // every card is a direct child of the container and rises on load
+    for (const card of cards) {
+      expect(card.parentId).toBe(box?.id);
+      expect(card.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the cards sit side by side, never overlapping in columns
+    const spans = cards
+      .map((c) => ({ start: c.placement.col, end: c.placement.col + c.placement.colSpan - 1 }))
+      .sort((a, b) => a.start - b.start);
+    expect(spans[0]!.end).toBeLessThan(spans[1]!.start);
+    expect(spans[1]!.end).toBeLessThan(spans[2]!.start);
+  });
+
   it('every preset lands in bounds and selects its first block', () => {
-    const kinds = ['animatedCard', 'hero', 'gradientHero', 'featureGrid', 'ctaBand', 'testimonial', 'statsBand', 'contactForm', 'contactModal'] as const;
+    const kinds = ['animatedCard', 'hero', 'gradientHero', 'featureGrid', 'ctaBand', 'testimonial', 'statsBand', 'pricingTable', 'contactForm', 'contactModal'] as const;
     for (const preset of kinds) {
       const group = makePreset(preset, 40);
       expect(group.length).toBeGreaterThan(0);
