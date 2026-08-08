@@ -1302,16 +1302,23 @@
 @keyframes pv-loop-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
 @keyframes pv-loop-sway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
 
-.ed-artboard.is-preview .ed-block.pv-anim-loop { --loop-mult: 1; }
-.ed-artboard.is-preview .ed-block.pv-anim-loop.pv-speed-slow { --loop-mult: 1.8; }
-.ed-artboard.is-preview .ed-block.pv-anim-loop.pv-speed-fast { --loop-mult: 0.5; }
-.ed-artboard.is-preview .ed-block.pv-anim-loop.pv-anim-spin { animation: pv-loop-spin calc(7s * var(--loop-mult, 1)) linear infinite; }
-.ed-artboard.is-preview .ed-block.pv-anim-loop.pv-anim-float { animation: pv-loop-float calc(3s * var(--loop-mult, 1)) ease-in-out infinite; }
-.ed-artboard.is-preview .ed-block.pv-anim-loop.pv-anim-pulse { animation: pv-loop-pulse calc(2.4s * var(--loop-mult, 1)) ease-in-out infinite; }
-.ed-artboard.is-preview .ed-block.pv-anim-loop.pv-anim-sway { animation: pv-loop-sway calc(3.6s * var(--loop-mult, 1)) ease-in-out infinite; }
+.ed-artboard .ed-block.pv-anim-loop { --loop-mult: 1; }
+.ed-artboard .ed-block.pv-anim-loop.pv-speed-slow { --loop-mult: 1.8; }
+.ed-artboard .ed-block.pv-anim-loop.pv-speed-fast { --loop-mult: 0.5; }
+.ed-artboard .ed-block.pv-anim-loop.pv-anim-spin { animation: pv-loop-spin calc(7s * var(--loop-mult, 1)) linear infinite; }
+.ed-artboard .ed-block.pv-anim-loop.pv-anim-float { animation: pv-loop-float calc(3s * var(--loop-mult, 1)) ease-in-out infinite; }
+.ed-artboard .ed-block.pv-anim-loop.pv-anim-pulse { animation: pv-loop-pulse calc(2.4s * var(--loop-mult, 1)) ease-in-out infinite; }
+.ed-artboard .ed-block.pv-anim-loop.pv-anim-sway { animation: pv-loop-sway calc(3.6s * var(--loop-mult, 1)) ease-in-out infinite; }
+
+/* While editing, hovering a looping element freezes it — so a spinning or
+   drifting block can still be pointed at, selected, dragged and deleted, rather
+   than being a moving target. Preview keeps the motion under the pointer. */
+.ed-artboard:not(.is-preview) .ed-block.pv-anim-loop:hover {
+  animation-play-state: paused;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .ed-artboard.is-preview .ed-block.pv-anim-loop { animation: none; }
+  .ed-artboard .ed-block.pv-anim-loop { animation: none; }
 }
 
 /* Form inputs — leaf primitives that render a real field. */
