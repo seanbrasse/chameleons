@@ -48,6 +48,7 @@ import {
   DIVIDER_STYLES,
   BADGE_TONES,
   BUTTON_VARIANTS,
+  IMAGE_RADII,
   GRADIENTS,
   PAGE_THEMES,
   RADIUS_LEVELS,
@@ -2559,6 +2560,27 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               </label>
             ) : null}
 
+            {selected.kind === 'image' ? (
+              <label className="ed-field">
+                <span className="ed-field-label">Corners</span>
+                <select
+                  value={selected.imageRadius ?? 'square'}
+                  onChange={(e) =>
+                    update(selected.id, {
+                      imageRadius: e.target.value === 'square' ? undefined : (e.target.value as (typeof IMAGE_RADII)[number]),
+                    })
+                  }
+                >
+                  <option value="square">Square</option>
+                  {IMAGE_RADII.map((r) => (
+                    <option key={r} value={r}>
+                      {r === 'full' ? 'Circle' : r.toUpperCase()}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
             <label className="ed-field">
               <span className="ed-field-label">Animation</span>
               <select
@@ -3486,13 +3508,15 @@ function BlockPreview({
           aria-label={block.label}
         />
       );
-    case 'image':
+    case 'image': {
+      const roundClass = block.imageRadius ? ` pv-image-round-${block.imageRadius}` : '';
       return block.imageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element -- a user-pasted URL isn't a next/image host; same as the templates.
-        <img className="pv-image pv-image-set" src={block.imageUrl} alt={block.label} />
+        <img className={`pv-image pv-image-set${roundClass}`} src={block.imageUrl} alt={block.label} />
       ) : (
-        <div className="pv-image">Image</div>
+        <div className={`pv-image${roundClass}`}>Image</div>
       );
+    }
     case 'divider':
       return (
         <div

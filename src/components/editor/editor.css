@@ -2044,6 +2044,21 @@
   object-fit: cover;
 }
 
+/* Corner rounding an image can choose — soft to large rounded corners, or a
+   full circle for avatars. Applies to both the set image and the placeholder. */
+.pv-image-round-sm {
+  border-radius: 6px;
+}
+.pv-image-round-md {
+  border-radius: 12px;
+}
+.pv-image-round-lg {
+  border-radius: 22px;
+}
+.pv-image-round-full {
+  border-radius: 50%;
+}
+
 .pv-divider {
   height: 1px;
   background: var(--line);

@@ -34,6 +34,7 @@ import {
   isDividerStyle,
   isBadgeTone,
   isButtonVariant,
+  isImageRadius,
   isGradientKind,
   isRadiusLevel,
   isTextAlign,
@@ -94,6 +95,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           ...(block.badgeTone !== undefined && block.badgeTone !== 'accent' ? { badgeTone: block.badgeTone } : {}),
           ...(block.buttonVariant !== undefined && block.buttonVariant !== 'solid' ? { buttonVariant: block.buttonVariant } : {}),
           ...(block.imageUrl !== undefined ? { imageUrl: block.imageUrl } : {}),
+          ...(block.imageRadius !== undefined ? { imageRadius: block.imageRadius } : {}),
           ...(block.text !== undefined ? { text: block.text } : {}),
         },
       };
@@ -188,6 +190,7 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     if (isBadgeTone(props.badgeTone) && props.badgeTone !== 'accent') block.badgeTone = props.badgeTone;
     if (isButtonVariant(props.buttonVariant) && props.buttonVariant !== 'solid') block.buttonVariant = props.buttonVariant;
     if (typeof props.imageUrl === 'string') block.imageUrl = props.imageUrl;
+    if (isImageRadius(props.imageRadius)) block.imageRadius = props.imageRadius;
     if (typeof props.text === 'string') block.text = props.text;
     blocks.push(block);
   }
