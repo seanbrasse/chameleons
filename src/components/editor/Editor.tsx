@@ -45,6 +45,7 @@ import {
   GLOW_LEVELS,
   RING_LEVELS,
   DIVIDER_STYLES,
+  BADGE_TONES,
   GRADIENTS,
   PAGE_THEMES,
   RADIUS_LEVELS,
@@ -2451,6 +2452,26 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               </label>
             ) : null}
 
+            {selected.kind === 'badge' ? (
+              <label className="ed-field">
+                <span className="ed-field-label">Tone</span>
+                <select
+                  value={selected.badgeTone ?? 'accent'}
+                  onChange={(e) =>
+                    update(selected.id, {
+                      badgeTone: e.target.value === 'accent' ? undefined : (e.target.value as (typeof BADGE_TONES)[number]),
+                    })
+                  }
+                >
+                  {BADGE_TONES.map((t) => (
+                    <option key={t} value={t}>
+                      {t[0]!.toUpperCase() + t.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
             <label className="ed-field">
               <span className="ed-field-label">Animation</span>
               <select
@@ -3351,7 +3372,11 @@ function BlockPreview({
     case 'button':
       return <span className="pv-button">{boundText ?? block.text}</span>;
     case 'badge':
-      return <span className="pv-badge">{boundText ?? block.text}</span>;
+      return (
+        <span className={`pv-badge${block.badgeTone && block.badgeTone !== 'accent' ? ` pv-badge-${block.badgeTone}` : ''}`}>
+          {boundText ?? block.text}
+        </span>
+      );
     case 'input':
       return (
         <input

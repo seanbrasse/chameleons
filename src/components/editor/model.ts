@@ -195,6 +195,8 @@ export type Block = {
   imageUrl?: string;
   /** The line style for a `divider` block. Absent means a solid hairline. */
   dividerStyle?: DividerStyle;
+  /** The colour tone for a `badge` block. Absent means the accent tone. */
+  badgeTone?: BadgeTone;
   /** The container this block nests inside, if any. A block with a `parentId`
    *  renders inside that container — clipped to it, and carried when it moves or
    *  scales. Placement stays in absolute artboard cells regardless of nesting;
@@ -461,6 +463,15 @@ export type DividerStyle = 'solid' | 'dashed' | 'dotted' | 'gradient';
 export const DIVIDER_STYLES: readonly DividerStyle[] = ['solid', 'dashed', 'dotted', 'gradient'];
 export function isDividerStyle(value: unknown): value is DividerStyle {
   return typeof value === 'string' && (DIVIDER_STYLES as readonly string[]).includes(value);
+}
+
+/** The colour tone for a `badge` — accent (the default), a neutral grey, or a
+ *  positive / warning semantic. The concrete fills live in the editor CSS as
+ *  `.pv-badge-<tone>` classes; absence means the accent tone. */
+export type BadgeTone = 'accent' | 'neutral' | 'positive' | 'warn';
+export const BADGE_TONES: readonly BadgeTone[] = ['accent', 'neutral', 'positive', 'warn'];
+export function isBadgeTone(value: unknown): value is BadgeTone {
+  return typeof value === 'string' && (BADGE_TONES as readonly string[]).includes(value);
 }
 
 /** Corner radius for a container / card — the concrete pixels live in the CSS. */
