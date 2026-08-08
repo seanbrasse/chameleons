@@ -153,6 +153,10 @@ export type Block = {
   /** Block opacity, 0–1. 1 (or absent) is fully opaque. Lets a block sit as a
    *  faint layer — a watermark, a ghosted backdrop. */
   opacity?: number;
+  /** Content tilt in degrees, roughly -30..30. 0 (or absent) is upright. Tilts
+   *  the block's content within its upright bounds — a jaunty pinned-photo look
+   *  — so selection and hit-testing stay axis-aligned. */
+  rotate?: number;
   /** How a text primitive's words are aligned. Absent means left (the default). */
   align?: TextAlign;
   /** The type family for a text primitive. Absent means the builder's sans. */

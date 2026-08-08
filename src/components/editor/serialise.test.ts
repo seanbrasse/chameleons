@@ -157,6 +157,17 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(junk && 'tracking' in junk).toBe(false);
   });
 
+  it('round-trips a tilt, and drops 0 and out-of-range angles', () => {
+    const tilted: Block[] = [
+      { id: 'h', kind: 'heading', label: 'Heading', rotate: -12, placement: { col: 1, colSpan: 8, row: 1 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(tilted))).toEqual(tilted);
+    const [upright] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'text', rotate: 0 } }]));
+    expect(upright && 'rotate' in upright).toBe(false);
+    const [tooFar] = fromLayoutDocument(doc([{ id: 'b', props: { kind: 'text', rotate: 90 } }]));
+    expect(tooFar && 'rotate' in tooFar).toBe(false);
+  });
+
   it('round-trips opacity, and drops one out of the 0–1 range', () => {
     const faint: Block[] = [
       { id: 'h', kind: 'heading', label: 'Heading', opacity: 0.4, placement: { col: 1, colSpan: 8, row: 1 } },
