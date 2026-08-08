@@ -741,6 +741,7 @@ export type PresetKind =
   | 'featureGrid'
   | 'featureList'
   | 'valueProps'
+  | 'floatingCards'
   | 'teamGrid'
   | 'comparison'
   | 'gallery'
@@ -779,6 +780,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'featureGrid', label: 'Feature grid', hint: 'A heading over a row of three cards that stagger in on load' },
   { preset: 'featureList', label: 'Feature + list', hint: 'A heading and paragraph beside a benefits checklist of badge ticks' },
   { preset: 'valueProps', label: 'Value props', hint: 'A heading over two cards, each a badge, a title and a line' },
+  { preset: 'floatingCards', label: 'Floating cards', hint: 'A heading over three shadowed cards, each a numbered badge, title and line' },
   { preset: 'teamGrid', label: 'Team grid', hint: 'A heading over a row of member cards, each an avatar, name and role' },
   { preset: 'comparison', label: 'Before / after', hint: 'A heading over two panels, each a label and an image, side by side' },
   { preset: 'gallery', label: 'Gallery', hint: 'A heading over a 2×3 grid of image tiles that stagger in' },
@@ -1112,6 +1114,48 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       title.size = 'sm';
       title.animation = { effect: 'rise', trigger: 'load' };
       const body = presetChild('text', 'Text', p.body, card.id, { col: col + 1, colSpan: cardSpan - 2, row: cardRow + 5, rowSpan: 2 });
+      body.animation = { effect: 'rise', trigger: 'load' };
+      blocks.push(card, badge, title, body);
+    });
+    return blocks;
+  }
+
+  if (preset === 'floatingCards') {
+    // Three shadowed cards that float off the page, each a numbered badge over a
+    // title and a line. It puts the new elevation to work — cards lifted by a
+    // drop shadow rather than a ring or a flat fill — and stagger in on load.
+    const gap = 2;
+    const startCol = 3;
+    const contentSpan = GRID_COLS - 4;
+    const cardSpan = Math.max(6, Math.floor((contentSpan - gap * 2) / 3));
+    const box = makeBlock('container', 'Features', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 16 });
+    box.stagger = true;
+    box.locked = true;
+    const heading = presetChild('heading', 'Title', 'What I do', box.id, { col: startCol, colSpan: contentSpan, row: row + 2 });
+    heading.size = 'lg';
+    heading.align = 'center';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const cards = [
+      { tag: '01', title: 'Design', body: 'Modern, considered interfaces.' },
+      { tag: '02', title: 'Build', body: 'Fast, accessible front-ends.' },
+      { tag: '03', title: 'Ship', body: 'From idea to live in days.' },
+    ];
+    const blocks: Block[] = [box, heading];
+    const cardRow = row + 6;
+    cards.forEach((c, i) => {
+      const col = startCol + i * (cardSpan + gap);
+      const card = makeBlock('card', c.title, cardRow);
+      card.parentId = box.id;
+      card.placement = clampPlacement({ col, colSpan: cardSpan, row: cardRow, rowSpan: 9 });
+      card.elevation = 'md';
+      card.animation = { effect: 'rise', trigger: 'load' };
+      const badge = presetChild('badge', 'Number', c.tag, card.id, { col: col + 1, colSpan: 5, row: cardRow + 1, rowSpan: 2 });
+      badge.animation = { effect: 'rise', trigger: 'load' };
+      const title = presetChild('heading', 'Title', c.title, card.id, { col: col + 1, colSpan: cardSpan - 2, row: cardRow + 3 });
+      title.size = 'sm';
+      title.animation = { effect: 'rise', trigger: 'load' };
+      const body = presetChild('text', 'Text', c.body, card.id, { col: col + 1, colSpan: cardSpan - 2, row: cardRow + 5, rowSpan: 2 });
       body.animation = { effect: 'rise', trigger: 'load' };
       blocks.push(card, badge, title, body);
     });
