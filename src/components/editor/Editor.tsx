@@ -48,6 +48,7 @@ import {
   RADIUS_LEVELS,
   TEXT_ALIGNS,
   TEXT_SIZES,
+  TRACKING_LEVELS,
   withoutParent,
   type Animation,
   type Block,
@@ -1558,7 +1559,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       >
         {isEditMode ? <span className="ed-block-tag">{block.label}</span> : null}
         <div
-          className={`ed-block-body${canAlign(block) && block.font ? ` ed-font-${block.font}` : ''}${canAlign(block) && block.size ? ` ed-size-${block.size}` : ''}${canAlign(block) && block.textGradient ? ` ed-bg-${block.textGradient} ed-text-clip` : ''}`}
+          className={`ed-block-body${canAlign(block) && block.font ? ` ed-font-${block.font}` : ''}${canAlign(block) && block.size ? ` ed-size-${block.size}` : ''}${canAlign(block) && block.tracking && block.tracking !== 'normal' ? ` ed-track-${block.tracking}` : ''}${canAlign(block) && block.textGradient ? ` ed-bg-${block.textGradient} ed-text-clip` : ''}`}
           style={{
             ...bodyScale,
             textAlign: canAlign(block) ? block.align : undefined,
@@ -2049,6 +2050,24 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                         onClick={() => update(selected.id, { size: s === 'md' ? undefined : s })}
                       >
                         {s.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="ed-field">
+                  <span className="ed-field-label">Tracking</span>
+                  <div className="ed-arrange">
+                    {TRACKING_LEVELS.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        className={`ed-arrange-btn${(selected.tracking ?? 'normal') === t ? ' is-on' : ''}`}
+                        title={`${t} letter-spacing`}
+                        aria-label={`${t} tracking`}
+                        aria-pressed={(selected.tracking ?? 'normal') === t}
+                        onClick={() => update(selected.id, { tracking: t === 'normal' ? undefined : t })}
+                      >
+                        {t.charAt(0).toUpperCase() + t.slice(1)}
                       </button>
                     ))}
                   </div>

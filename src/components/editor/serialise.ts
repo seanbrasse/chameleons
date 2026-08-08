@@ -33,6 +33,7 @@ import {
   isRadiusLevel,
   isTextAlign,
   isTextSize,
+  isTrackingLevel,
   sanitizeParents,
   type Animation,
   type Block,
@@ -66,6 +67,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           ...(block.align !== undefined ? { align: block.align } : {}),
           ...(block.font !== undefined ? { font: block.font } : {}),
           ...(block.size !== undefined ? { size: block.size } : {}),
+          ...(block.tracking !== undefined && block.tracking !== 'normal' ? { tracking: block.tracking } : {}),
           ...(block.color !== undefined ? { color: block.color } : {}),
           ...(block.textGradient !== undefined ? { textGradient: block.textGradient } : {}),
           ...(block.bg !== undefined ? { bg: block.bg } : {}),
@@ -140,6 +142,7 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     if (isTextAlign(props.align)) block.align = props.align;
     if (isFontChoice(props.font)) block.font = props.font;
     if (isTextSize(props.size)) block.size = props.size;
+    if (isTrackingLevel(props.tracking) && props.tracking !== 'normal') block.tracking = props.tracking;
     if (typeof props.color === 'string') block.color = props.color;
     if (isGradientKind(props.textGradient)) block.textGradient = props.textGradient;
     if (typeof props.bg === 'string') block.bg = props.bg;
