@@ -156,6 +156,9 @@ export type Block = {
   font?: FontChoice;
   /** A CSS colour for a text primitive's words. Absent means the default ink. */
   color?: string;
+  /** A CSS background colour for a container / card. Absent means its default
+   *  surface (a card's white, a bare container's faint tint). */
+  bg?: string;
   /** The container this block nests inside, if any. A block with a `parentId`
    *  renders inside that container — clipped to it, and carried when it moves or
    *  scales. Placement stays in absolute artboard cells regardless of nesting;
