@@ -2742,6 +2742,7 @@ const GLYPH: Record<BlockKind, string> = {
   image: '▦',
   button: '⬭',
   divider: '—',
+  badge: '⬮',
   themeToggle: '◐',
   identity: '◈',
   skills: '❖',
@@ -3349,6 +3350,8 @@ function BlockPreview({
       return <p className="pv-text pv-text-bound">{boundText ?? block.text}</p>;
     case 'button':
       return <span className="pv-button">{boundText ?? block.text}</span>;
+    case 'badge':
+      return <span className="pv-badge">{boundText ?? block.text}</span>;
     case 'input':
       return (
         <input

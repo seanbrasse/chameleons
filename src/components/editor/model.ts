@@ -25,6 +25,7 @@ export type BlockKind =
   | 'input'
   | 'textarea'
   | 'divider'
+  | 'badge'
   | 'themeToggle'
   // content, bound to the Issue
   | 'identity'
@@ -47,6 +48,7 @@ export const BLOCK_KINDS: readonly BlockKind[] = [
   'input',
   'textarea',
   'divider',
+  'badge',
   'themeToggle',
   'identity',
   'skills',
@@ -401,7 +403,10 @@ export function isContentSource(value: unknown): value is ContentSource {
 /** Whether a block's text can be typed in place — a free-text primitive that
  *  isn't bound to Issue content. */
 export function isFreeText(block: Block): boolean {
-  return (block.kind === 'heading' || block.kind === 'text' || block.kind === 'button') && !block.source;
+  return (
+    (block.kind === 'heading' || block.kind === 'text' || block.kind === 'button' || block.kind === 'badge') &&
+    !block.source
+  );
 }
 
 /** Text alignment for a heading / text / button block. */
@@ -502,7 +507,7 @@ export function isRingLevel(value: unknown): value is RingLevel {
 /** Whether alignment applies to a block — the same set as free text, plus a
  *  bound text block (its words still align). */
 export function canAlign(block: Block): boolean {
-  return block.kind === 'heading' || block.kind === 'text' || block.kind === 'button';
+  return block.kind === 'heading' || block.kind === 'text' || block.kind === 'button' || block.kind === 'badge';
 }
 
 /**
@@ -587,6 +592,7 @@ export const PALETTE: { group: string; items: PaletteItem[] }[] = [
       { kind: 'image', label: 'Image', hint: 'A picture' },
       { kind: 'button', label: 'Button', hint: 'A link' },
       { kind: 'divider', label: 'Divider', hint: 'A rule' },
+      { kind: 'badge', label: 'Badge', hint: 'A small pill / tag' },
       { kind: 'themeToggle', label: 'Theme toggle', hint: 'Light / dark switch' },
     ],
   },
@@ -627,6 +633,7 @@ const SPAN_FRACTION: Record<BlockKind, number> = {
   input: 0.4,
   textarea: 0.5,
   divider: 1,
+  badge: 0.15,
   themeToggle: 0.2,
   identity: 1,
   skills: 1,
@@ -674,6 +681,7 @@ function defaultText(kind: BlockKind): string {
   if (kind === 'heading') return 'Heading';
   if (kind === 'text') return 'Write something here.';
   if (kind === 'button') return 'Learn more';
+  if (kind === 'badge') return 'New';
   if (kind === 'input') return 'Your answer';
   if (kind === 'textarea') return 'Your message';
   return '';
