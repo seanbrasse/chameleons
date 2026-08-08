@@ -142,6 +142,9 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const [clipReady, setClipReady] = useState(false);
   /** The page tab being renamed inline, if any. */
   const [renamingPageId, setRenamingPageId] = useState<string | null>(null);
+  /** Whether looping animations run live on the edit canvas (default on), so
+   *  motion shows without entering Preview. A toolbar toggle pauses them. */
+  const [liveMotion, setLiveMotion] = useState(true);
   /** True while a block is being dragged — the grid guides show only then. */
   const [arranging, setArranging] = useState(false);
   /** The id of the block currently being dragged, for its lifted styling. */
@@ -1885,9 +1888,16 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
             ...(scaled ? { width: `${100 / block.scale!}%`, height: `${100 / block.scale!}%` } : {}),
           }
         : undefined;
-    // Animation is a Preview-only presentation layer; the scroll trigger is
-    // marked so the observer above can reveal it in view.
-    const anim = !isEditMode && block.animation ? block.animation : null;
+    // Animation is a presentation layer. Entrance effects stay Preview-only (the
+    // scroll trigger is marked so the observer can reveal it). Loop effects also
+    // run live on the edit canvas — so motion shows by default — unless the user
+    // paused motion or this block is the one selected for editing (kept still so
+    // its handles stay grabbable).
+    const loopAnim = block.animation?.trigger === 'loop';
+    const anim =
+      block.animation && (!isEditMode || (liveMotion && loopAnim && !isSelected(block.id)))
+        ? block.animation
+        : null;
     const animClass = anim
       ? ` pv-anim pv-anim-${anim.effect} pv-anim-${anim.trigger} pv-speed-${anim.speed ?? 'normal'} pv-ease-${anim.ease ?? 'smooth'}`
       : '';
@@ -2146,6 +2156,29 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                   onClick={() => setPageBg(g.value)}
                 />
               ))}
+            </div>
+          </div>
+          <div className="ed-toolbar-field">
+            <span className="ed-toolbar-label">Motion</span>
+            <div className="ed-grid-switch" role="group" aria-label="Live motion">
+              <button
+                type="button"
+                className="ed-chip"
+                aria-pressed={liveMotion}
+                onClick={() => setLiveMotion(true)}
+                title="Play looping animations on the canvas"
+              >
+                Play
+              </button>
+              <button
+                type="button"
+                className="ed-chip"
+                aria-pressed={!liveMotion}
+                onClick={() => setLiveMotion(false)}
+                title="Freeze looping animations while editing"
+              >
+                Pause
+              </button>
             </div>
           </div>
           <div className="ed-toolbar-field ed-toolbar-zoom">
