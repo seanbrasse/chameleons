@@ -703,6 +703,7 @@ export type PresetKind =
   | 'featureGrid'
   | 'teamGrid'
   | 'comparison'
+  | 'gallery'
   | 'ctaBand'
   | 'testimonial'
   | 'statsBand'
@@ -724,6 +725,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'featureGrid', label: 'Feature grid', hint: 'A heading over a row of three cards that stagger in on load' },
   { preset: 'teamGrid', label: 'Team grid', hint: 'A heading over a row of member cards, each an avatar, name and role' },
   { preset: 'comparison', label: 'Before / after', hint: 'A heading over two panels, each a label and an image, side by side' },
+  { preset: 'gallery', label: 'Gallery', hint: 'A heading over a 2×3 grid of image tiles that stagger in' },
   { preset: 'ctaBand', label: 'CTA band', hint: 'A full-width gradient call-to-action: centered heading, line and button' },
   { preset: 'testimonial', label: 'Testimonial', hint: 'A ringed card holding a large quote and an attribution line' },
   { preset: 'statsBand', label: 'Stats band', hint: 'A full-width row of big metric numbers with labels that stagger in' },
@@ -952,6 +954,38 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       const image = presetChild('image', 'Image', '', card.id, { col: col + 1, colSpan: panelSpan - 2, row: cardRow + 3, rowSpan: 5 });
       blocks.push(card, caption, image);
     });
+    return blocks;
+  }
+
+  if (preset === 'gallery') {
+    // A work gallery: a heading over a 2×3 grid of image tiles. A pure visual
+    // showcase — each tile is an empty image the user swaps for a real shot.
+    // Columns are spaced by the feature-grid math; the two rows are offset by a
+    // fixed tile height plus gutter, and every tile staggers in on load.
+    const gap = 2;
+    const startCol = 3;
+    const contentSpan = GRID_COLS - 4;
+    const colSpan = Math.max(6, Math.floor((contentSpan - gap * 2) / 3));
+    const tileH = 5;
+    const box = makeBlock('container', 'Gallery', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 6 + tileH * 2 + gap });
+    box.stagger = true;
+    box.locked = true;
+    const heading = presetChild('heading', 'Title', 'Selected work', box.id, { col: startCol, colSpan: contentSpan, row: row + 2 });
+    heading.size = 'lg';
+    heading.align = 'center';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const blocks: Block[] = [box, heading];
+    const firstRow = row + 6;
+    for (let r = 0; r < 2; r++) {
+      const tileRow = firstRow + r * (tileH + gap);
+      for (let c = 0; c < 3; c++) {
+        const col = startCol + c * (colSpan + gap);
+        const tile = presetChild('image', 'Image', '', box.id, { col, colSpan, row: tileRow, rowSpan: tileH });
+        tile.animation = { effect: 'rise', trigger: 'load' };
+        blocks.push(tile);
+      }
+    }
     return blocks;
   }
 
