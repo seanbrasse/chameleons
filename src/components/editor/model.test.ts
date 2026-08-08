@@ -906,6 +906,37 @@ describe('containers and the tree', () => {
     }
   });
 
+  it('the pricingCompare preset lays two plans, one highlighted, each with a checklist', () => {
+    const group = makePreset('pricingCompare', 5);
+    const [box] = group;
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    const cards = group.filter((b) => b.kind === 'card');
+    expect(cards).toHaveLength(2);
+    // exactly one plan is highlighted with a bold ring, and every card rises on load
+    expect(cards.filter((c) => c.ring === 'bold')).toHaveLength(1);
+    for (const c of cards) expect(c.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    // each card carries an xl price, three checklist ticks and a button
+    for (const card of cards) {
+      const kids = group.filter((b) => b.parentId === card.id);
+      expect(kids.some((k) => k.kind === 'heading' && k.size === 'xl')).toBe(true);
+      expect(kids.filter((k) => k.kind === 'badge')).toHaveLength(3);
+      expect(kids.filter((k) => k.kind === 'button')).toHaveLength(1);
+    }
+    // the highlighted plan's button is solid; the other is a ghost
+    const featured = cards.find((c) => c.ring === 'bold')!;
+    const plain = cards.find((c) => c.ring !== 'bold')!;
+    const featuredBtn = group.find((b) => b.parentId === featured.id && b.kind === 'button')!;
+    const plainBtn = group.find((b) => b.parentId === plain.id && b.kind === 'button')!;
+    expect(featuredBtn.buttonVariant).toBeUndefined();
+    expect(plainBtn.buttonVariant).toBe('ghost');
+    // the two cards sit side by side without overlapping
+    const spans = cards
+      .map((c) => ({ start: c.placement.col, end: c.placement.col + c.placement.colSpan - 1 }))
+      .sort((a, b) => a.start - b.start);
+    expect(spans[0]!.end).toBeLessThan(spans[1]!.start);
+  });
+
   it('the newsletter preset pairs an email field and button inline in a ringed card', () => {
     const [card, heading, line, email, button] = makePreset('newsletter', 5);
     expect(card?.kind).toBe('card');

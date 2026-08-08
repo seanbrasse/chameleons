@@ -793,6 +793,7 @@ export type PresetKind =
   | 'checklist'
   | 'pricingTable'
   | 'priceCard'
+  | 'pricingCompare'
   | 'newsletter'
   | 'navBar'
   | 'navCta'
@@ -838,6 +839,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'checklist', label: 'Checklist', hint: 'A heading over a column of rows, each a badge tick beside a line of text' },
   { preset: 'pricingTable', label: 'Pricing table', hint: 'Three tier cards with prices and buttons; the middle one is highlighted' },
   { preset: 'priceCard', label: 'Price card', hint: 'One featured plan: a badge, price, benefits checklist and a button' },
+  { preset: 'pricingCompare', label: 'Pricing compare', hint: 'Two plans side by side, each a price and benefits checklist; one highlighted' },
   { preset: 'newsletter', label: 'Newsletter signup', hint: 'A ringed card with a heading, a line and an inline email field and subscribe button' },
   { preset: 'navBar', label: 'Nav bar', hint: 'A thin top nav: a brand wordmark left, underlined text links right' },
   { preset: 'navCta', label: 'Nav bar + CTA', hint: 'A top nav: brand left, links and a solid call-to-action button right' },
@@ -2097,6 +2099,57 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     const button = presetChild('button', 'Button', 'Start free trial', card.id, { col: innerCol, colSpan: innerSpan, row: row + 16 });
     button.animation = { effect: 'rise', trigger: 'load' };
     blocks.push(button);
+    return blocks;
+  }
+
+  if (preset === 'pricingCompare') {
+    // Two plans side by side for a direct comparison: each a card with a name, a
+    // big price, a three-item benefits checklist and a button; the second is
+    // highlighted with a bold ring and a solid button while the first is a ghost.
+    // It composes the checklist into a two-column pricing block. Cards stagger in.
+    const gap = 2;
+    const startCol = 3;
+    const contentSpan = GRID_COLS - 4;
+    const cardSpan = Math.max(12, Math.floor((contentSpan - gap) / 2));
+    const box = makeBlock('container', 'Pricing', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 20 });
+    box.stagger = true;
+    box.locked = true;
+    const plans = [
+      { name: 'Free', price: '$0', items: ['1 project', 'Community support', 'Basic analytics'], cta: 'Get started', featured: false },
+      { name: 'Pro', price: '$19', items: ['Unlimited projects', 'Priority support', 'Advanced analytics'], cta: 'Start free trial', featured: true },
+    ];
+    const cardRow = row + 1;
+    const blocks: Block[] = [box];
+    plans.forEach((p, i) => {
+      const col = startCol + i * (cardSpan + gap);
+      const card = makeBlock('card', p.name, cardRow);
+      card.parentId = box.id;
+      card.placement = clampPlacement({ col, colSpan: cardSpan, row: cardRow, rowSpan: 18 });
+      if (p.featured) card.ring = 'bold';
+      card.animation = { effect: 'rise', trigger: 'load' };
+      const inCol = col + 1;
+      const inSpan = cardSpan - 2;
+      const name = presetChild('heading', 'Plan', p.name, card.id, { col: inCol, colSpan: inSpan, row: cardRow + 1 });
+      name.size = 'sm';
+      const price = presetChild('heading', 'Price', p.price, card.id, { col: inCol, colSpan: inSpan, row: cardRow + 3 });
+      price.size = 'xl';
+      blocks.push(card, name, price);
+      const markerSpan = 3;
+      const textCol = inCol + markerSpan + 1;
+      const textSpan = Math.max(6, inSpan - markerSpan - 1);
+      p.items.forEach((item, j) => {
+        const r = cardRow + 7 + j * 2;
+        const tick = presetChild('badge', 'Tick', '✓', card.id, { col: inCol, colSpan: markerSpan, row: r, rowSpan: 2 });
+        tick.align = 'center';
+        const line = presetChild('text', 'Item', item, card.id, { col: textCol, colSpan: textSpan, row: r, rowSpan: 2 });
+        line.size = 'sm';
+        blocks.push(tick, line);
+      });
+      const button = presetChild('button', 'Button', p.cta, card.id, { col: inCol, colSpan: inSpan, row: cardRow + 14 });
+      if (!p.featured) button.buttonVariant = 'ghost';
+      blocks.push(button);
+    });
     return blocks;
   }
 
