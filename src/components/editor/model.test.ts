@@ -647,6 +647,35 @@ describe('containers and the tree', () => {
     }
   });
 
+  it('the socialRow preset centres a cluster of profile buttons under a heading', () => {
+    const group = makePreset('socialRow', 5);
+    const [box, heading] = group;
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    expect(heading?.align).toBe('center');
+    const buttons = group.filter((b) => b.kind === 'button');
+    expect(buttons).toHaveLength(4);
+    // every button nests in the box, shares one row, and rises on load
+    for (const b of buttons) {
+      expect(b.parentId).toBe(box?.id);
+      expect(b.placement.row).toBe(buttons[0]!.placement.row);
+      expect(b.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the buttons never overlap and the cluster stays within the grid
+    const spans = buttons
+      .map((b) => ({ start: b.placement.col, end: b.placement.col + b.placement.colSpan - 1 }))
+      .sort((a, b) => a.start - b.start);
+    for (let i = 1; i < spans.length; i++) {
+      expect(spans[i - 1]!.end).toBeLessThan(spans[i]!.start);
+    }
+    expect(spans[0]!.start).toBeGreaterThanOrEqual(1);
+    expect(spans[spans.length - 1]!.end).toBeLessThanOrEqual(GRID_COLS);
+    // the cluster is roughly centred: comparable margin on each side
+    const leftGap = spans[0]!.start - 1;
+    const rightGap = GRID_COLS - spans[spans.length - 1]!.end;
+    expect(Math.abs(leftGap - rightGap)).toBeLessThanOrEqual(2);
+  });
+
   it('the quoteBand preset centres a gradient pull-quote and attribution on a band', () => {
     const [box, quote, attribution] = makePreset('quoteBand', 5);
     expect(box?.kind).toBe('container');
