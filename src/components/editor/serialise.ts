@@ -29,6 +29,7 @@ import {
   isGradientKind,
   isRadiusLevel,
   isTextAlign,
+  isTextSize,
   sanitizeParents,
   type Block,
 } from './model';
@@ -56,6 +57,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           ...(block.scale !== undefined && block.scale !== 1 ? { scale: block.scale } : {}),
           ...(block.align !== undefined ? { align: block.align } : {}),
           ...(block.font !== undefined ? { font: block.font } : {}),
+          ...(block.size !== undefined ? { size: block.size } : {}),
           ...(block.color !== undefined ? { color: block.color } : {}),
           ...(block.bg !== undefined ? { bg: block.bg } : {}),
           ...(block.radius !== undefined ? { radius: block.radius } : {}),
@@ -108,6 +110,7 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     }
     if (isTextAlign(props.align)) block.align = props.align;
     if (isFontChoice(props.font)) block.font = props.font;
+    if (isTextSize(props.size)) block.size = props.size;
     if (typeof props.color === 'string') block.color = props.color;
     if (typeof props.bg === 'string') block.bg = props.bg;
     if (isRadiusLevel(props.radius)) block.radius = props.radius;

@@ -137,6 +137,15 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(block && 'font' in block).toBe(false);
   });
 
+  it('round-trips a text size, and drops a bad one', () => {
+    const sized: Block[] = [
+      { id: 'h', kind: 'heading', label: 'Heading', size: 'xl', placement: { col: 1, colSpan: 8, row: 1 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(sized))).toEqual(sized);
+    const [block] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'text', size: 'huge' } }]));
+    expect(block && 'size' in block).toBe(false);
+  });
+
   it('round-trips a text colour, and drops a non-string one', () => {
     const coloured: Block[] = [
       { id: 'h', kind: 'heading', label: 'Heading', color: 'tomato', placement: { col: 1, colSpan: 8, row: 1 } },
