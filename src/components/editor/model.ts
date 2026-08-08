@@ -473,9 +473,10 @@ export function isRadiusLevel(value: unknown): value is RadiusLevel {
 /** A gradient surface for a container / card — the actual gradients live in the
  *  editor CSS as `.ed-bg-<kind>` classes. A curated set, chosen for a modern,
  *  Framer-ish look; overrides a solid background when set. */
-export type GradientKind = 'sunrise' | 'glow' | 'ocean' | 'violet' | 'night' | 'mint' | 'azure';
+export type GradientKind = 'sunrise' | 'ember' | 'glow' | 'ocean' | 'violet' | 'night' | 'mint' | 'azure';
 export const GRADIENTS: { value: GradientKind; label: string }[] = [
   { value: 'sunrise', label: 'Sunrise' },
+  { value: 'ember', label: 'Ember' },
   { value: 'glow', label: 'Glow' },
   { value: 'ocean', label: 'Ocean' },
   { value: 'azure', label: 'Azure' },
