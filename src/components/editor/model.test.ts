@@ -488,6 +488,33 @@ describe('containers and the tree', () => {
     expect(spans[0]!.end).toBeLessThan(spans[1]!.start);
   });
 
+  it('the floatingCards preset lays three shadowed badge cards under a heading', () => {
+    const group = makePreset('floatingCards', 5);
+    const [box, heading] = group;
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    expect(heading?.align).toBe('center');
+    const cards = group.filter((b) => b.kind === 'card');
+    expect(cards).toHaveLength(3);
+    for (const card of cards) {
+      expect(card.parentId).toBe(box?.id);
+      // every card floats via an elevation shadow and rises on load
+      expect(card.elevation).toBe('md');
+      expect(card.animation).toEqual({ effect: 'rise', trigger: 'load' });
+      // each card nests a numbered badge, a title heading and a body text
+      const kids = group.filter((b) => b.parentId === card.id);
+      expect(kids.filter((k) => k.kind === 'badge')).toHaveLength(1);
+      expect(kids.filter((k) => k.kind === 'heading')).toHaveLength(1);
+      expect(kids.filter((k) => k.kind === 'text')).toHaveLength(1);
+    }
+    // the three cards sit side by side, never overlapping in columns
+    const spans = cards
+      .map((c) => ({ start: c.placement.col, end: c.placement.col + c.placement.colSpan - 1 }))
+      .sort((a, b) => a.start - b.start);
+    expect(spans[0]!.end).toBeLessThan(spans[1]!.start);
+    expect(spans[1]!.end).toBeLessThan(spans[2]!.start);
+  });
+
   it('the teamGrid preset lays member cards, each an avatar, name and role', () => {
     const group = makePreset('teamGrid', 5);
     const [box, heading] = group;
