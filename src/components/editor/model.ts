@@ -773,6 +773,7 @@ export type PresetKind =
   | 'comparison'
   | 'gallery'
   | 'figure'
+  | 'labeledDivider'
   | 'banner'
   | 'ctaBand'
   | 'ctaButtons'
@@ -819,6 +820,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'comparison', label: 'Before / after', hint: 'A heading over two panels, each a label and an image, side by side' },
   { preset: 'gallery', label: 'Gallery', hint: 'A heading over a 2×3 grid of image tiles that stagger in' },
   { preset: 'figure', label: 'Figure', hint: 'A rounded image over a small centred caption' },
+  { preset: 'labeledDivider', label: 'Labeled divider', hint: 'A centred label flanked by two rules — a section separator' },
   { preset: 'banner', label: 'Announcement bar', hint: 'A thin ringed bar: a short message beside an inline button' },
   { preset: 'ctaBand', label: 'CTA band', hint: 'A full-width gradient call-to-action: centered heading, line and button' },
   { preset: 'ctaButtons', label: 'CTA — two buttons', hint: 'A gradient call-to-action with a primary and secondary button side by side' },
@@ -1381,6 +1383,31 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     caption.align = 'center';
     caption.animation = { effect: 'rise', trigger: 'load' };
     return [box, image, caption];
+  }
+
+  if (preset === 'labeledDivider') {
+    // A section separator: a centred label flanked by two hairline rules —
+    // "——— Projects ———". Composes the divider primitive with a centred label,
+    // the quiet break between sections. All three sit on one row without overlap.
+    const box = makeBlock('container', 'Divider', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 3 });
+    box.stagger = true;
+    box.locked = true;
+    const labelSpan = 10;
+    const labelCol = Math.max(5, Math.round((GRID_COLS - labelSpan) / 2) + 1);
+    const ruleRow = row + 1;
+    const leftSpan = Math.max(1, labelCol - 4);
+    const left = presetChild('divider', 'Rule', '', box.id, { col: 3, colSpan: leftSpan, row: ruleRow });
+    left.animation = { effect: 'rise', trigger: 'load' };
+    const label = presetChild('text', 'Label', 'Projects', box.id, { col: labelCol, colSpan: labelSpan, row: ruleRow });
+    label.size = 'sm';
+    label.align = 'center';
+    label.animation = { effect: 'rise', trigger: 'load' };
+    const rightCol = labelCol + labelSpan + 1;
+    const rightSpan = Math.max(1, GRID_COLS - 1 - rightCol);
+    const right = presetChild('divider', 'Rule', '', box.id, { col: rightCol, colSpan: rightSpan, row: ruleRow });
+    right.animation = { effect: 'rise', trigger: 'load' };
+    return [box, left, label, right];
   }
 
   if (preset === 'banner') {
