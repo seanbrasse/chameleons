@@ -222,6 +222,17 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(fromLayoutDocument(toLayoutDocument(animated))).toEqual(animated);
   });
 
+  it('round-trips an animation speed, and drops a bad one', () => {
+    const paced: Block[] = [
+      { id: 'c', kind: 'card', label: 'Card', animation: { effect: 'rise', trigger: 'load', speed: 'fast' }, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 4 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(paced))).toEqual(paced);
+    const [block] = fromLayoutDocument(
+      doc([{ id: 'a', props: { kind: 'text', animation: { effect: 'fade', trigger: 'load', speed: 'warp' } } }]),
+    );
+    expect(block?.animation).toEqual({ effect: 'fade', trigger: 'load' });
+  });
+
   it('round-trips modal role and trigger wiring', () => {
     const wired: Block[] = [
       { id: 'panel', kind: 'card', label: 'Panel', asModal: true, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },

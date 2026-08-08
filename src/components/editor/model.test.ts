@@ -7,6 +7,7 @@ import {
   childrenOf,
   clampPlacement,
   descendantIds,
+  isAnimSpeed,
   isBlockKind,
   isContainer,
   isFontChoice,
@@ -155,6 +156,14 @@ describe('validation guards', () => {
     expect(isGlowLevel('strong')).toBe(true);
     expect(isGlowLevel('none')).toBe(false);
     expect(isGlowLevel(undefined)).toBe(false);
+  });
+
+  it('isAnimSpeed', () => {
+    expect(isAnimSpeed('slow')).toBe(true);
+    expect(isAnimSpeed('normal')).toBe(true);
+    expect(isAnimSpeed('fast')).toBe(true);
+    expect(isAnimSpeed('warp')).toBe(false);
+    expect(isAnimSpeed(1)).toBe(false);
   });
 
   it('canAlign covers text primitives only', () => {

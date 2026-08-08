@@ -22,6 +22,7 @@ import type { LayoutDocument, LayoutNode } from '@/templates/layout';
 import { LAYOUT_VERSION } from '@/templates/layout';
 import {
   isAnimEffect,
+  isAnimSpeed,
   isAnimTrigger,
   isBlockKind,
   isContentSource,
@@ -32,6 +33,7 @@ import {
   isTextAlign,
   isTextSize,
   sanitizeParents,
+  type Animation,
   type Block,
 } from './model';
 
@@ -103,7 +105,14 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     if (node.hidden) block.hidden = true;
     if (isContentSource(props.source)) block.source = props.source;
     if (typeof props.parentId === 'string') block.parentId = props.parentId;
-    if (isAnimation(props.animation)) block.animation = props.animation;
+    if (isAnimation(props.animation)) {
+      const a = props.animation;
+      block.animation = {
+        effect: a.effect,
+        trigger: a.trigger,
+        ...(isAnimSpeed(a.speed) ? { speed: a.speed } : {}),
+      };
+    }
     if (props.asModal === true) block.asModal = true;
     if (typeof props.opensModal === 'string') block.opensModal = props.opensModal;
     if (props.locked === true) block.locked = true;
@@ -128,8 +137,9 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
   return sanitizeParents(blocks);
 }
 
-/** Whether a stored value is a well-formed animation (both parts valid). */
-function isAnimation(value: unknown): value is Block['animation'] {
+/** Whether a stored value is a well-formed animation (effect and trigger both
+ *  valid). `speed` is optional and validated separately when read. */
+function isAnimation(value: unknown): value is Animation {
   if (typeof value !== 'object' || value === null) return false;
   const a = value as { effect?: unknown; trigger?: unknown };
   return isAnimEffect(a.effect) && isAnimTrigger(a.trigger);
