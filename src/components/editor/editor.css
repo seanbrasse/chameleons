@@ -366,6 +366,16 @@
   touch-action: none;
 }
 
+/* The empty canvas is itself the outermost container surface: it can wear a
+   page-wide fill, reusing the same curated gradients a container uses. The
+   `.ed-bg-*` class paints the `background` directly; this rule only marks the
+   intent and pins the fill to the whole board so it reads edge to edge behind
+   every block. */
+.ed-artboard.ed-page-bg {
+  background-attachment: local;
+  background-size: cover;
+}
+
 /* Dark page theme: redefine the content tokens on the artboard so the text,
    lines and surfaces inside it flip to a dark scheme, while the editor chrome
    around it stays light. The blocks get a dark surface for editing; in Preview

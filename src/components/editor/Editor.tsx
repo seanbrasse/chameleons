@@ -41,6 +41,7 @@ import {
   lockedRootOf,
   isGuide,
   isGutter,
+  isGradientKind,
   isPageTheme,
   makeBlock,
   maxCol,
@@ -71,6 +72,7 @@ import {
   type PresetKind,
   type Guide,
   type Gutter,
+  type GradientKind,
   type PageTheme,
   type Placement,
 } from './model';
@@ -97,6 +99,9 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const [gutter, setGutter] = useState<Gutter>(initial.gutter);
   const [guide, setGuide] = useState<Guide>(initial.guide);
   const [theme, setTheme] = useState<PageTheme>(initial.theme);
+  /** The page's own fill — the empty canvas treated as a container surface.
+   *  Undefined leaves the plain themed background. */
+  const [pageBg, setPageBg] = useState<GradientKind | undefined>(initial.pageBg);
   const [blocks, setBlocks] = useState<Block[]>(initial.blocks);
   /** The current selection — one, several (multi-select), or none. */
   const [selection, setSelection] = useState<string[]>(initial.blocks[0] ? [initial.blocks[0].id] : []);
@@ -240,12 +245,12 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   useEffect(() => {
     if (!storageKey) return;
     try {
-      const payload = { layout: toLayoutDocument(blocks), gutter, guide, theme };
+      const payload = { layout: toLayoutDocument(blocks), gutter, guide, theme, ...(pageBg ? { pageBg } : {}) };
       window.localStorage.setItem(storageKey, JSON.stringify(payload));
     } catch {
       // Storage full or blocked — the layout simply isn't remembered.
     }
-  }, [blocks, gutter, guide, theme, storageKey]);
+  }, [blocks, gutter, guide, theme, pageBg, storageKey]);
 
   // Esc closes an open block modal.
   useEffect(() => {
@@ -1437,6 +1442,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     setGutter('cozy');
     setGuide('lines');
     setTheme('light');
+    setPageBg(undefined);
   };
 
   const sel = selected ? clampPlacement(selected.placement) : null;
@@ -1785,6 +1791,30 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
               ))}
             </div>
           </div>
+          <div className="ed-toolbar-field">
+            <span className="ed-toolbar-label">Background</span>
+            <div className="ed-grad-row" role="group" aria-label="Page background">
+              <button
+                type="button"
+                className={`ed-grad-btn ed-grad-none${pageBg === undefined ? ' is-on' : ''}`}
+                title="No page background"
+                aria-label="No page background"
+                aria-pressed={pageBg === undefined}
+                onClick={() => setPageBg(undefined)}
+              />
+              {GRADIENTS.map((g) => (
+                <button
+                  key={g.value}
+                  type="button"
+                  className={`ed-grad-btn ed-bg-${g.value}${pageBg === g.value ? ' is-on' : ''}`}
+                  title={g.label}
+                  aria-label={`${g.label} page background`}
+                  aria-pressed={pageBg === g.value}
+                  onClick={() => setPageBg(g.value)}
+                />
+              ))}
+            </div>
+          </div>
           <div className="ed-toolbar-field ed-toolbar-zoom">
             <span className="ed-toolbar-label">Zoom</span>
             <div className="ed-grid-switch" role="group" aria-label="Zoom">
@@ -1896,8 +1926,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
             <div
               ref={artboardRef}
               className={`ed-artboard${isEditMode ? '' : ' is-preview'}${theme === 'dark' ? ' is-dark' : ''}${
-                arranging ? ` is-arranging ed-guide-${guide}` : ''
-              }`}
+                pageBg ? ` ed-page-bg ed-bg-${pageBg}` : ''
+              }${arranging ? ` is-arranging ed-guide-${guide}` : ''}`}
               style={{
                 width: ARTBOARD.width,
                 height: ARTBOARD.height,
@@ -2993,7 +3023,7 @@ function resolveSource(issue: Issue, source: ContentSource): string {
   }
 }
 
-type EditorInit = { blocks: Block[]; gutter: Gutter; guide: Guide; theme: PageTheme };
+type EditorInit = { blocks: Block[]; gutter: Gutter; guide: Guide; theme: PageTheme; pageBg?: GradientKind };
 
 /**
  * The blocks and grid style to open with: a remembered session if one is stored
@@ -3019,6 +3049,7 @@ function loadInitial(storageKey: string | undefined): EditorInit {
           gutter?: unknown;
           guide?: unknown;
           theme?: unknown;
+          pageBg?: unknown;
         };
         const layout = Array.isArray(parsed.nodes) ? (parsed as LayoutDocument) : (parsed.layout ?? null);
         const blocks = fromLayoutDocument(layout);
@@ -3027,6 +3058,7 @@ function loadInitial(storageKey: string | undefined): EditorInit {
           gutter: isGutter(parsed.gutter) ? parsed.gutter : fallback.gutter,
           guide: isGuide(parsed.guide) ? parsed.guide : fallback.guide,
           theme: isPageTheme(parsed.theme) ? parsed.theme : fallback.theme,
+          ...(isGradientKind(parsed.pageBg) ? { pageBg: parsed.pageBg } : {}),
         };
       }
     } catch {
