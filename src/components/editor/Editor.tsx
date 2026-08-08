@@ -128,6 +128,12 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
     height: number;
     snap: Placement;
     guides: AlignGuide[];
+    /** The visual delta (artboard px) the primary has travelled from its slot.
+     *  Every block in `group` rides along by the same offset. */
+    dx: number;
+    dy: number;
+    /** The other selected roots dragging rigidly alongside the primary. */
+    group: string[];
   } | null>(null);
   /** How much the artboard is scaled to fit the window (auto, from its width). */
   const [fitScale, setFitScale] = useState(0.75);
@@ -923,7 +929,18 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       d.group.length === 0
         ? alignToNeighbours(target, gridSnap, left, top, kin)
         : { snap: gridSnap, guides: [] as AlignGuide[] };
-    setDragFree({ id: target.id, left, top, height, snap: aligned.snap, guides: aligned.guides });
+    const tbox = boxOf(clampPlacement(target.placement));
+    setDragFree({
+      id: target.id,
+      left,
+      top,
+      height,
+      snap: aligned.snap,
+      guides: aligned.guides,
+      dx: left - tbox.left,
+      dy: top - tbox.top,
+      group: d.group,
+    });
     // Highlight the container this lone block would drop into (none for a group).
     setDropTargetId(d.group.length === 0 ? findDropContainer(target, aligned.snap, kin) : null);
   };
@@ -1496,8 +1513,14 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
    */
   const renderBlock = (block: Block, origin: { left: number; top: number }): React.ReactNode => {
     const box = boxOf(clampPlacement(block.placement));
-    const dragging = draggingId === block.id;
-    const free = dragging && dragFree?.id === block.id ? dragFree : null;
+    // A block lifts while it is the primary being dragged, or a sibling root
+    // dragging along in a multi-selection. Every lifted root rides by the same
+    // delta so the whole selection moves together, not just the grabbed one.
+    const dragRoot =
+      draggingId !== null && dragFree !== null && (dragFree.id === block.id || dragFree.group.includes(block.id));
+    const dragging = dragRoot;
+    const dragDx = dragRoot ? dragFree!.dx : 0;
+    const dragDy = dragRoot ? dragFree!.dy : 0;
     const cont = isContainer(block.kind);
     const kids = cont ? (childMap.get(block.id) ?? []).filter((c) => isEditMode || !c.asModal) : [];
     const isLocked = cont && block.locked === true;
@@ -1564,8 +1587,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         data-anim-trigger={anim?.trigger === 'scroll' ? 'scroll' : undefined}
         className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${cont ? ` ed-radius-${block.radius ?? 'md'}` : ''}${cont && block.gradient ? ` ed-bg-${block.gradient}` : ''}${cont && block.glow ? ` ed-glow-${block.glow}` : ''}${cont && block.elevation ? ` ed-elev-${block.elevation}` : ''}${cont && block.glass ? ' ed-glass' : ''}${cont && block.grain ? ' ed-grain' : ''}${cont && block.auroraBorder ? ' ed-aurora-border' : ''}${cont && block.stagger ? ' pv-stagger' : ''}${block.parentId !== undefined ? ' is-nested' : ''}${isLocked ? ' is-locked' : ''}${inLocked ? ' in-locked' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId ? ' is-trigger' : ''}${isSelected(block.id) ? ' is-selected' : ''}${dropTargetId === block.id ? ' is-drop-target' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
         style={{
-          left: (free ? free.left : box.left) - origin.left,
-          top: (free ? free.top : box.top) - origin.top,
+          left: box.left + dragDx - origin.left,
+          top: box.top + dragDy - origin.top,
           width: box.width,
           height: box.height,
           // A gradient or glass surface (a CSS class) wins over a solid colour, so
