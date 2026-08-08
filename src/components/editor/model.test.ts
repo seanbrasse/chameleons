@@ -422,6 +422,34 @@ describe('containers and the tree', () => {
     expect(spans[0]!.end).toBeLessThan(spans[1]!.start);
   });
 
+  it('the gallery preset lays a 2x3 grid of six image tiles under a heading', () => {
+    const group = makePreset('gallery', 5);
+    const [box, heading] = group;
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    expect(heading?.align).toBe('center');
+    const tiles = group.filter((b) => b.kind === 'image');
+    expect(tiles).toHaveLength(6);
+    // every tile nests in the box and rises on load
+    for (const t of tiles) {
+      expect(t.parentId).toBe(box?.id);
+      expect(t.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the tiles occupy exactly two distinct rows and three distinct columns
+    const rows = new Set(tiles.map((t) => t.placement.row));
+    const cols = new Set(tiles.map((t) => t.placement.col));
+    expect(rows.size).toBe(2);
+    expect(cols.size).toBe(3);
+    // within a row, the three tiles never overlap in columns
+    const topRow = Math.min(...tiles.map((t) => t.placement.row));
+    const spans = tiles
+      .filter((t) => t.placement.row === topRow)
+      .map((t) => ({ start: t.placement.col, end: t.placement.col + t.placement.colSpan - 1 }))
+      .sort((a, b) => a.start - b.start);
+    expect(spans[0]!.end).toBeLessThan(spans[1]!.start);
+    expect(spans[1]!.end).toBeLessThan(spans[2]!.start);
+  });
+
   it('the logoCloud preset lays five ringed wordmark tiles under a heading', () => {
     const group = makePreset('logoCloud', 5);
     const [box, heading] = group;
