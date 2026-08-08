@@ -176,6 +176,9 @@ export type Block = {
   gradient?: GradientKind;
   /** A soft outer glow behind a container / card. Absent means no glow. */
   glow?: GlowLevel;
+  /** A crisp inset outline on a container / card — the "outlined card" look.
+   *  Absent means no ring. */
+  ring?: RingLevel;
   /** The image source URL for an `image` block. Absent shows the placeholder. */
   imageUrl?: string;
   /** The container this block nests inside, if any. A block with a `parentId`
@@ -444,6 +447,15 @@ export type GlowLevel = 'soft' | 'strong';
 export const GLOW_LEVELS: readonly GlowLevel[] = ['soft', 'strong'];
 export function isGlowLevel(value: unknown): value is GlowLevel {
   return typeof value === 'string' && (GLOW_LEVELS as readonly string[]).includes(value);
+}
+
+/** A crisp inset outline on a container / card — the "outlined card" look. The
+ *  concrete rings live in the editor CSS as `.ed-ring-<level>` classes on the
+ *  body, so they follow the corner radius; absence means no ring. */
+export type RingLevel = 'hairline' | 'bold';
+export const RING_LEVELS: readonly RingLevel[] = ['hairline', 'bold'];
+export function isRingLevel(value: unknown): value is RingLevel {
+  return typeof value === 'string' && (RING_LEVELS as readonly string[]).includes(value);
 }
 
 /** Whether alignment applies to a block — the same set as free text, plus a
