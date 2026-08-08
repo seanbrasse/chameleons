@@ -450,6 +450,25 @@ describe('containers and the tree', () => {
     expect(spans[1]!.end).toBeLessThan(spans[2]!.start);
   });
 
+  it('the banner preset pairs a message and an inline button in a ringed bar', () => {
+    const [box, message, button] = makePreset('banner', 5);
+    expect(box?.kind).toBe('container');
+    expect(box?.ring).toBe('hairline');
+    expect(box?.stagger).toBe(true);
+    expect(message?.kind).toBe('text');
+    expect(button?.kind).toBe('button');
+    // both nest in the bar and rise on load
+    for (const child of [message, button]) {
+      expect(child?.parentId).toBe(box?.id);
+      expect(child?.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // message and button share a row and never overlap in columns
+    expect(message?.placement.row).toBe(button?.placement.row);
+    expect(message!.placement.col + message!.placement.colSpan - 1).toBeLessThan(button!.placement.col);
+    // the button stays within the grid
+    expect(button!.placement.col + button!.placement.colSpan - 1).toBeLessThanOrEqual(GRID_COLS);
+  });
+
   it('the logoCloud preset lays five ringed wordmark tiles under a heading', () => {
     const group = makePreset('logoCloud', 5);
     const [box, heading] = group;
