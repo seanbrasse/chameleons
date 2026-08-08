@@ -709,6 +709,7 @@ export type PresetKind =
   | 'ctaBand'
   | 'testimonial'
   | 'quoteBand'
+  | 'socialRow'
   | 'statsBand'
   | 'steps'
   | 'logoCloud'
@@ -734,6 +735,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'ctaBand', label: 'CTA band', hint: 'A full-width gradient call-to-action: centered heading, line and button' },
   { preset: 'testimonial', label: 'Testimonial', hint: 'A ringed card holding a large quote and an attribution line' },
   { preset: 'quoteBand', label: 'Quote band', hint: 'A full-width gradient band with a large centred pull-quote and attribution' },
+  { preset: 'socialRow', label: 'Social links', hint: 'A heading over a centred cluster of small profile buttons' },
   { preset: 'statsBand', label: 'Stats band', hint: 'A full-width row of big metric numbers with labels that stagger in' },
   { preset: 'steps', label: 'Process steps', hint: 'A heading over a row of numbered steps, each a badge number, title and line' },
   { preset: 'logoCloud', label: 'Logo cloud', hint: 'A "trusted by" heading over a row of ringed wordmark tiles that stagger in' },
@@ -1165,6 +1167,39 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
     attribution.textGradient = 'mint';
     attribution.animation = { effect: 'rise', trigger: 'load' };
     return [box, quote, attribution];
+  }
+
+  if (preset === 'socialRow') {
+    // A "find me online" row: a centred heading over a compact, centred cluster
+    // of profile buttons. Distinct from the footer's link columns — this is a
+    // tight, centred set of link buttons. The buttons stagger in on load, and
+    // the cluster is centred by column math so it never overflows the grid.
+    const gap = 2;
+    const contentSpan = GRID_COLS - 4;
+    const labels = ['Twitter', 'GitHub', 'LinkedIn', 'Email'];
+    const btnSpan = Math.max(4, Math.min(8, Math.floor((contentSpan - gap * (labels.length - 1)) / labels.length)));
+    const clusterWidth = labels.length * btnSpan + (labels.length - 1) * gap;
+    const startCol = Math.max(3, Math.round((GRID_COLS - clusterWidth) / 2) + 1);
+    const box = makeBlock('container', 'Social', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 7 });
+    box.stagger = true;
+    box.locked = true;
+    const heading = presetChild('heading', 'Title', 'Find me online', box.id, { col: 3, colSpan: contentSpan, row: row + 2 });
+    heading.size = 'sm';
+    heading.align = 'center';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const blocks: Block[] = [box, heading];
+    labels.forEach((label, i) => {
+      const button = presetChild('button', label, label, box.id, {
+        col: startCol + i * (btnSpan + gap),
+        colSpan: btnSpan,
+        row: row + 4,
+        rowSpan: 2,
+      });
+      button.animation = { effect: 'rise', trigger: 'load' };
+      blocks.push(button);
+    });
+    return blocks;
   }
 
   if (preset === 'statsBand') {
