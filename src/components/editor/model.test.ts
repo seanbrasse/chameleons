@@ -11,6 +11,8 @@ import {
   isAnimSpeed,
   isBlockKind,
   isContainer,
+  isContentBlock,
+  isFreeText,
   isFontChoice,
   isTextSize,
   isGlowLevel,
@@ -180,8 +182,19 @@ describe('validation guards', () => {
     expect(canAlign(at('heading'))).toBe(true);
     expect(canAlign(at('text'))).toBe(true);
     expect(canAlign(at('button'))).toBe(true);
+    expect(canAlign(at('badge'))).toBe(true);
     expect(canAlign(at('container'))).toBe(false);
     expect(canAlign(at('image'))).toBe(false);
+  });
+
+  it('a fresh badge is an editable, styleable pill with default text', () => {
+    const badge = makeBlock('badge', 'Badge');
+    expect(badge.kind).toBe('badge');
+    expect(badge.text).toBe('New');
+    expect(canAlign(badge)).toBe(true);
+    expect(isFreeText(badge)).toBe(true);
+    // it is not an Issue-bound content block
+    expect(isContentBlock('badge')).toBe(false);
   });
 });
 
