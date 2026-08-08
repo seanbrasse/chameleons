@@ -700,6 +700,7 @@ export type PresetKind =
   | 'splitHero'
   | 'gradientHero'
   | 'featureGrid'
+  | 'teamGrid'
   | 'ctaBand'
   | 'testimonial'
   | 'statsBand'
@@ -719,6 +720,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'splitHero', label: 'Split hero', hint: 'A two-column intro: heading, tagline and button beside an image' },
   { preset: 'gradientHero', label: 'Gradient hero', hint: 'A gradient panel with big gradient type that staggers in on load' },
   { preset: 'featureGrid', label: 'Feature grid', hint: 'A heading over a row of three cards that stagger in on load' },
+  { preset: 'teamGrid', label: 'Team grid', hint: 'A heading over a row of member cards, each an avatar, name and role' },
   { preset: 'ctaBand', label: 'CTA band', hint: 'A full-width gradient call-to-action: centered heading, line and button' },
   { preset: 'testimonial', label: 'Testimonial', hint: 'A ringed card holding a large quote and an attribution line' },
   { preset: 'statsBand', label: 'Stats band', hint: 'A full-width row of big metric numbers with labels that stagger in' },
@@ -863,6 +865,54 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       const title = presetChild('heading', 'Title', c.title, card.id, { col: col + 1, colSpan: cardSpan - 2, row: cardRow + 1 });
       const line = presetChild('text', 'Text', c.body, card.id, { col: col + 1, colSpan: cardSpan - 2, row: cardRow + 4, rowSpan: 3 });
       blocks.push(card, title, line);
+    });
+    return blocks;
+  }
+
+  if (preset === 'teamGrid') {
+    // A "meet the team" section: a heading over a row of member cards, each a
+    // centred avatar over a name and role. Cards are spaced by the feature-grid
+    // math and stagger in on load; the avatar is an empty image tile the user
+    // swaps for a real photo.
+    const gap = 2;
+    const startCol = 3;
+    const contentSpan = GRID_COLS - 4;
+    const cardSpan = Math.max(6, Math.floor((contentSpan - gap * 2) / 3));
+    const box = makeBlock('container', 'Team', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 17 });
+    box.stagger = true;
+    box.locked = true;
+    const heading = presetChild('heading', 'Title', 'Meet the team', box.id, { col: startCol, colSpan: contentSpan, row: row + 2 });
+    heading.size = 'lg';
+    heading.align = 'center';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const members = [
+      { name: 'Alex Rivera', role: 'Design Lead' },
+      { name: 'Sam Chen', role: 'Engineer' },
+      { name: 'Jordan Lee', role: 'Product' },
+    ];
+    const blocks: Block[] = [box, heading];
+    const cardRow = row + 6;
+    const avatarSpan = Math.max(4, Math.floor(cardSpan / 2));
+    members.forEach((m, i) => {
+      const col = startCol + i * (cardSpan + gap);
+      const card = makeBlock('card', m.name, cardRow);
+      card.parentId = box.id;
+      card.placement = clampPlacement({ col, colSpan: cardSpan, row: cardRow, rowSpan: 10 });
+      card.animation = { effect: 'rise', trigger: 'load' };
+      const avatar = presetChild('image', 'Avatar', '', card.id, {
+        col: col + Math.floor((cardSpan - avatarSpan) / 2),
+        colSpan: avatarSpan,
+        row: cardRow + 1,
+        rowSpan: 4,
+      });
+      const name = presetChild('heading', 'Name', m.name, card.id, { col: col + 1, colSpan: cardSpan - 2, row: cardRow + 6 });
+      name.size = 'sm';
+      name.align = 'center';
+      const role = presetChild('text', 'Role', m.role, card.id, { col: col + 1, colSpan: cardSpan - 2, row: cardRow + 8, rowSpan: 2 });
+      role.size = 'sm';
+      role.align = 'center';
+      blocks.push(card, avatar, name, role);
     });
     return blocks;
   }
