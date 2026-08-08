@@ -337,8 +337,29 @@ describe('containers and the tree', () => {
     expect(spans[1]!.end).toBeLessThan(spans[2]!.start);
   });
 
+  it('the ctaBand preset centres a heading, line and button on a gradient band', () => {
+    const [box, heading, line, button] = makePreset('ctaBand', 5);
+    expect(box?.kind).toBe('container');
+    expect(box?.gradient).toBe('night');
+    expect(box?.stagger).toBe(true);
+    // heading and line are centre-aligned and read via a light text gradient
+    // (no colour literal) so they stand out on the dark band
+    expect(heading?.align).toBe('center');
+    expect(line?.align).toBe('center');
+    expect(heading?.textGradient).toBe('mint');
+    expect(line?.textGradient).toBe('mint');
+    for (const child of [heading, line, button]) {
+      expect(child?.parentId).toBe(box?.id);
+      expect(child?.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the button is centred: equal margin either side of its span
+    const leftGap = button!.placement.col - 1;
+    const rightGap = GRID_COLS - (button!.placement.col + button!.placement.colSpan - 1);
+    expect(Math.abs(leftGap - rightGap)).toBeLessThanOrEqual(1);
+  });
+
   it('every preset lands in bounds and selects its first block', () => {
-    const kinds = ['animatedCard', 'hero', 'gradientHero', 'featureGrid', 'contactForm', 'contactModal'] as const;
+    const kinds = ['animatedCard', 'hero', 'gradientHero', 'featureGrid', 'ctaBand', 'contactForm', 'contactModal'] as const;
     for (const preset of kinds) {
       const group = makePreset(preset, 40);
       expect(group.length).toBeGreaterThan(0);
