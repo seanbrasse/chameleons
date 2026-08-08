@@ -702,6 +702,7 @@ export type PresetKind =
   | 'about'
   | 'gradientHero'
   | 'featureGrid'
+  | 'featureList'
   | 'teamGrid'
   | 'comparison'
   | 'gallery'
@@ -730,6 +731,7 @@ export const PRESETS: { preset: PresetKind; label: string; hint: string }[] = [
   { preset: 'about', label: 'About / bio', hint: 'A portrait beside an About heading, a bio paragraph and a detail line' },
   { preset: 'gradientHero', label: 'Gradient hero', hint: 'A gradient panel with big gradient type that staggers in on load' },
   { preset: 'featureGrid', label: 'Feature grid', hint: 'A heading over a row of three cards that stagger in on load' },
+  { preset: 'featureList', label: 'Feature + list', hint: 'A heading and paragraph beside a benefits checklist of badge ticks' },
   { preset: 'teamGrid', label: 'Team grid', hint: 'A heading over a row of member cards, each an avatar, name and role' },
   { preset: 'comparison', label: 'Before / after', hint: 'A heading over two panels, each a label and an image, side by side' },
   { preset: 'gallery', label: 'Gallery', hint: 'A heading over a 2×3 grid of image tiles that stagger in' },
@@ -920,6 +922,49 @@ export function makePreset(preset: PresetKind, row: number): Block[] {
       const title = presetChild('heading', 'Title', c.title, card.id, { col: col + 1, colSpan: cardSpan - 2, row: cardRow + 1 });
       const line = presetChild('text', 'Text', c.body, card.id, { col: col + 1, colSpan: cardSpan - 2, row: cardRow + 4, rowSpan: 3 });
       blocks.push(card, title, line);
+    });
+    return blocks;
+  }
+
+  if (preset === 'featureList') {
+    // A feature explainer: a heading and paragraph on the left beside a benefits
+    // checklist (badge ticks + lines) on the right. It composes the checklist
+    // pattern into a two-column layout — copy that sets up the value, a list
+    // that enumerates it. Columns kept apart by a gutter; everything rises on load.
+    const box = makeBlock('container', 'Feature', row);
+    box.placement = clampPlacement({ col: 1, colSpan: GRID_COLS, row, rowSpan: 16 });
+    box.stagger = true;
+    box.locked = true;
+    const gutter = 3;
+    const leftCol = 3;
+    const leftSpan = Math.max(10, Math.round(GRID_COLS * 0.44));
+    const rightCol = leftCol + leftSpan + gutter;
+    const rightSpan = Math.max(10, GRID_COLS - rightCol - 1);
+    const heading = presetChild('heading', 'Title', 'Everything you need', box.id, { col: leftCol, colSpan: leftSpan, row: row + 2 });
+    heading.size = 'lg';
+    heading.animation = { effect: 'rise', trigger: 'load' };
+    const body = presetChild(
+      'text',
+      'Text',
+      'A short paragraph that frames the value, with the specifics called out point by point on the right.',
+      box.id,
+      { col: leftCol, colSpan: leftSpan, row: row + 5, rowSpan: 4 },
+    );
+    body.animation = { effect: 'rise', trigger: 'load' };
+    const markerSpan = 3;
+    const rowGap = 1;
+    const textCol = rightCol + markerSpan + rowGap;
+    const textSpan = Math.max(6, rightSpan - markerSpan - rowGap);
+    const items = ['Fast to set up', 'Fully responsive', 'Accessible by default', 'Yours to customise'];
+    const blocks: Block[] = [box, heading, body];
+    items.forEach((item, i) => {
+      const r = row + 2 + i * 3;
+      const marker = presetChild('badge', 'Tick', '✓', box.id, { col: rightCol, colSpan: markerSpan, row: r, rowSpan: 2 });
+      marker.align = 'center';
+      marker.animation = { effect: 'rise', trigger: 'load' };
+      const text = presetChild('text', 'Item', item, box.id, { col: textCol, colSpan: textSpan, row: r, rowSpan: 2 });
+      text.animation = { effect: 'rise', trigger: 'load' };
+      blocks.push(marker, text);
     });
     return blocks;
   }

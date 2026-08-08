@@ -393,6 +393,36 @@ describe('containers and the tree', () => {
     expect(spans[1]!.end).toBeLessThan(spans[2]!.start);
   });
 
+  it('the featureList preset sets copy left of a benefits checklist', () => {
+    const group = makePreset('featureList', 5);
+    const [box, heading, body] = group;
+    expect(box?.kind).toBe('container');
+    expect(box?.stagger).toBe(true);
+    expect(heading?.size).toBe('lg');
+    expect(body?.kind).toBe('text');
+    const ticks = group.filter((b) => b.kind === 'badge');
+    const items = group.filter((b) => b.kind === 'text' && b !== body);
+    expect(ticks).toHaveLength(4);
+    expect(ticks).toHaveLength(items.length);
+    // every child nests in the box and rises on load
+    for (const b of group.slice(1)) {
+      expect(b.parentId).toBe(box?.id);
+      expect(b.animation).toEqual({ effect: 'rise', trigger: 'load' });
+    }
+    // the copy column sits entirely left of the checklist ticks
+    const copyRight = Math.max(
+      heading!.placement.col + heading!.placement.colSpan - 1,
+      body!.placement.col + body!.placement.colSpan - 1,
+    );
+    for (const tick of ticks) {
+      expect(copyRight).toBeLessThan(tick.placement.col);
+      // each tick sits left of its paired text on the same row
+      const mate = items.find((t) => t.placement.row === tick.placement.row);
+      expect(mate).toBeDefined();
+      expect(tick.placement.col + tick.placement.colSpan - 1).toBeLessThan(mate!.placement.col);
+    }
+  });
+
   it('the teamGrid preset lays member cards, each an avatar, name and role', () => {
     const group = makePreset('teamGrid', 5);
     const [box, heading] = group;
