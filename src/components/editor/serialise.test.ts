@@ -199,6 +199,15 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(junk && 'leading' in junk).toBe(false);
   });
 
+  it('round-trips a font weight, and drops a bad one', () => {
+    const weighted: Block[] = [
+      { id: 'h', kind: 'heading', label: 'Heading', weight: 'light', placement: { col: 1, colSpan: 8, row: 1 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(weighted))).toEqual(weighted);
+    const [junk] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'text', weight: 'heavy' } }]));
+    expect(junk && 'weight' in junk).toBe(false);
+  });
+
   it('round-trips opacity, and drops one out of the 0–1 range', () => {
     const faint: Block[] = [
       { id: 'h', kind: 'heading', label: 'Heading', opacity: 0.4, placement: { col: 1, colSpan: 8, row: 1 } },

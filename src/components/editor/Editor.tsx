@@ -55,6 +55,7 @@ import {
   TEXT_SIZES,
   TRACKING_LEVELS,
   TEXT_CASES,
+  TEXT_WEIGHTS,
   LEADING_LEVELS,
   withoutParent,
   type Animation,
@@ -1570,7 +1571,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       >
         {isEditMode ? <span className="ed-block-tag">{block.label}</span> : null}
         <div
-          className={`ed-block-body${canAlign(block) && block.font ? ` ed-font-${block.font}` : ''}${canAlign(block) && block.size ? ` ed-size-${block.size}` : ''}${canAlign(block) && block.tracking && block.tracking !== 'normal' ? ` ed-track-${block.tracking}` : ''}${canAlign(block) && block.textCase && block.textCase !== 'none' ? ` ed-case-${block.textCase}` : ''}${canAlign(block) && block.leading && block.leading !== 'normal' ? ` ed-lead-${block.leading}` : ''}${canAlign(block) && block.textGradient ? ` ed-bg-${block.textGradient} ed-text-clip` : ''}${cont && block.ring ? ` ed-ring-${block.ring}` : ''}`}
+          className={`ed-block-body${canAlign(block) && block.font ? ` ed-font-${block.font}` : ''}${canAlign(block) && block.size ? ` ed-size-${block.size}` : ''}${canAlign(block) && block.tracking && block.tracking !== 'normal' ? ` ed-track-${block.tracking}` : ''}${canAlign(block) && block.textCase && block.textCase !== 'none' ? ` ed-case-${block.textCase}` : ''}${canAlign(block) && block.leading && block.leading !== 'normal' ? ` ed-lead-${block.leading}` : ''}${canAlign(block) && block.weight ? ` ed-weight-${block.weight}` : ''}${canAlign(block) && block.textGradient ? ` ed-bg-${block.textGradient} ed-text-clip` : ''}${cont && block.ring ? ` ed-ring-${block.ring}` : ''}`}
           style={{
             ...bodyScale,
             textAlign: canAlign(block) ? block.align : undefined,
@@ -2115,6 +2116,34 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                         onClick={() => update(selected.id, { leading: l === 'normal' ? undefined : l })}
                       >
                         {l.charAt(0).toUpperCase() + l.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="ed-field">
+                  <span className="ed-field-label">Weight</span>
+                  <div className="ed-arrange">
+                    <button
+                      type="button"
+                      className={`ed-arrange-btn${selected.weight === undefined ? ' is-on' : ''}`}
+                      title="Natural weight"
+                      aria-label="Automatic weight"
+                      aria-pressed={selected.weight === undefined}
+                      onClick={() => update(selected.id, { weight: undefined })}
+                    >
+                      Auto
+                    </button>
+                    {TEXT_WEIGHTS.map((w) => (
+                      <button
+                        key={w}
+                        type="button"
+                        className={`ed-arrange-btn${selected.weight === w ? ' is-on' : ''}`}
+                        title={`${w} weight`}
+                        aria-label={`${w} weight`}
+                        aria-pressed={selected.weight === w}
+                        onClick={() => update(selected.id, { weight: w })}
+                      >
+                        {w.charAt(0).toUpperCase() + w.slice(1)}
                       </button>
                     ))}
                   </div>
