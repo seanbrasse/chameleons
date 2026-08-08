@@ -151,6 +151,7 @@ describe('validation guards', () => {
     expect(isGradientKind('ember')).toBe(true);
     expect(isGradientKind('ocean')).toBe(true);
     expect(isGradientKind('azure')).toBe(true);
+    expect(isGradientKind('dusk')).toBe(true);
     expect(isGradientKind('night')).toBe(true);
     expect(isGradientKind('rainbow')).toBe(false);
     expect(isGradientKind(undefined)).toBe(false);

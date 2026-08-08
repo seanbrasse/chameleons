@@ -748,6 +748,9 @@
 .ed-bg-violet {
   background: linear-gradient(135deg, #7028e4 0%, #e5b2ca 100%);
 }
+.ed-bg-dusk {
+  background: linear-gradient(135deg, #355c7d 0%, #6c5b7b 50%, #c06c84 100%);
+}
 .ed-bg-night {
   background: linear-gradient(160deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
 }
@@ -771,6 +774,9 @@
 }
 .ed-block.is-container.ed-bg-violet {
   background: linear-gradient(135deg, #7028e4 0%, #e5b2ca 100%);
+}
+.ed-block.is-container.ed-bg-dusk {
+  background: linear-gradient(135deg, #355c7d 0%, #6c5b7b 50%, #c06c84 100%);
 }
 .ed-block.is-container.ed-bg-night {
   background: linear-gradient(160deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
