@@ -58,6 +58,7 @@ export function toLayoutDocument(blocks: Block[]): LayoutDocument {
           ...(block.asModal ? { asModal: true } : {}),
           ...(block.opensModal !== undefined ? { opensModal: block.opensModal } : {}),
           ...(block.locked ? { locked: true } : {}),
+          ...(block.stagger ? { stagger: true } : {}),
           ...(block.scale !== undefined && block.scale !== 1 ? { scale: block.scale } : {}),
           ...(block.align !== undefined ? { align: block.align } : {}),
           ...(block.font !== undefined ? { font: block.font } : {}),
@@ -118,6 +119,7 @@ export function fromLayoutDocument(document: LayoutDocument | null): Block[] {
     if (props.asModal === true) block.asModal = true;
     if (typeof props.opensModal === 'string') block.opensModal = props.opensModal;
     if (props.locked === true) block.locked = true;
+    if (props.stagger === true) block.stagger = true;
     if (typeof props.scale === 'number' && Number.isFinite(props.scale) && props.scale > 0) {
       block.scale = props.scale;
     }

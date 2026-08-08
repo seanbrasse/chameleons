@@ -187,6 +187,10 @@ export type Block = {
    *  deletes together. Unlock it to edit the pieces inside. Only meaningful on a
    *  container. */
   locked?: boolean;
+  /** When true, a container's animated children enter in sequence rather than
+   *  all at once — each one delayed a step further than the last. Only
+   *  meaningful on a container. */
+  stagger?: boolean;
   placement: Placement;
 };
 

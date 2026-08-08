@@ -1541,7 +1541,7 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
         data-block-id={block.id}
         aria-label={`${block.label} block`}
         data-anim-trigger={anim?.trigger === 'scroll' ? 'scroll' : undefined}
-        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${cont ? ` ed-radius-${block.radius ?? 'md'}` : ''}${cont && block.gradient ? ` ed-bg-${block.gradient}` : ''}${cont && block.glow ? ` ed-glow-${block.glow}` : ''}${block.parentId !== undefined ? ' is-nested' : ''}${isLocked ? ' is-locked' : ''}${inLocked ? ' in-locked' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId ? ' is-trigger' : ''}${isSelected(block.id) ? ' is-selected' : ''}${dropTargetId === block.id ? ' is-drop-target' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
+        className={`ed-block${cont ? ' is-container' : ''}${block.kind === 'card' ? ' is-card' : ''}${cont ? ` ed-radius-${block.radius ?? 'md'}` : ''}${cont && block.gradient ? ` ed-bg-${block.gradient}` : ''}${cont && block.glow ? ` ed-glow-${block.glow}` : ''}${cont && block.stagger ? ' pv-stagger' : ''}${block.parentId !== undefined ? ' is-nested' : ''}${isLocked ? ' is-locked' : ''}${inLocked ? ' in-locked' : ''}${animClass}${isEditMode && block.asModal ? ' is-modal' : ''}${opensId ? ' is-trigger' : ''}${isSelected(block.id) ? ' is-selected' : ''}${dropTargetId === block.id ? ' is-drop-target' : ''}${block.hidden ? ' is-hidden' : ''}${dragging ? ' is-dragging' : ''}${box.height && !cont ? ' has-height' : ''}`}
         style={{
           left: (free ? free.left : box.left) - origin.left,
           top: (free ? free.top : box.top) - origin.top,
@@ -2192,6 +2192,14 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
                     ))}
                   </div>
                 </div>
+                <label className="ed-check">
+                  <input
+                    type="checkbox"
+                    checked={!!selected.stagger}
+                    onChange={(e) => update(selected.id, { stagger: e.target.checked ? true : undefined })}
+                  />
+                  <span>Stagger children (animate in sequence)</span>
+                </label>
                 <label className="ed-check">
                   <input
                     type="checkbox"

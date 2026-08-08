@@ -119,6 +119,15 @@ describe('fromLayoutDocument is forgiving', () => {
     expect(fromLayoutDocument(toLayoutDocument(locked))).toEqual(locked);
   });
 
+  it('round-trips a stagger flag, and ignores a non-true value', () => {
+    const staggered: Block[] = [
+      { id: 'box', kind: 'container', label: 'Box', stagger: true, placement: { col: 1, colSpan: 8, row: 1, rowSpan: 8 } },
+    ];
+    expect(fromLayoutDocument(toLayoutDocument(staggered))).toEqual(staggered);
+    const [block] = fromLayoutDocument(doc([{ id: 'a', props: { kind: 'container', stagger: 'yes' } }]));
+    expect(block && 'stagger' in block).toBe(false);
+  });
+
   it('round-trips a text alignment, and drops a bad one', () => {
     const aligned: Block[] = [
       { id: 't', kind: 'text', label: 'Text', align: 'center', placement: { col: 1, colSpan: 8, row: 1 } },
