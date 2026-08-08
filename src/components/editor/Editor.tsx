@@ -29,6 +29,7 @@ import {
   PRESET_GROUP_ORDER,
   presetGroup,
   presetMatches,
+  queryMatches,
   makePreset,
   canAlign,
   childrenOf,
@@ -108,8 +109,8 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
   const isSelected = (id: string) => selection.includes(id);
   /** The primitive block being text-edited in place, if any. */
   const [editingId, setEditingId] = useState<string | null>(null);
-  /** The palette's preset search query — filters the Components list. */
-  const [presetQuery, setPresetQuery] = useState('');
+  /** The palette search query — filters both the Elements and Components lists. */
+  const [paletteQuery, setPaletteQuery] = useState('');
   /** True while a block is being dragged — the grid guides show only then. */
   const [arranging, setArranging] = useState(false);
   /** The id of the block currently being dragged, for its lifted styling. */
@@ -1632,65 +1633,73 @@ export function Editor({ issue, storageKey }: { issue: Issue; storageKey?: strin
       <aside className="ed-panel ed-left">
         <div className="ed-panel-head">Elements</div>
         <div className="ed-palette">
-          {PALETTE.map((group) => (
-            <div className="ed-palette-group" key={group.group}>
-              <div className="ed-palette-label">{group.group}</div>
-              {group.items.map((item) => (
-                <button
-                  key={item.kind}
-                  type="button"
-                  className="ed-palette-item"
-                  onClick={() => add(item.kind, item.label)}
-                  title={item.hint}
-                >
-                  <span className="ed-palette-glyph" aria-hidden="true">
-                    {GLYPH[item.kind]}
-                  </span>
-                  <span className="ed-palette-name">{item.label}</span>
-                  <span className="ed-palette-add" aria-hidden="true">
-                    +
-                  </span>
-                </button>
-              ))}
-            </div>
-          ))}
           <input
             type="search"
             className="ed-palette-search"
-            placeholder="Search components…"
-            value={presetQuery}
-            onChange={(e) => setPresetQuery(e.target.value)}
-            aria-label="Search components"
+            placeholder="Search elements and components…"
+            value={paletteQuery}
+            onChange={(e) => setPaletteQuery(e.target.value)}
+            aria-label="Search elements and components"
           />
           {(() => {
-            const matched = PRESETS.filter((item) => presetMatches(item, presetQuery));
-            if (matched.length === 0) {
-              return <div className="ed-palette-empty">No components match “{presetQuery.trim()}”.</div>;
+            const elemGroups = PALETTE.map((g) => ({
+              group: g.group,
+              items: g.items.filter((it) => queryMatches([it.label, it.hint], paletteQuery)),
+            })).filter((g) => g.items.length > 0);
+            const matchedPresets = PRESETS.filter((item) => presetMatches(item, paletteQuery));
+            if (elemGroups.length === 0 && matchedPresets.length === 0) {
+              return <div className="ed-palette-empty">Nothing matches “{paletteQuery.trim()}”.</div>;
             }
-            return PRESET_GROUP_ORDER.filter((g) => matched.some((p) => presetGroup(p.preset) === g)).map((g) => (
-              <div className="ed-palette-group" key={g}>
-                <div className="ed-palette-label">{g}</div>
-                {matched
-                  .filter((item) => presetGroup(item.preset) === g)
-                  .map((item) => (
-                <button
-                  key={item.preset}
-                  type="button"
-                  className="ed-palette-item"
-                  onClick={() => addPreset(item.preset)}
-                  title={item.hint}
-                >
-                  <span className="ed-palette-glyph" aria-hidden="true">
-                    ✦
-                  </span>
-                      <span className="ed-palette-name">{item.label}</span>
-                      <span className="ed-palette-add" aria-hidden="true">
-                        +
-                      </span>
-                    </button>
-                  ))}
-              </div>
-            ));
+            return (
+              <>
+                {elemGroups.map((group) => (
+                  <div className="ed-palette-group" key={group.group}>
+                    <div className="ed-palette-label">{group.group}</div>
+                    {group.items.map((item) => (
+                      <button
+                        key={item.kind}
+                        type="button"
+                        className="ed-palette-item"
+                        onClick={() => add(item.kind, item.label)}
+                        title={item.hint}
+                      >
+                        <span className="ed-palette-glyph" aria-hidden="true">
+                          {GLYPH[item.kind]}
+                        </span>
+                        <span className="ed-palette-name">{item.label}</span>
+                        <span className="ed-palette-add" aria-hidden="true">
+                          +
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ))}
+                {PRESET_GROUP_ORDER.filter((g) => matchedPresets.some((p) => presetGroup(p.preset) === g)).map((g) => (
+                  <div className="ed-palette-group" key={g}>
+                    <div className="ed-palette-label">{g}</div>
+                    {matchedPresets
+                      .filter((item) => presetGroup(item.preset) === g)
+                      .map((item) => (
+                        <button
+                          key={item.preset}
+                          type="button"
+                          className="ed-palette-item"
+                          onClick={() => addPreset(item.preset)}
+                          title={item.hint}
+                        >
+                          <span className="ed-palette-glyph" aria-hidden="true">
+                            ✦
+                          </span>
+                          <span className="ed-palette-name">{item.label}</span>
+                          <span className="ed-palette-add" aria-hidden="true">
+                            +
+                          </span>
+                        </button>
+                      ))}
+                  </div>
+                ))}
+              </>
+            );
           })()}
         </div>
         <div className="ed-outline">
